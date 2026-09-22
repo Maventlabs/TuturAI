@@ -1,0 +1,60 @@
+# Dependencies and generated build output
+node_modules/
+.pnpm-store/
+.turbo/
+.next/
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+service-account*.json
+firebase-adminsdk-*.json
+
+# Local platform/tooling state
+.netlify/
+.firebase/
+.vercel/
+.cache/
+.DS_Store
+Thumbs.db
+
+# Test, browser, and local audit artifacts
+playwright-report/
+test-results/
+.playwright-mcp/
+screenshots/
+*.har
+*.log
+*.local
+
+# AI/model/media artifacts
+*.gguf
+*.safetensors
+*.bin
+*.wav
+*.mp3
+*.m4a
+*.webm
+models/
+__pycache__/
+.ipynb_checkpoints/
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.tmp

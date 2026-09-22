@@ -1,0 +1,178 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function hasRole(role) {
+      return signedIn() && userProfile().data.role == role;
+    }
+
+    function validUserProfile(data) {
+      return data.keys().hasOnly([
+          'id', 'email', 'displayName', 'school', 'role', 'className',
+          'subject', 'xp', 'level', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string
+        && (data.email == null || data.email is string)
+        && data.displayName is string
+        && data.displayName.size() <= 120
+        && data.school is string
+        && data.school.size() <= 160
+        && data.role in ['student', 'teacher']
+        && (data.className == null || data.className is string)
+        && (data.className == null || data.className.size() <= 120)
+        && (data.subject == null || data.subject is string)
+        && (data.subject == null || data.subject.size() <= 120)
+        && data.xp is int
+        && data.xp >= 0
+        && data.level is int
+        && data.level >= 1
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function validClassroom(data) {
+      return data.keys().hasOnly([
+          'name', 'description', 'school', 'teacherId', 'status',
+          'joinKeyHash', 'joinKeyRevoked', 'createdAt', 'updatedAt'
+        ])
+        && data.name is string
+        && data.name.size() >= 2
+        && data.name.size() <= 120
+        && (data.description == null || data.description is string)
+        && (data.description == null || data.description.size() <= 500)
+        && (data.school == null || data.school is string)
+        && (data.school == null || data.school.size() <= 160)
+        && data.teacherId is string
+        && data.status in ['active', 'archived']
+        && data.joinKeyHash is string
+        && data.joinKeyHash.size() == 64
+        && data.joinKeyRevoked is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function validMembership(data) {
+      return data.keys().hasOnly(['classId', 'studentId', 'status', 'joinedAt'])
+        && data.classId is string
+        && data.studentId is string
+        && data.status == 'active'
+        && data.joinedAt is timestamp;
+    }
+
+    function ownsClassroom(classroomId) {
+      return hasRole('teacher')
+        && get(/databases/$(database)/documents/classrooms/$(classroomId)).data.teacherId == request.auth.uid;
+    }
+
+    function isActiveMember(classroomId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/classMemberships/$(classroomId + '_' + request.auth.uid))
+        && get(/databases/$(database)/documents/classMemberships/$(classroomId + '_' + request.auth.uid)).data.studentId == request.auth.uid
+        && get(/databases/$(database)/documents/classMemberships/$(classroomId + '_' + request.auth.uid)).data.status == 'active';
+    }
+
+    function validAssignment(data) {
+      return data.keys().hasOnly([
+          'classId', 'title', 'instructions', 'dueAt', 'maxAttempts', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.classId is string
+        && data.title is string
+        && data.title.size() >= 2
+        && data.title.size() <= 160
+        && data.instructions is string
+        && data.instructions.size() >= 1
+        && data.instructions.size() <= 5000
+        && (data.dueAt == null || data.dueAt is timestamp)
+        && data.maxAttempts is int
+        && data.maxAttempts >= 1
+        && data.maxAttempts <= 10
+        && data.status in ['draft', 'published', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function validSubmission(data) {
+      return data.keys().hasOnly([
+          'assignmentId', 'studentId', 'attempt', 'status', 'isLate', 'teacherFeedback', 'submittedAt', 'updatedAt'
+        ])
+        && data.assignmentId is string
+        && data.studentId is string
+        && data.attempt is int
+        && data.attempt >= 0
+        && data.status in ['assigned', 'in_progress', 'submitted', 'pending_review', 'approved', 'returned']
+        && data.isLate is bool
+        && (data.teacherFeedback == null || data.teacherFeedback is string)
+        && (data.submittedAt == null || data.submittedAt is timestamp)
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && userId == request.auth.uid;
+      allow create: if signedIn()
+        && userId == request.auth.uid
+        && validUserProfile(request.resource.data)
+        && request.resource.data.role == 'student';
+      allow update: if signedIn()
+        && userId == request.auth.uid
+        && validUserProfile(request.resource.data)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    match /classrooms/{classroomId} {
+      allow read: if (hasRole('teacher') && resource.data.teacherId == request.auth.uid)
+        || isActiveMember(classroomId);
+      allow create: if hasRole('teacher')
+        && validClassroom(request.resource.data)
+        && request.resource.data.teacherId == request.auth.uid;
+      allow update: if ownsClassroom(classroomId)
+        && validClassroom(request.resource.data)
+        && request.resource.data.teacherId == resource.data.teacherId
+        && request.resource.data.joinKeyHash == resource.data.joinKeyHash
+        && request.resource.data.joinKeyRevoked == resource.data.joinKeyRevoked
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    match /classMemberships/{membershipId} {
+      allow read: if signedIn()
+        && validMembership(resource.data)
+        && (resource.data.studentId == request.auth.uid || ownsClassroom(resource.data.classId));
+      allow create, update, delete: if false;
+    }
+
+    match /assignments/{assignmentId} {
+      allow read: if signedIn()
+        && ((hasRole('teacher') && ownsClassroom(resource.data.classId))
+          || (resource.data.status == 'published' && isActiveMember(resource.data.classId)));
+      allow write: if false;
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if signedIn()
+        && (resource.data.studentId == request.auth.uid
+          || (hasRole('teacher')
+            && get(/databases/$(database)/documents/assignments/$(resource.data.assignmentId)).data.classId is string
+            && ownsClassroom(get(/databases/$(database)/documents/assignments/$(resource.data.assignmentId)).data.classId)));
+      allow write: if false;
+    }
+
+    match /questionBank/{questionId} {
+      allow read, write: if false;
+    }
+
+    match /questionAttempts/{attemptId} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,9 @@
+[build]
+  command = "pnpm --filter @tuturai/web build"
+  functions = "apps/functions/netlify"
+
+[functions]
+  node_bundler = "esbuild"
+
+[build.environment]
+  NODE_VERSION = "22"
