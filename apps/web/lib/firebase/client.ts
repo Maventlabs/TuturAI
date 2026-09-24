@@ -28,7 +28,9 @@ export function getFirebaseApp(): FirebaseApp {
 
 export function getFirebaseAuth(): Auth {
   const auth = getAuth(getFirebaseApp())
-  const emulatorHost = process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST
+  const emulatorHost = process.env.NODE_ENV === 'production'
+    ? undefined
+    : process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST
   if (emulatorHost && !authEmulatorConnected) {
     const [host, port = '9099'] = emulatorHost.split(':')
     connectAuthEmulator(auth, `http://${host}:${port}`, { disableWarnings: true })
@@ -39,7 +41,9 @@ export function getFirebaseAuth(): Auth {
 
 export function getFirebaseDb(): Firestore {
   const db = getFirestore(getFirebaseApp())
-  const emulatorHost = process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST
+  const emulatorHost = process.env.NODE_ENV === 'production'
+    ? undefined
+    : process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST
   if (emulatorHost && !firestoreEmulatorConnected) {
     const [host, port = '8080'] = emulatorHost.split(':')
     connectFirestoreEmulator(db, host, Number(port))

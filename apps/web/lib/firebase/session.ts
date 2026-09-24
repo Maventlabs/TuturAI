@@ -7,7 +7,7 @@ const SESSION_MAX_AGE_MILLISECONDS = SESSION_MAX_AGE_SECONDS * 1000
 const EMULATOR_SESSION_PREFIX = 'emulator.'
 
 function usesAuthEmulator() {
-  return Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST)
+  return process.env.NODE_ENV !== 'production' && Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST)
 }
 
 export interface FirebaseSessionUser {

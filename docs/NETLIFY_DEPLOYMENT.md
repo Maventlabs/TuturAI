@@ -36,6 +36,11 @@ The committed `netlify.toml` defines:
 Sensitive values must be entered in Netlify UI or CLI environment management,
 never in `netlify.toml`.
 
+Do not configure `FIREBASE_AUTH_EMULATOR_HOST`, `FIRESTORE_EMULATOR_HOST`,
+`NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST`, or
+`NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST` in Netlify production. Those
+variables are local-test-only and would route production traffic to localhost.
+
 ## Initial GitHub Push
 
 Run from the repository root after reviewing the staged file list:
@@ -70,9 +75,10 @@ Set production variables through the Netlify UI or CLI. Use the exact names from
 FIREBASE_ADMIN_PROJECT_ID
 FIREBASE_ADMIN_CLIENT_EMAIL
 FIREBASE_ADMIN_PRIVATE_KEY
-GOOGLE_DRIVE_CLIENT_ID
-GOOGLE_DRIVE_CLIENT_SECRET
-DRIVE_TOKEN_ENCRYPTION_KEY
+GOOGLE_OAUTH_CLIENT_ID
+GOOGLE_OAUTH_CLIENT_SECRET
+GOOGLE_OAUTH_REDIRECT_URI
+GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY
 AI_V1_BASE_URL
 AI_V1_API_KEY
 AI_STT_MODEL_ID
