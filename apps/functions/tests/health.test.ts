@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import health from './health'
+import health from '../netlify/health'
 
 describe('health function', () => {
   it('returns an operational function response', async () => {
