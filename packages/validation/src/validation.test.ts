@@ -17,9 +17,9 @@ describe('validateOnboardingInput', () => {
   })
 
   it('trims valid fields', () => {
-    expect(validateOnboardingInput({ displayName: '  Budi  ', school: ' SMA 1 ', role: 'student' })).toEqual({
+    expect(validateOnboardingInput({ displayName: '  Budi  ', school: ' SMA 1 ', role: 'student', className: ' XI IPA 2 ' })).toEqual({
       success: true,
-      data: { displayName: 'Budi', school: 'SMA 1', role: 'student' },
+      data: { displayName: 'Budi', school: 'SMA 1', role: 'student', className: 'XI IPA 2' },
     })
   })
 

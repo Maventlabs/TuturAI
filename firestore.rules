@@ -174,5 +174,9 @@ service cloud.firestore {
     match /questionAttempts/{attemptId} {
       allow read, write: if false;
     }
+
+    match /devices/{deviceId} {
+      allow read, write: if false;
+    }
   }
 }

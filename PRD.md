@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD)
 
 **Nama Proyek:** TuturAI  
-**Versi Dokumen:** v0.1  
-**Terakhir Diperbarui:** 22 September 2026  
+**Versi Dokumen:** v0.2
+**Terakhir Diperbarui:** 25 September 2026
 **Author:** Muhammad Yusuf Aditiya / Maventlabs  
 **Dibuat dengan:** AnyMD by Maventlabs
 
@@ -11,6 +11,28 @@
 > **Source of truth:** proposal LIDM TuturAI dipakai sebagai baseline produk/pedagogi; web dan repository aktif dipakai sebagai baseline implementasi; keputusan produk terbaru di PRD ini mengalahkan nama model/stack AI lama di proposal. Model AI harus tetap dapat diganti melalui konfigurasi.
 >
 > Target dokumen mengikuti template: ringkas tetapi lengkap, tanpa placeholder fungsional, dead interaction, atau simulated success.
+
+## Agent Execution Policy: Credential Gates
+
+**JANGAN BERHENTI SAMA SEKALI JIKA EMNG BUTUH CREDENTIAL SKIP/LEWATI DULU KERJAKAN YANG ADA DULU SAMPAI SEMUANYA SELESAI KLO GK SELESAI TUNDA DENGAN CARA MELEWATI TASK TERSEBUT SAMPAI SAYA MEMBERIKAN CREDETIAL YANG DI BUTUHKAN.**
+
+Operational interpretation:
+
+- Credential-gated work must be marked `deferred` with the exact missing provider, variable names, endpoint contract, and verification command.
+- Continue all independent implementation, tests, documentation, protocol schemas, local mocks, failure paths, security checks, and deployment configuration while a credential-gated task is deferred.
+- A deferred task must never be represented as successful, and a mock must never masquerade as a production provider.
+- Do not rerun a completed verification unless related code or configuration changed, or the previous command failed.
+- Do not leave a vague `blocked` note. Record the concrete handoff needed to resume the task.
+- Production deployment, irreversible migrations, credential rotation, and destructive operations remain explicit approval gates.
+
+## Readiness Accounting
+
+Track two separate values:
+
+- `Implementation readiness`: code, contracts, tests, security controls, deployment configuration, and local verification that do not require external provider confirmation.
+- `Production release readiness`: the complete product, including real provider execution, Netlify deployment, rollback, hardware-in-loop verification, and production monitoring.
+
+The implementation target is at least 80% before external credentials are supplied. Production release readiness cannot be marked green until real external confirmations exist.
 
 ---
 
@@ -205,14 +227,16 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 ### Phase 1: Foundation, Auth & Data Model
 **Terkait fitur:** Fitur 1
 
-- [ ] Pertahankan codebase aktif; rapikan environment dan Netlify deployment.
-- [ ] Setup Firebase Auth Google + email/password.
-- [ ] Implement onboarding permanent role dan RBAC.
-- [ ] Implement Firestore collections, indexes, security rules, emulator/dev configuration.
-- [ ] Implement shared TypeScript domain types dan API error envelope.
-- [ ] Tambahkan env schema; tidak ada secret/model ID hardcoded.
+- [x] Pertahankan codebase aktif; rapikan environment dan Netlify deployment.
+- [x] Setup Firebase Auth Google + email/password.
+- [x] Implement onboarding permanent role dan RBAC.
+- [x] Implement Firestore collections, indexes, security rules, emulator/dev configuration.
+- [x] Implement shared TypeScript domain types dan API error envelope.
+- [x] Tambahkan env schema; tidak ada secret/model ID hardcoded.
 
 **Anggap fase ini selesai kalau:** kedua role dapat register/login dan hanya mengakses data/route yang diizinkan.
+
+**Verification evidence (2026-09-22):** student dan teacher berhasil register email/password melalui Firebase cloud (`accounts:signUp` 200), menyelesaikan onboarding (`201`), membuat server session (`200`), dan masuk ke dashboard role masing-masing. Session cookie diverifikasi server-side dengan Firebase session cookie, bukan raw ID token. Logout mengembalikan user ke login; cross-role route guard mengarahkan `/guru` dan `/siswa`; wrong-role API mengembalikan `403 FORBIDDEN`; unauthenticated route mengarahkan ke login. Firestore emulator rules suite lulus 37 tests. Google popup UI tersedia dan provider gate tetap memerlukan akun/consent Google nyata untuk evidence login eksternal.
 
 ### Phase 2: Classroom, Student & Teacher Core
 **Terkait fitur:** Fitur 2, 4, 7
@@ -250,7 +274,7 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 
 **Konfigurasi development saat ini:** `apps/web/.env.local` memiliki konfigurasi `v1` untuk STT/LLM (`AI_V1_BASE_URL`, `AI_V1_API_KEY`, dan model ID terkait). `AI_LOCAL_BASE_URL` serta `AI_TTS_MODEL_ID` sengaja belum diisi karena OmniVoice/TTS self-hosted belum dibangun. Implementasi harus tetap menerima kondisi ini, fail closed bila TTS dipanggil sebelum provider tersedia, dan tidak mengarang audio atau score.
 
-**Status phase sebelum Phase 4:** fondasi Firebase/Firestore emulator, auth/session/onboarding, classroom, dan sebagian assignment/submission sudah diimplementasikan. Phase 1 cloud auth verification, Phase 2 durable dashboard/gamification, serta Phase 3 Google Drive OAuth/upload masih terbuka; Phase 4 checkpoint tidak boleh ditandai lulus sebelum acceptance criteria tersebut selesai atau berhenti jelas pada credential gate yang hanya membutuhkan input user.
+**Status phase sebelum Phase 4:** fondasi Firebase/Firestore emulator, auth/session/onboarding, classroom, durable dashboard/gamification, dan sebagian assignment/submission sudah diimplementasikan. Phase 1 cloud auth/rules verification dan Phase 2 classroom checkpoint lulus untuk email/password, role boundaries, teacher create, invalid join-key rejection, student join, serta teacher/student membership visibility. Google popup consent dan Google Drive OAuth/upload evidence tetap menjadi provider gate; Phase 4 checkpoint tidak boleh ditandai lulus sebelum authenticated speaking-session provider response dan Firestore assessment write terverifikasi.
 
 ### Phase 5: Offline-First & Sync
 **Terkait fitur:** Fitur 8

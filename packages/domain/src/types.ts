@@ -91,6 +91,7 @@ export interface AssessmentErrorMetadata {
 }
 
 export interface NormalizedAssessment extends AssessmentDimensions {
+  mode?: 'speaking' | 'pronunciation' | 'conversation'
   transcript: string
   feedback: string
   confidence: number | null
@@ -99,6 +100,8 @@ export interface NormalizedAssessment extends AssessmentDimensions {
 export interface Assessment extends NormalizedAssessment {
   id: string
   sessionId: string
+  studentId: string
+  questionId?: string
   error: AssessmentErrorMetadata | null
   createdAt: string
 }

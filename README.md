@@ -1,6 +1,6 @@
 # TuturAI
 
-[![Repository](https://img.shields.io/badge/repository-GitHub-181717?logo=github)](https://github.com/vetrns/TuturAI-Final)
+[![Repository](https://img.shields.io/badge/repository-GitHub-181717?logo=github)](https://github.com/Maventlabs/TuturAI)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-149eca?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript)](https://www.typescriptlang.org/)
@@ -40,7 +40,8 @@ and a replaceable server-side AI provider router.
 | `firebase` | Firestore rules, indexes, and Firebase scaffolding |
 | `tasks` | Sequential implementation plan and live progress checklist |
 | `docs` | Architecture, provider, and technical decision context |
-| `source/TuturAI` | Preserved source archive used during migration |
+| `source/TuturAI` | Preserved source archive used during migration; not the active release tree |
+| `hardware` | ESP32-S3 firmware and versioned device protocol (when enabled) |
 
 ## Requirements
 
@@ -142,4 +143,6 @@ See [`MUST.md`](MUST.md) for the persistent execution contract and
 
 ## License
 
-This repository is private project software. Licensing terms are not yet published.
+This is proprietary project software. See [`LICENSE`](LICENSE). No copying,
+redistribution, sublicensing, resale, or production use outside an authorized
+Maventlabs agreement is permitted.

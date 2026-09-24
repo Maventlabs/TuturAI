@@ -1,5 +1,7 @@
 [build]
+  base = "."
   command = "pnpm --filter @tuturai/web build"
+  publish = "apps/web/.next"
   functions = "apps/functions/netlify"
 
 [functions]
@@ -7,3 +9,28 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+[context.production]
+  command = "pnpm --filter @tuturai/web build"
+
+[context.deploy-preview]
+  command = "pnpm --filter @tuturai/web build"
+
+[context.branch-deploy]
+  command = "pnpm --filter @tuturai/web build"
+
+[dev]
+  command = "pnpm --filter @tuturai/web dev"
+  framework = "#custom"
+  targetPort = 3000
+  port = 8888
+
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(self), microphone=(self), geolocation=()"

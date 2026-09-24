@@ -43,6 +43,12 @@ export function validateOnboardingInput(input: unknown):
   if (subject !== undefined && subject.length > 120) {
     issues.push({ path: 'subject', message: 'Subject must be at most 120 characters' })
   }
+  if (role === 'student' && !className) {
+    issues.push({ path: 'className', message: 'Class is required for students' })
+  }
+  if (role === 'teacher' && !subject) {
+    issues.push({ path: 'subject', message: 'Subject is required for teachers' })
+  }
 
   if (issues.length > 0) return { success: false, issues }
   return {

@@ -8,9 +8,14 @@
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "test:e2e:speaking": "node apps/web/scripts/e2e-speaking-assessment.mjs",
+    "test:e2e:assignment": "node apps/web/scripts/e2e-assignment-lifecycle.mjs",
+    "test:e2e:teacher-analytics": "node apps/web/scripts/e2e-teacher-analytics-report.mjs",
+    "test:e2e:offline": "node apps/web/scripts/e2e-offline-sync.mjs"
   },
   "devDependencies": {
+    "playwright": "^1.63.0",
     "turbo": "2.11.2"
   }
 }

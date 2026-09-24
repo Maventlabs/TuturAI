@@ -28,6 +28,7 @@ firebase-adminsdk-*.json
 .firebase/
 .vercel/
 .cache/
+.eslintcache
 .DS_Store
 Thumbs.db
 
@@ -39,6 +40,8 @@ screenshots/
 *.har
 *.log
 *.local
+*-network.txt
+audit-*.png
 
 # AI/model/media artifacts
 *.gguf
@@ -51,6 +54,20 @@ screenshots/
 models/
 __pycache__/
 .ipynb_checkpoints/
+
+# ESP-IDF / PlatformIO generated output
+.pio/
+managed_components/
+sdkconfig
+sdkconfig.old
+build/
+bootloader/bootloader.bin
+partition_table/partition-table.bin
+*.elf
+*.map
+*.uf2
+*.hex
+*.dfu
 
 # Editor and OS files
 .idea/
