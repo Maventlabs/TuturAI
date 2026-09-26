@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { apiError, validateOnboardingInput } from '@tuturai/validation'
 import { createOrReadProfile } from '@/lib/firebase/onboarding'
 import { verifyIdToken } from '@/lib/firebase/session'
+import { readJsonBody } from '@/lib/api/request'
 
 function bearerToken(request: NextRequest) {
   const value = request.headers.get('authorization')
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(apiError('UNAUTHENTICATED', 'Unable to complete onboarding'), { status: 401 })
   }
 
-  const validation = validateOnboardingInput(await request.json())
+  const validation = validateOnboardingInput(await readJsonBody(request))
   if (!validation.success) {
     return NextResponse.json(apiError('VALIDATION_ERROR', 'Invalid onboarding input', validation.issues), { status: 400 })
   }

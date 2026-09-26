@@ -15,6 +15,13 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'text/plain',
 ])
+const MIME_EXTENSIONS: Record<string, string> = {
+  'application/pdf': '.pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'text/plain': '.txt',
+}
 
 export class DriveConfigurationError extends Error {
   constructor(message = 'Google Drive is not configured') {
@@ -27,6 +34,8 @@ export function validateDriveFile(input: { name: string; mimeType: string; size:
   const name = input.name.trim().replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
   if (!name || name.length > 180) throw new Error('INVALID_FILE_NAME')
   if (!ALLOWED_MIME_TYPES.has(input.mimeType)) throw new Error('UNSUPPORTED_FILE_TYPE')
+  const expectedExtension = MIME_EXTENSIONS[input.mimeType]
+  if (!expectedExtension || !name.toLowerCase().endsWith(expectedExtension)) throw new Error('INVALID_FILE_EXTENSION')
   if (!Number.isSafeInteger(input.size) || input.size < 1 || input.size > DRIVE_MAX_FILE_BYTES) {
     throw new Error('FILE_TOO_LARGE')
   }

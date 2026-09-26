@@ -12,7 +12,12 @@ function isAudioFile(value: FormDataEntryValue | null): value is File {
 }
 
 function providerOrUnavailable() {
-  const config = getAiEnv().ai.tts
+  let config: ReturnType<typeof getAiEnv>['ai']['tts']
+  try {
+    config = getAiEnv().ai.tts
+  } catch {
+    return null
+  }
   if (!config.baseUrl || config.route !== 'local') return null
   return new HttpVoiceProvider({
     baseUrl: config.baseUrl,

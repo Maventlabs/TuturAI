@@ -5,6 +5,7 @@ import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
 import { consumeJoinAttempt, hashJoinKey } from '@/lib/classrooms'
 import { getAdminDb } from '@/lib/firebase/admin'
+import { readJsonBody } from '@/lib/api/request'
 
 export async function POST(request: NextRequest) {
   const auth = await requireRole('student')
@@ -19,7 +20,8 @@ export async function POST(request: NextRequest) {
     throw cause
   }
 
-  const validation = validateJoinKey((await request.json()).joinKey)
+  const body = await readJsonBody(request)
+  const validation = validateJoinKey(body && typeof body === 'object' ? (body as { joinKey?: unknown }).joinKey : undefined)
   if (!validation.success) {
     return NextResponse.json(apiError('VALIDATION_ERROR', validation.message), { status: 400 })
   }

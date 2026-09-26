@@ -1,5 +1,6 @@
 import { chromium } from 'playwright'
 import { getApps, initializeApp } from 'firebase-admin/app'
+import { getAuth } from 'firebase-admin/auth'
 import { getFirestore, Timestamp } from 'firebase-admin/firestore'
 
 const baseURL = process.env.BASE_URL ?? 'http://localhost:3000'
@@ -11,6 +12,7 @@ if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_
 }
 
 const app = getApps()[0] ?? initializeApp({ projectId })
+const auth = getAuth(app)
 const db = getFirestore(app)
 const now = Timestamp.now()
 await db.collection('questionBank').doc(questionId).set({
@@ -46,6 +48,7 @@ try {
   await page.getByRole('heading', { name: 'thorough', exact: true }).waitFor()
 
   const idempotencyKey = `e2e-pronunciation-${Date.now()}`
+  const student = await auth.getUserByEmail('nina.wijaya@demo.example.test')
   const response = await page.request.post(`${baseURL}/api/student/practice-attempts`, {
     headers: { 'content-type': 'application/json', 'Idempotency-Key': idempotencyKey },
     data: { questionId, contentType: 'pronunciation', idempotencyKey },
@@ -56,7 +59,24 @@ try {
     throw new Error(`Pronunciation returned an invalid score state: ${JSON.stringify(payload.data)}`)
   }
 
-  console.log(JSON.stringify({ ok: true, route: '/siswa/pronunciation', assessmentStatus: payload.data.assessmentStatus, score: payload.data.score }))
+  const stored = await db.collection('practiceAttempts').doc(payload.data.id).get()
+  if (!stored.exists || stored.data()?.studentId !== student.uid || stored.data()?.questionId !== questionId || stored.data()?.assessmentStatus !== 'provider_unavailable' || stored.data()?.score !== null) {
+    throw new Error(`Pronunciation provider-unavailable state was not durably persisted: ${JSON.stringify(stored.data())}`)
+  }
+
+  const retryResponse = await page.request.post(`${baseURL}/api/student/practice-attempts`, {
+    headers: { 'content-type': 'application/json', 'Idempotency-Key': idempotencyKey },
+    data: { questionId, contentType: 'pronunciation', idempotencyKey },
+  })
+  if (retryResponse.status() !== 201) throw new Error(`Expected idempotent retry 201, received ${retryResponse.status()}`)
+  const retryPayload = await retryResponse.json()
+  const studentAttempts = await db.collection('practiceAttempts').where('studentId', '==', student.uid).get()
+  const matchingAttempts = studentAttempts.docs.filter((attempt) => attempt.data().idempotencyKey === idempotencyKey)
+  if (retryPayload.data?.id !== payload.data.id || matchingAttempts.length !== 1) {
+    throw new Error(`Pronunciation retry created a duplicate attempt: ${JSON.stringify({ firstId: payload.data.id, retryId: retryPayload.data?.id, matchingAttempts: matchingAttempts.length })}`)
+  }
+
+  console.log(JSON.stringify({ ok: true, route: '/siswa/pronunciation', assessmentStatus: payload.data.assessmentStatus, score: payload.data.score, durableReadBack: true, idempotentRetry: true }))
 } finally {
   await context.close()
   await browser.close()

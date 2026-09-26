@@ -3,6 +3,7 @@ import { validateQuestionAnswerInput, type LearningContentType, type QuestionLev
 import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
 import { answerQuestion, listPublishedQuestions, listStudentMasteredQuestionIds } from '@/lib/question-bank'
+import { readJsonBody } from '@/lib/api/request'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireRole('student')
   if (!auth.ok) return auth.response
 
-  const validation = validateQuestionAnswerInput(await request.json())
+  const validation = validateQuestionAnswerInput(await readJsonBody(request))
   if (!validation.success) {
     return NextResponse.json(apiError('VALIDATION_ERROR', 'Invalid answer input', validation.issues), { status: 400 })
   }
@@ -41,6 +42,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === 'QUESTION_NOT_FOUND') {
       return NextResponse.json(apiError('NOT_FOUND', 'Question not found'), { status: 404 })
+    }
+    if (error instanceof Error && error.message === 'QUESTION_TYPE_NOT_ANSWERABLE') {
+      return NextResponse.json(apiError('VALIDATION_ERROR', 'This activity requires its dedicated assessment flow'), { status: 422 })
     }
     throw error
   }

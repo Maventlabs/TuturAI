@@ -24,6 +24,9 @@ type ClassroomMember = {
   name: string
   email: string | null
   joinedAt: string
+  level: number | null
+  streak: number | null
+  speakingScore: number | null
 }
 
 type StudentRow = ClassroomMember & {
@@ -106,8 +109,13 @@ export default function StudentsPage() {
         return asc ? result : -result
       }
 
-      // These metrics are not part of the classroom member API response.
-      return left.name.localeCompare(right.name)
+      const leftValue = sortKey === 'speakingScore' ? left.speakingScore : sortKey === 'level' ? left.level : left.streak
+      const rightValue = sortKey === 'speakingScore' ? right.speakingScore : sortKey === 'level' ? right.level : right.streak
+      if (leftValue === null && rightValue === null) return left.name.localeCompare(right.name)
+      if (leftValue === null) return 1
+      if (rightValue === null) return -1
+      const result = rightValue - leftValue
+      return asc ? -result : result
     })
   }, [query, classFilter, sortKey, asc, students])
 
@@ -220,9 +228,9 @@ function StudentTableRow({ student }: { student: StudentRow }) {
         </div>
       </td>
       <td className="px-4 py-3 text-muted-foreground">{student.className}</td>
-      <td className="px-4 py-3"><ScoreCell /></td>
-      <td className="px-4 py-3"><UnavailableMetric label="Level" /></td>
-      <td className="px-4 py-3"><UnavailableMetric label="Streak" icon={<Flame className="h-3.5 w-3.5" />} /></td>
+       <td className="px-4 py-3"><ScoreCell score={student.speakingScore} /></td>
+       <td className="px-4 py-3"><MetricCell value={student.level} label="Level" /></td>
+       <td className="px-4 py-3"><MetricCell value={student.streak} label="Streak" icon={<Flame className="h-3.5 w-3.5" />} /></td>
       <td className="px-4 py-3">
         <span className="flex items-center gap-1.5 text-xs font-medium text-success">
           <Circle className="h-2 w-2 fill-current text-success" /> Aktif
@@ -239,14 +247,14 @@ function StudentMobileRow({ student }: { student: StudentRow }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="truncate font-medium text-foreground">{student.name}</p>
-          <span className="text-sm text-muted-foreground">Skor tidak tersedia</span>
+           <span className="text-sm text-muted-foreground">{student.speakingScore === null ? 'Skor tidak tersedia' : `${student.speakingScore}/100`}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>{student.className}</span>
           <span aria-hidden="true">•</span>
-          <span>Level tidak tersedia</span>
+           <span>{student.level === null ? 'Level tidak tersedia' : `Level ${student.level}`}</span>
           <span aria-hidden="true">•</span>
-          <span>Streak tidak tersedia</span>
+           <span>{student.streak === null ? 'Streak tidak tersedia' : `${student.streak} hari streak`}</span>
         </div>
       </div>
     </div>
@@ -271,19 +279,19 @@ function SortBtn({ label, onClick }: { label: string; onClick: () => void }) {
   )
 }
 
-function ScoreCell() {
+function ScoreCell({ score }: { score: number | null }) {
   return (
     <div className="text-muted-foreground">
-      <span>Skor tidak tersedia</span>
+      <span>{score === null ? 'Skor tidak tersedia' : `${score}/100`}</span>
     </div>
   )
 }
 
-function UnavailableMetric({ label, icon }: { label: string; icon?: ReactNode }) {
+function MetricCell({ value, label, icon }: { value: number | null; label: string; icon?: ReactNode }) {
   return (
     <span className="flex items-center gap-1 text-muted-foreground">
       {icon}
-      <Badge variant="secondary">{label} tidak tersedia</Badge>
+      <Badge variant="secondary">{value === null ? `${label} tidak tersedia` : value}</Badge>
     </span>
   )
 }

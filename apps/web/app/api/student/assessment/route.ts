@@ -39,12 +39,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(apiError('VALIDATION_ERROR', 'A valid sessionId and audio file are required'), { status: 400 })
   }
 
-  const config = getAiEnv().ai
-  if (!config.stt.baseUrl || !config.llm.baseUrl) {
-    return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Speech assessment providers are not configured'), { status: 503 })
-  }
-
   try {
+    let config: ReturnType<typeof getAiEnv>['ai']
+    try {
+      config = getAiEnv().ai
+    } catch {
+      return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Speech assessment providers are not configured'), { status: 503 })
+    }
+    if (!config.stt.baseUrl || !config.llm.baseUrl) {
+      return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Speech assessment providers are not configured'), { status: 503 })
+    }
     const requestAudio = { audio: new Uint8Array(await audio.arrayBuffer()), mimeType: audio.type, filename: audio.name }
     const transcription = await new HttpSttProvider({
       baseUrl: config.stt.baseUrl,

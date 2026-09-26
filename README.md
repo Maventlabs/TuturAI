@@ -13,9 +13,10 @@ workflows, teacher analytics, Google Drive assignment files, offline recovery,
 and a replaceable server-side AI provider router.
 
 > Project status: active implementation. Read [`PRD.md`](PRD.md),
-> [`MUST.md`](MUST.md), and [`tasks/todo.md`](tasks/todo.md) before making
-> changes. Incomplete external integrations must report their real state rather
-> than simulate success.
+> [`AGENTS.md`](AGENTS.md), [`MUST.md`](MUST.md), and [`EXECUTION.md`](EXECUTION.md)
+> before making changes. `EXECUTION.md` is the only runtime status source.
+> Incomplete external integrations must report their real state rather than
+> simulate success.
 
 ## Product Scope
 
@@ -38,7 +39,8 @@ and a replaceable server-side AI provider router.
 | `packages/validation` | Shared input validation and API error contracts |
 | `packages/config` | Shared TypeScript/tooling configuration |
 | `firebase` | Firestore rules, indexes, and Firebase scaffolding |
-| `tasks` | Sequential implementation plan and live progress checklist |
+| `EXECUTION.md` | Canonical phase, task, evidence, blocker, and release state |
+| `tasks` | Historical implementation plans and audit references |
 | `docs` | Architecture, provider, and technical decision context |
 | `source/TuturAI` | Preserved source archive used during migration; not the active release tree |
 | `hardware` | ESP32-S3 firmware and versioned device protocol (when enabled) |
@@ -130,7 +132,8 @@ complete, verify:
 - No dead interaction, placeholder success, fabricated score, or leaked secret.
 
 See [`MUST.md`](MUST.md) for the persistent execution contract and
-[`tasks/todo.md`](tasks/todo.md) for the current phase status.
+[`EXECUTION.md`](EXECUTION.md) for the current phase and task status. Files under
+`tasks/` are retained as historical evidence and are not runtime trackers.
 
 ## Security Notes
 

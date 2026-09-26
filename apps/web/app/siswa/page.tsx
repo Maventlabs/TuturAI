@@ -56,6 +56,9 @@ type DashboardInsights = {
 }
 
 export default function StudentDashboard() {
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(() => (
+    typeof window === 'undefined' ? null : window.localStorage.getItem('tuturai.activeClassroomId')
+  ))
   const [profile, setProfile] = useState<StudentProfile | null>(null)
   const [profileError, setProfileError] = useState(false)
   const [assignments, setAssignments] = useState<DashboardAssignment[]>([])
@@ -67,7 +70,8 @@ export default function StudentDashboard() {
 
     async function loadProfile() {
       try {
-        const response = await fetch('/api/student/dashboard', { cache: 'no-store' })
+        const query = selectedClassroomId ? `?classroomId=${encodeURIComponent(selectedClassroomId)}` : ''
+        const response = await fetch(`/api/student/dashboard${query}`, { cache: 'no-store' })
         if (!response.ok) throw new Error('PROFILE_LOAD_FAILED')
          const payload = (await response.json()) as { data?: { profile?: StudentProfile; assignments?: DashboardAssignment[]; leaderboard?: LeaderboardRow[]; insights?: DashboardInsights } }
         if (!payload.data?.profile || payload.data.profile.level < 1 || payload.data.profile.xp < 0) {
@@ -88,7 +92,7 @@ export default function StudentDashboard() {
     return () => {
       active = false
     }
-  }, [])
+  }, [selectedClassroomId])
 
   const stats = [
     { label: 'Level', value: profile?.level ?? null, icon: Star, tone: 'brand' },
@@ -121,7 +125,13 @@ export default function StudentDashboard() {
         </Button>
       </div>
 
-      <ClassroomMembershipPanel />
+      <ClassroomMembershipPanel
+        selectedClassroomId={selectedClassroomId}
+        onSelectedClassroom={(classroomId) => {
+          window.localStorage.setItem('tuturai.activeClassroomId', classroomId)
+          setSelectedClassroomId(classroomId)
+        }}
+      />
 
       {/* Stat cards */}
       <Stagger className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -207,7 +217,7 @@ function LeaderboardCard({ rows, currentStudentId }: { rows: LeaderboardRow[]; c
     <Card className="p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-heading text-base font-bold text-foreground">Top Kelas</h2>
-        <Link href="/siswa/leaderboard" className="text-xs font-semibold text-primary hover:underline">Lihat semua</Link>
+        <Link href="/siswa/leaderboard" className="inline-flex min-h-6 items-center text-xs font-semibold text-primary hover:underline">Lihat semua</Link>
       </div>
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">Leaderboard tersedia setelah kamu bergabung ke classroom.</p>
@@ -241,7 +251,7 @@ function DataPendingCard({
     <Card className="p-5" role="status">
       <div className="flex items-center justify-between gap-4">
         <h2 className="font-heading text-base font-bold text-foreground">{title}</h2>
-        {href && <Link href={href} className="text-xs font-semibold text-primary hover:underline">Buka</Link>}
+        {href && <Link href={href} className="inline-flex min-h-6 items-center text-xs font-semibold text-primary hover:underline">Buka</Link>}
       </div>
       {assignments && assignments.length > 0 ? (
         <div className="mt-3 space-y-2">
@@ -262,13 +272,18 @@ function DataPendingCard({
   )
 }
 
-function ClassroomMembershipPanel() {
+function ClassroomMembershipPanel({
+  selectedClassroomId,
+  onSelectedClassroom,
+}: {
+  selectedClassroomId: string | null
+  onSelectedClassroom: (classroomId: string) => void
+}) {
   const [classrooms, setClassrooms] = useState<Classroom[]>([])
   const [joinKey, setJoinKey] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
-  const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null)
 
   useEffect(() => {
     void load()
@@ -282,7 +297,7 @@ function ClassroomMembershipPanel() {
     }
     const payload = await response.json()
     setClassrooms(payload.data)
-    setSelectedClassroomId((current) => current ?? payload.data[0]?.id ?? null)
+    if (!selectedClassroomId && payload.data[0]?.id) onSelectedClassroom(payload.data[0].id)
     setLoading(false)
   }
 
@@ -322,14 +337,14 @@ function ClassroomMembershipPanel() {
       {!loading && classrooms.length > 0 && (
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
-            {classrooms.map((classroom) => <Badge key={classroom.id} variant={classroom.id === selectedClassroomId ? 'default' : 'secondary'}>{classroom.name}</Badge>)}
+             {classrooms.map((classroom) => <Badge key={classroom.id} variant={classroom.id === selectedClassroomId ? 'default' : 'secondary'}>{classroom.name}</Badge>)}
           </div>
           <label className="flex items-center gap-2 text-sm font-medium">
             <span className="text-muted-foreground">Kelas aktif</span>
             <select
               aria-label="Pilih classroom aktif"
               value={selectedClassroomId ?? ''}
-              onChange={(event) => setSelectedClassroomId(event.target.value)}
+               onChange={(event) => onSelectedClassroom(event.target.value)}
               className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
             >
               {classrooms.map((classroom) => <option key={classroom.id} value={classroom.id}>{classroom.name}</option>)}

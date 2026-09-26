@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiError } from '@tuturai/validation'
 import { createSessionCookie, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/firebase/session'
+import { readJsonBody } from '@/lib/api/request'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { idToken?: unknown }
+    const raw = await readJsonBody(request)
+    const body = raw && typeof raw === 'object' ? raw as { idToken?: unknown } : {}
     if (typeof body.idToken !== 'string' || !body.idToken.trim()) {
       return NextResponse.json(apiError('VALIDATION_ERROR', 'Firebase ID token is required'), { status: 400 })
     }

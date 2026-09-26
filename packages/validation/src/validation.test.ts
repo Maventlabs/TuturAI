@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateOnboardingInput } from './validation'
+import { validateOnboardingInput, validateProfileUpdateInput } from './validation'
 
 describe('validateOnboardingInput', () => {
   it('keeps role-specific onboarding fields when valid', () => {
@@ -38,6 +38,32 @@ describe('validateOnboardingInput', () => {
         { path: 'displayName', message: 'Display name must be 2-120 characters' },
         { path: 'school', message: 'School must be 2-160 characters' },
         { path: 'role', message: 'Role must be student or teacher' },
+      ],
+    })
+  })
+})
+
+describe('validateProfileUpdateInput', () => {
+  it('trims editable profile fields', () => {
+    expect(validateProfileUpdateInput({ displayName: '  Budi  ', school: ' SMA 1 ' })).toEqual({
+      success: true,
+      data: { displayName: 'Budi', school: 'SMA 1' },
+    })
+  })
+
+  it('rejects role and progress fields instead of accepting client mutations', () => {
+    expect(validateProfileUpdateInput({ displayName: 'Budi', school: 'SMA 1', role: 'teacher', xp: 9999 })).toEqual({
+      success: false,
+      issues: [{ path: '', message: 'Only displayName and school can be updated' }],
+    })
+  })
+
+  it('rejects undersized profile fields', () => {
+    expect(validateProfileUpdateInput({ displayName: 'B', school: 'X' })).toEqual({
+      success: false,
+      issues: [
+        { path: 'displayName', message: 'Display name must be 2-120 characters' },
+        { path: 'school', message: 'School must be 2-160 characters' },
       ],
     })
   })

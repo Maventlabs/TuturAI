@@ -2,7 +2,10 @@
 
 Status values: `present-ui`, `partial`, `missing`, `blocked`, `not-verifiable`.
 
-> Historical audit baseline. Current implementation status and phase gates are tracked in `tasks/todo.md` and `tasks/plan.md`; do not use the original pre-migration statuses below as proof that implemented Firebase/Firestore slices are still mock-only.
+> Historical audit baseline. Current implementation status and phase gates are
+> tracked in [`../EXECUTION.md`](../EXECUTION.md); do not use the original
+> pre-migration statuses below as proof that implemented Firebase/Firestore
+> slices are still mock-only.
 
 | PRD area | Existing evidence | Current status | Required replacement / verification |
 |---|---|---|---|

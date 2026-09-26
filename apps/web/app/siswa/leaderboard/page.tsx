@@ -26,7 +26,9 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     let active = true
-    fetch('/api/student/dashboard', { cache: 'no-store' })
+    const classroomId = window.localStorage.getItem('tuturai.activeClassroomId')
+    const query = classroomId ? `?classroomId=${encodeURIComponent(classroomId)}` : ''
+    fetch(`/api/student/dashboard${query}`, { cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) throw new Error('LEADERBOARD_LOAD_FAILED')
         return response.json() as Promise<{ data?: { profile?: { id: string }; leaderboard?: LeaderboardRow[] } }>

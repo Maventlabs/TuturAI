@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   }))
   const assessments: AnalyticsAssessment[] = assessmentSnapshots.flatMap((snapshot) => snapshot.docs.map((doc) => {
     const data = doc.data()
-    return { studentId: data.studentId, overall: data.overall, createdAt: millis(data.createdAt) }
+    return { studentId: data.studentId, overall: data.overall, fluency: data.fluency, createdAt: millis(data.createdAt) }
   }))
 
   const requestedPeriod = new URL(request.url).searchParams.get('period')

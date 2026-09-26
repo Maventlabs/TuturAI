@@ -23,10 +23,41 @@ try {
   await page.getByRole('button', { name: 'Masuk', exact: true }).click()
   await page.waitForURL((url) => url.pathname === '/dashboard' || url.pathname.includes('/guru'), { timeout: 15_000 })
 
+  const leaderboard = await page.request.get(`${baseURL}/api/teacher/leaderboard`)
+  if (leaderboard.status() !== 200) throw new Error(`Expected teacher leaderboard 200, received ${leaderboard.status()}`)
+  const leaderboardPayload = await readJSON(leaderboard)
+  if (!Array.isArray(leaderboardPayload.data) || leaderboardPayload.data.some((row, index, rows) => row.rank !== index + 1 || (index > 0 && rows[index - 1].xp < row.xp))) {
+    throw new Error(`Teacher leaderboard was not ordered by durable XP: ${JSON.stringify(leaderboardPayload)}`)
+  }
+  await page.goto(`${baseURL}/guru/leaderboard`)
+  await page.getByRole('heading', { name: 'Papan Peringkat', exact: true }).waitFor()
+
+  const classrooms = await page.request.get(`${baseURL}/api/classrooms`)
+  const classroomPayload = await readJSON(classrooms)
+  const classroomId = classroomPayload.data?.[0]?.id
+  if (!classroomId) throw new Error('Teacher fixture returned no classroom for student list')
+  const members = await page.request.get(`${baseURL}/api/classrooms/${classroomId}/members`)
+  if (members.status() !== 200) throw new Error(`Expected classroom members 200, received ${members.status()}`)
+  const membersPayload = await readJSON(members)
+  if (!Array.isArray(membersPayload.data) || membersPayload.data.length === 0) throw new Error('Teacher classroom members did not read back')
+  await page.goto(`${baseURL}/guru/siswa`)
+  await page.getByRole('heading', { name: 'Daftar Siswa', exact: true }).waitFor()
+  await page.getByText(membersPayload.data[0].name, { exact: true }).first().waitFor()
+
   await page.goto(`${baseURL}/guru/pengaturan`)
   await page.getByRole('heading', { name: 'Pengaturan', exact: true }).waitFor()
   const settingsBody = await page.locator('main').innerText()
   if (!/Google Drive/i.test(settingsBody)) throw new Error('Teacher settings did not render Google Drive integration')
+
+  const preferences = await page.request.get(`${baseURL}/api/teacher/preferences`)
+  if (preferences.status() !== 200) throw new Error(`Expected teacher preferences 200, received ${preferences.status()}`)
+  const savedPreferences = { submissions: false, lowScore: true, weekly: true, device: false }
+  const preferenceUpdate = await page.request.patch(`${baseURL}/api/teacher/preferences`, { data: savedPreferences })
+  if (preferenceUpdate.status() !== 200) throw new Error(`Expected teacher preferences update 200, received ${preferenceUpdate.status()}`)
+  const preferenceReadBack = await (await page.request.get(`${baseURL}/api/teacher/preferences`)).json()
+  if (JSON.stringify(preferenceReadBack.data) !== JSON.stringify(savedPreferences)) {
+    throw new Error(`Teacher preferences did not read back: ${JSON.stringify(preferenceReadBack)}`)
+  }
 
   const driveStatus = await page.request.get(`${baseURL}/api/integrations/google-drive/status`)
   if (![200, 501].includes(driveStatus.status())) {
@@ -70,6 +101,9 @@ try {
   console.log(JSON.stringify({
     ok: true,
     driveStatus: driveStatus.status(),
+    preferences: 'read-back',
+    leaderboard: 'xp-order-and-ui-route',
+    studentList: 'members-read-back-and-ui-route',
     uploadValidationStatus: uploadWithoutFile.status(),
     deviceCount: devicePayload.data.length,
     deviceValidationStatus: invalidRegistration.status(),

@@ -1,25 +1,24 @@
 # MUST.md - Persistent Project Rules
 
-This file is the second mandatory project reference after `PRD.md` and before
-implementation work. It must be read continuously throughout the session,
-including after context compaction.
+This file is the project operating contract. Read `PRD.md`, `AGENTS.md`, and
+`EXECUTION.md` before implementation and reread this file after context
+compaction. `EXECUTION.md` is the only runtime status source.
 
 ## Execution Order
 
-Continue work through **Phase 3, 4, 5, 6, 7, 8, and 9 in order without
-skipping anything**. Before each phase, read and use as primary references:
+Continue through the phases in `EXECUTION.md` in order without skipping anything.
+Before each phase, read and use as primary references:
 
 1. `PRD.md`.
-2. `MUST.md`.
-3. `tasks/todo.md`.
-4. `tasks/plan.md`.
-5. Every relevant `.md` file in the repository.
+2. `AGENTS.md`.
+3. `MUST.md`.
+4. `EXECUTION.md`.
+5. Relevant implementation and reference files only.
 
-Read the complete phase and each sub-phase, including `2.4`, `3.1`, `3.2`,
-and later numbered items. Do not advance, skip a sub-phase, or mark a task
-complete until its implementation and testing are actually complete. Update
-`tasks/todo.md` immediately after every task or sub-phase so it reflects the
-actual repository state.
+Do not advance, skip a task, or mark a task complete until its implementation and
+testing are actually complete. Update `EXECUTION.md` immediately after every task
+or phase transition so it reflects the actual repository state. Retained files in
+`tasks/` are historical and must not be used as the execution lock.
 
 ## Implementation Contract
 

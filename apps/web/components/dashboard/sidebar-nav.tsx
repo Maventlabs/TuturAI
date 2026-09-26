@@ -28,6 +28,7 @@ export function SidebarNav({ items, collapsed, onNavigate }: SidebarNavProps) {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={active ? 'page' : undefined}
             onClick={onNavigate}
             title={collapsed ? item.label : undefined}
             className={cn(

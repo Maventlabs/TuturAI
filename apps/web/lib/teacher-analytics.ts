@@ -1,6 +1,6 @@
 export type AnalyticsClassroom = { id: string; name: string; studentCount: number }
 export type AnalyticsAttempt = { studentId: string; isCorrect?: boolean; createdAt?: string | number; skill?: string }
-export type AnalyticsAssessment = { studentId: string; overall?: number; createdAt?: string | number }
+export type AnalyticsAssessment = { studentId: string; overall?: number; fluency?: number; createdAt?: string | number }
 export type AnalyticsPeriod = '7d' | '30d' | 'all'
 
 function timestamp(value: string | number | undefined) {
@@ -26,6 +26,9 @@ export function buildTeacherAnalytics(input: {
   const correct = attempts.filter((attempt) => attempt.isCorrect === true).length
   const assessedScores = assessments
     .map((assessment) => assessment.overall)
+    .filter((score): score is number => typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100)
+  const fluencyScores = assessments
+    .map((assessment) => assessment.fluency)
     .filter((score): score is number => typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100)
   const bySkill = new Map<string, { attempts: number; correct: number; errors: number }>()
   for (const attempt of attempts) {
@@ -64,6 +67,11 @@ export function buildTeacherAnalytics(input: {
       .filter(([, value]) => value.errors > 0)
       .map(([skill, value]) => ({ skill, errors: value.errors, attempts: value.attempts }))
       .sort((left, right) => right.errors - left.errors),
+    fluencyDistribution: [
+      { label: '0-59', count: fluencyScores.filter((score) => score < 60).length },
+      { label: '60-79', count: fluencyScores.filter((score) => score >= 60 && score < 80).length },
+      { label: '80-100', count: fluencyScores.filter((score) => score >= 80).length },
+    ],
     classrooms: input.classrooms,
     speaking: {
       available: assessedScores.length > 0,

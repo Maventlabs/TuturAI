@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server'
 import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
 import { regenerateTeacherJoinKey, revokeTeacherJoinKey } from '@/lib/classrooms'
+import { readJsonBody } from '@/lib/api/request'
 
 type RouteContext = { params: Promise<{ classroomId: string }> }
 
 export async function POST(request: Request, context: RouteContext) {
   const auth = await requireRole('teacher')
   if (!auth.ok) return auth.response
-  const body = await request.json() as { action?: unknown }
+  const rawBody = await readJsonBody(request)
+  const body = rawBody && typeof rawBody === 'object' ? rawBody as { action?: unknown } : {}
   if (body.action !== 'regenerate' && body.action !== 'revoke') {
     return NextResponse.json(apiError('VALIDATION_ERROR', 'Action must be regenerate or revoke'), { status: 400 })
   }

@@ -13,7 +13,7 @@ import { Waveform } from '@/components/dashboard/waveform'
 import { useMicrophone } from '@/hooks/use-microphone'
 import { cn } from '@/lib/utils'
 import { CompletionDialog } from '@/components/dashboard/completion-dialog'
-import { enqueuePendingMutation } from '@/lib/offline/offline-db'
+import { deleteOfflineRecord, enqueuePendingMutation, putOfflineRecord, OFFLINE_STORES } from '@/lib/offline/offline-db'
 
 interface Msg {
   id: string
@@ -42,6 +42,7 @@ export default function PercakapanPage() {
   const [playingTutorVoice, setPlayingTutorVoice] = useState(false)
   const [sessionId] = useState(() => crypto.randomUUID())
   const submittedAudio = useRef<Blob | null>(null)
+  const assessingRef = useRef(false)
   const tutorAudio = useRef<HTMLAudioElement | null>(null)
   const tutorAudioUrl = useRef<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -73,33 +74,49 @@ export default function PercakapanPage() {
   }, [])
 
   useEffect(() => {
-    if (!mic.audioBlob || mic.audioBlob === submittedAudio.current || !selected || recording || assessing) return
+    if (!mic.audioBlob || mic.audioBlob === submittedAudio.current || !selected || recording || assessingRef.current) return
     submittedAudio.current = mic.audioBlob
     const controller = new AbortController()
     const submit = async () => {
+      assessingRef.current = true
       setAssessing(true)
       setProviderMessage('Menganalisis jawaban suara...')
       const form = new FormData()
-      form.set('sessionId', crypto.randomUUID())
+      const assessmentSessionId = crypto.randomUUID()
+      form.set('sessionId', assessmentSessionId)
       form.set('mode', 'conversation')
       form.set('expectedText', selected.prompt)
       form.set('audio', mic.audioBlob as Blob, 'conversation.webm')
       try {
+        await putOfflineRecord(OFFLINE_STORES.audioQueue, assessmentSessionId, mic.audioBlob)
         const response = await fetch('/api/student/assessment', { method: 'POST', body: form, signal: controller.signal })
         const payload = await response.json() as { data?: Assessment; error?: { message?: string } }
         if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? 'Penilaian percakapan gagal.')
-         setAssessment(payload.data)
+         await deleteOfflineRecord(OFFLINE_STORES.audioQueue, assessmentSessionId)
+          setAssessment(payload.data)
          setShowCompletion(true)
          setProviderMessage(`Skor percakapan: ${payload.data.overall}/100. ${payload.data.feedback}`)
       } catch (cause) {
-        if (!controller.signal.aborted) setProviderMessage(cause instanceof Error ? cause.message : 'Penilaian percakapan gagal. Coba lagi.')
+        if (!controller.signal.aborted) {
+          if (cause instanceof TypeError || !navigator.onLine) {
+            await enqueuePendingMutation({
+              operation: 'assessment-audio',
+              payload: { sessionId: assessmentSessionId, mode: 'conversation', expectedText: selected.prompt, audio: mic.audioBlob },
+              idempotencyKey: assessmentSessionId,
+            })
+            setProviderMessage('Audio disimpan di antrean offline dan akan dinilai saat koneksi kembali.')
+          } else {
+            setProviderMessage(cause instanceof Error ? cause.message : 'Penilaian percakapan gagal. Coba lagi.')
+          }
+        }
       } finally {
+        assessingRef.current = false
         if (!controller.signal.aborted) setAssessing(false)
       }
     }
     void submit()
     return () => controller.abort()
-  }, [mic.audioBlob, selected, recording, assessing])
+  }, [mic.audioBlob, selected, recording])
 
   useEffect(() => {
     const controller = new AbortController()

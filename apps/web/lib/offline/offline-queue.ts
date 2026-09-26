@@ -79,7 +79,7 @@ export function retryMutation(mutation: PendingMutation, now = Date.now()): Pend
 }
 
 export function markMutationSynced(mutation: PendingMutation): PendingMutation {
-  return { ...mutation, status: 'synced' }
+  return { ...mutation, payload: null, status: 'synced' }
 }
 
 export function markMutationConflict(mutation: PendingMutation): PendingMutation {

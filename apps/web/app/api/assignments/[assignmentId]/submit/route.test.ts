@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import { DomainRuleError } from '@tuturai/domain'
 import { POST } from './route'
 import { requireRole } from '@/lib/api/auth-guard'
 import { appendSubmissionFile, submitAssignment } from '@/lib/submissions'
@@ -44,11 +45,12 @@ describe('POST /api/assignments/[assignmentId]/submit', () => {
   })
 
   it('removes an uploaded Drive file when durable submission creation fails', async () => {
-    mockedSubmitAssignment.mockRejectedValue(new Error('MAX_ATTEMPTS_REACHED'))
+    mockedSubmitAssignment.mockRejectedValue(new DomainRuleError('MAX_ATTEMPTS_REACHED', 'No attempts remaining'))
 
     const response = await POST(multipartRequest(), routeContext)
 
     expect(response.status).toBe(409)
+    await expect(response.json()).resolves.toMatchObject({ error: { code: 'CONFLICT', message: 'No attempts remaining' } })
     expect(mockedDeleteDriveFile).toHaveBeenCalledWith('teacher-1', 'drive-file-1')
     expect(mockedAppendSubmissionFile).not.toHaveBeenCalled()
   })

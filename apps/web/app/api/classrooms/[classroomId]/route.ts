@@ -3,6 +3,7 @@ import { validateClassroomInput, validateClassroomStatus } from '@tuturai/domain
 import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
 import { updateTeacherClassroom } from '@/lib/classrooms'
+import { readJsonBody } from '@/lib/api/request'
 
 type RouteContext = { params: Promise<{ classroomId: string }> }
 
@@ -10,7 +11,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const auth = await requireRole('teacher')
   if (!auth.ok) return auth.response
 
-  const body = await request.json() as Record<string, unknown>
+  const rawBody = await readJsonBody(request)
+  const body = rawBody && typeof rawBody === 'object' ? rawBody as Record<string, unknown> : {}
   const validation = validateClassroomInput(body)
   if (!validation.success) {
     return NextResponse.json(apiError('VALIDATION_ERROR', 'Invalid classroom input', validation.issues), { status: 400 })

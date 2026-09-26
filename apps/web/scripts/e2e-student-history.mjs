@@ -42,12 +42,30 @@ try {
   await assertRoute('/siswa/achievements', 'Pencapaian')
   await assertRoute('/siswa/profil', 'Profil & Pengaturan')
 
+  await page.waitForFunction(() => document.querySelector('#profile-display-name')?.value === 'Nina Wijaya')
+  await page.waitForFunction(() => document.querySelector('#profile-school')?.value === 'TuturAI Demo School')
+  await page.getByLabel('Nama lengkap').fill('Nina Wijaya Updated')
+  await page.getByLabel('Sekolah').fill('SMA E2E Updated')
+  await page.getByRole('button', { name: 'Simpan profil', exact: true }).click()
+  await page.getByRole('status').filter({ hasText: 'Profil tersimpan di server.' }).waitFor()
+
+  const profileResponse = await page.request.get(`${baseURL}/api/me`)
+  if (profileResponse.status() !== 200) throw new Error(`Expected profile read-back 200, received ${profileResponse.status()}`)
+  const profilePayload = await profileResponse.json()
+  if (profilePayload.data?.profile?.full_name !== 'Nina Wijaya Updated' || profilePayload.data?.profile?.school !== 'SMA E2E Updated') {
+    throw new Error(`Profile read-back did not contain the saved values: ${JSON.stringify(profilePayload)}`)
+  }
+
+  await page.reload()
+  await page.waitForFunction(() => document.querySelector('#profile-display-name')?.value === 'Nina Wijaya Updated')
+  await page.waitForFunction(() => document.querySelector('#profile-school')?.value === 'SMA E2E Updated')
+
   const unauthorizedContext = await browser.newContext()
   const unauthorizedResponse = await unauthorizedContext.request.get(`${baseURL}/api/student/learning-stats`)
   if (unauthorizedResponse.status() !== 401) throw new Error(`Expected unauthenticated learning stats 401, received ${unauthorizedResponse.status()}`)
   await unauthorizedContext.close()
 
-  console.log(JSON.stringify({ ok: true, routes: ['progress', 'leaderboard', 'achievements', 'profile'], achievements: stats.data.achievements.length, unauthorizedStatus: unauthorizedResponse.status() }))
+  console.log(JSON.stringify({ ok: true, routes: ['progress', 'leaderboard', 'achievements', 'profile'], profileMutation: 'read-back-and-reload', achievements: stats.data.achievements.length, unauthorizedStatus: unauthorizedResponse.status() }))
 } finally {
   await context.close()
   await browser.close()

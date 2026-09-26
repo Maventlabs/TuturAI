@@ -33,6 +33,36 @@ async function login(page) {
   await page.waitForURL(/\/siswa|\/dashboard/)
 }
 
+async function readQueuedTextMutations(page) {
+  return page.evaluate(async () => {
+    const database = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('tuturai-offline')
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error ?? new Error('Could not read offline mutation state'))
+    })
+    const mutations = await new Promise((resolve, reject) => {
+      const request = database.transaction('pendingMutations', 'readonly').objectStore('pendingMutations').getAll()
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error ?? new Error('Could not read pending mutations'))
+    })
+    database.close()
+    return mutations
+      .filter((mutation) => mutation.operation === 'conversation-text')
+      .map((mutation) => ({ status: mutation.status, payloadCleared: mutation.payload === null }))
+  })
+}
+
+async function waitForSyncedTextMutation(page) {
+  const deadline = Date.now() + 10_000
+  while (Date.now() < deadline) {
+    const mutations = await readQueuedTextMutations(page)
+    const synced = mutations.find((mutation) => mutation.status === 'synced' && mutation.payloadCleared)
+    if (synced) return
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  throw new Error(`Confirmed conversation text remained in IndexedDB: ${JSON.stringify(await readQueuedTextMutations(page))}`)
+}
+
 const browser = await chromium.launch({ headless: true })
 const context = await browser.newContext()
 const page = await context.newPage()
@@ -62,8 +92,16 @@ try {
   if (!stored || typeof stored.score !== 'number') throw new Error('Offline mutation was not replayed with a confirmed score')
   const duplicates = await db.collection('conversationTextAttempts').where('studentId', '==', studentId).where('questionId', '==', questionId).get()
   if (duplicates.size !== 1) throw new Error(`Offline replay duplicated durable records: ${duplicates.size}`)
+  await waitForSyncedTextMutation(page)
 
-  console.log(JSON.stringify({ ok: true, queued: true, replayed: true, durableRecords: duplicates.size, score: stored.score }))
+  await page.reload()
+  await page.getByRole('heading', { name: 'AI Conversation', exact: true }).waitFor()
+  await page.getByText('Tell me about your favorite school subject.', { exact: false }).waitFor()
+  const afterReconnect = await db.collection('conversationTextAttempts').where('studentId', '==', studentId).where('questionId', '==', questionId).get()
+  if (afterReconnect.size !== 1) throw new Error(`Online startup replay duplicated the confirmed record: ${afterReconnect.size}`)
+  await waitForSyncedTextMutation(page)
+
+  console.log(JSON.stringify({ ok: true, queued: true, replayed: true, onlineStartupReplayExactlyOnce: true, durableRecords: afterReconnect.size, payloadPurgedAfterConfirmation: true, score: stored.score }))
 } finally {
   await context.close()
   await browser.close()

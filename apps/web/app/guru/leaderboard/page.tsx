@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Trophy, Medal, Crown } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -79,10 +79,7 @@ export default function TeacherLeaderboardPage() {
     return () => controller.abort()
   }, [])
 
-  const filtered = useMemo(() => {
-    const rows = filter === 'all' ? members : members.filter((member) => member.className === filter)
-    return [...rows].sort((left, right) => left.name.localeCompare(right.name))
-  }, [filter, members])
+  const filtered = filter === 'all' ? members : members.filter((member) => member.className === filter)
 
   const podium = filtered.slice(0, 3)
   const rest = filtered.slice(3)

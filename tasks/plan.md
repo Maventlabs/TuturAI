@@ -1,5 +1,11 @@
 # Implementation Plan: TuturAI PRD v0.1
 
+> HISTORICAL / DO NOT USE FOR EXECUTION STATE
+>
+> The canonical ordered task graph and phase lock live in
+> [`../EXECUTION.md`](../EXECUTION.md). This file preserves the original plan
+> and migration rationale.
+
 ## Overview
 
 Membawa codebase TuturAI existing ke target PRD secara incremental, dengan mempertahankan route/UI yang sudah ada tetapi mengganti Supabase/demo/mock behavior dengan Firebase, secure Netlify Functions, Google Drive, configurable AI adapters, dan offline-first persistence. Implementasi harus dimulai dari Phase 1 dan hanya melanjutkan phase setelah acceptance criteria serta verification phase sebelumnya lulus.

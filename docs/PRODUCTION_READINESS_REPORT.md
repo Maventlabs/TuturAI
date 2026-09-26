@@ -40,6 +40,7 @@ without a related code/configuration change:
 - Adaptive completion and no-repeat recommendation behavior.
 - Assignment submit/return/resubmit/approve lifecycle.
 - Offline conversation replay with idempotent durable mutation.
+- Offline assignment-file and conversation-audio browser payload retention in IndexedDB.
 - AI STT/LLM adapter normalization and failure-safe behavior.
 - Pronunciation unavailable behavior with `score: null`.
 - Teacher analytics, leaderboard, reports, and wrong-class fail-closed behavior.
@@ -60,6 +61,10 @@ without a related code/configuration change:
 - Updated README repository/license/deployment expectations.
 - Documented the root gitlink issue before the first push so Netlify does not
   deploy an incomplete checkout.
+- Added emulator-only browser coverage for offline assignment files and conversation
+  audio, including Blob retention and audio `sessionId`/idempotency-key checks.
+- Fixed the conversation audio assessment effect self-abort race discovered by that
+  browser test and restricted local Firebase emulator CSP sources to non-production.
 
 ## Credential-Gated Tasks
 
@@ -149,3 +154,7 @@ threshold** by finishing repository normalization, CI, Netlify preview, security
 automation, protocol contracts, and provider-gated code paths. The product must
 not be labeled fully production-ready until the external release gates above are
 confirmed.
+# Historical Readiness Report
+
+> This report is retained evidence from the prior audit. Current execution state,
+> blockers, phase gates, and release readiness live only in `../EXECUTION.md`.

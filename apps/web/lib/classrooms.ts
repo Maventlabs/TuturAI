@@ -196,6 +196,9 @@ export type ClassroomMember = {
   name: string
   email: string | null
   joinedAt: string
+  level: number | null
+  streak: number | null
+  speakingScore: number | null
 }
 
 export type ClassroomLeaderboardRow = {
@@ -241,15 +244,24 @@ export async function listTeacherClassroomMembers(classroomId: string, teacherId
   const userReferences = memberships.docs.map((membership) => db.collection(USERS_COLLECTION).doc(membership.data().studentId))
   const users = userReferences.length > 0 ? await db.getAll(...userReferences) : []
   const usersById = new Map(users.map((user) => [user.id, user.data() ?? {}]))
+  const assessmentSnapshots = await Promise.all(
+    memberships.docs.map((membership) => db.collection('assessments').where('studentId', '==', membership.data().studentId).limit(100).get()),
+  )
 
-  return memberships.docs.map((membership): ClassroomMember => {
+  return memberships.docs.map((membership, index): ClassroomMember => {
     const data = membership.data()
     const user = usersById.get(data.studentId) ?? {}
+    const scores = assessmentSnapshots[index].docs
+      .map((assessment) => assessment.data().overall)
+      .filter((score): score is number => typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100)
     return {
       studentId: data.studentId,
-      name: typeof user.full_name === 'string' ? user.full_name : 'Siswa',
+      name: typeof user.displayName === 'string' ? user.displayName : typeof user.full_name === 'string' ? user.full_name : 'Siswa',
       email: typeof user.email === 'string' ? user.email : null,
       joinedAt: toIsoString(data.joinedAt),
+      level: typeof user.level === 'number' && user.level >= 1 ? user.level : null,
+      streak: typeof user.streak === 'number' && user.streak >= 0 ? user.streak : null,
+      speakingScore: scores.length ? Math.round(scores.reduce((total, score) => total + score, 0) / scores.length) : null,
     }
   })
 }

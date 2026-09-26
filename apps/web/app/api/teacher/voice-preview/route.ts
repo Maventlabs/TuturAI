@@ -13,7 +13,12 @@ export async function POST(request: NextRequest) {
   if (!text || text.length > 500) return NextResponse.json(apiError('VALIDATION_ERROR', 'Preview text must be 1-500 characters'), { status: 400 })
   const profile = await getTeacherVoiceProfile(auth.user.uid)
   if (!profile || profile.status !== 'ready') return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Voice profile is not ready'), { status: 409 })
-  const config = getAiEnv().ai.tts
+  let config: ReturnType<typeof getAiEnv>['ai']['tts']
+  try {
+    config = getAiEnv().ai.tts
+  } catch {
+    return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'OmniVoice is not configured'), { status: 503 })
+  }
   if (config.route !== 'local' || !config.baseUrl) return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'OmniVoice is not configured'), { status: 503 })
   try {
     const audio = await new HttpVoiceProvider({

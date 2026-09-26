@@ -102,7 +102,7 @@ export function SignUpForm() {
         <div className="space-y-2"><Label htmlFor="extra">{role === 'student' ? 'Kelas' : 'Mata Pelajaran'}</Label><Input id="extra" required value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
       </div>
       <div className="space-y-2"><Label htmlFor="password">Kata Sandi</Label><Input id="password" type="password" required minLength={6} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-      {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
       <Button type="submit" className="h-11 w-full" disabled={loading}>{loading && <Loader2 className="h-4 w-4 animate-spin" />}Buat Akun</Button>
       <div className="relative py-1 text-center text-xs text-muted-foreground"><span className="bg-background px-2">atau</span><span className="absolute inset-x-0 top-1/2 -z-10 border-t border-border" /></div>
       <Button type="button" variant="outline" className="h-11 w-full" disabled={loading} onClick={handleGoogleSignUp}>Daftar dengan Google</Button>

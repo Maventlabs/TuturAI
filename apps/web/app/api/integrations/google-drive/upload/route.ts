@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (cause instanceof Error && ['DRIVE_NOT_CONNECTED', 'DRIVE_TOKEN_REFRESH_FAILED'].includes(cause.message)) {
       return NextResponse.json({ error: { code: cause.message, message: 'Connect Google Drive before uploading.' } }, { status: 409 })
     }
-    if (cause instanceof Error && ['INVALID_FILE_NAME', 'UNSUPPORTED_FILE_TYPE', 'FILE_TOO_LARGE'].includes(cause.message)) {
+    if (cause instanceof Error && ['INVALID_FILE_NAME', 'UNSUPPORTED_FILE_TYPE', 'INVALID_FILE_EXTENSION', 'FILE_TOO_LARGE'].includes(cause.message)) {
       return NextResponse.json({ error: { code: cause.message, message: 'The selected file is invalid.' } }, { status: 400 })
     }
     throw cause

@@ -3,6 +3,7 @@ import { validateClassroomInput } from '@tuturai/domain'
 import { apiError } from '@tuturai/validation'
 import { requireAuth, requireRole } from '@/lib/api/auth-guard'
 import { createTeacherClassroom, listStudentClassrooms, listTeacherClassrooms } from '@/lib/classrooms'
+import { readJsonBody } from '@/lib/api/request'
 
 export async function GET() {
   const auth = await requireAuth()
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireRole('teacher')
   if (!auth.ok) return auth.response
 
-  const validation = validateClassroomInput(await request.json())
+  const validation = validateClassroomInput(await readJsonBody(request))
   if (!validation.success) {
     return NextResponse.json(apiError('VALIDATION_ERROR', 'Invalid classroom input', validation.issues), { status: 400 })
   }

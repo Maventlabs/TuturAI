@@ -110,15 +110,8 @@ export default function DevicesPage() {
 
   async function handleSync() {
     setSyncing('device')
-    setActionError(null)
-
-    try {
-      setReloadKey((current) => current + 1)
-    } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Sinkronisasi perangkat gagal')
-    } finally {
-      setSyncing(null)
-    }
+    setActionError('Sinkronisasi perangkat belum tersedia tanpa koneksi cloud perangkat.')
+    setSyncing(null)
   }
 
   async function register() {

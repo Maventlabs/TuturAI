@@ -35,6 +35,7 @@ type TeacherAnalytics = {
   trend: Array<{ label: string; score: number }>
   skills: Array<{ skill: string; score: number; attempts: number }>
   commonErrors: Array<{ skill: string; errors: number; attempts: number }>
+  fluencyDistribution: Array<{ label: string; count: number }>
 }
 
 function UnavailableState({ message }: { message: string }) {
@@ -181,8 +182,8 @@ export default function TeacherHome() {
               </ChartCard>
             </FadeIn>
             <FadeIn>
-              <ChartCard title="Distribusi Kelancaran" description="Sebaran tingkat fluency siswa">
-                <UnavailableState message="Data distribusi fluency belum tersedia." />
+             <ChartCard title="Distribusi Kelancaran" description="Sebaran tingkat fluency siswa">
+                 {analytics?.fluencyDistribution.some((bucket) => bucket.count > 0) ? <div className="space-y-3" aria-label="Distribusi kelancaran siswa">{analytics.fluencyDistribution.map((bucket) => { const max = Math.max(...analytics.fluencyDistribution.map((item) => item.count), 1); return <div key={bucket.label} className="flex items-center gap-3 text-sm"><span className="w-14 font-mono text-xs text-muted-foreground">{bucket.label}</span><div className="h-2 flex-1 rounded-full bg-muted"><div className="h-2 rounded-full bg-accent" style={{ width: `${(bucket.count / max) * 100}%` }} /></div><span className="w-6 text-right font-medium">{bucket.count}</span></div> })}</div> : <UnavailableState message="Belum ada skor fluency terkonfirmasi." />}
               </ChartCard>
             </FadeIn>
           </div>

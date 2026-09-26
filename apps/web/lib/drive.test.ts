@@ -12,6 +12,7 @@ describe('validateDriveFile', () => {
 
   it.each([
     ['UNSUPPORTED_FILE_TYPE', { name: 'audio.mp3', mimeType: 'audio/mpeg', size: 120 }],
+    ['INVALID_FILE_EXTENSION', { name: 'worksheet.txt', mimeType: 'application/pdf', size: 120 }],
     ['FILE_TOO_LARGE', { name: 'large.pdf', mimeType: 'application/pdf', size: DRIVE_MAX_FILE_BYTES + 1 }],
     ['INVALID_FILE_NAME', { name: '   ', mimeType: 'application/pdf', size: 120 }],
   ])('rejects %s', (error, input) => {

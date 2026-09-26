@@ -56,13 +56,13 @@ Current AI design:
 - Gunakan shared validation schema dan shared error envelope.
 
 ### Firebase
-- Auth hanya Google + email/password.
+- Auth production menggunakan Google + email/password. GitHub dan provider sosial lain di luar scope; UI login/registrasi menyediakan Google dan email/password.
 - `role` permanent setelah onboarding; client tidak boleh mengubahnya.
 - Gunakan Firestore Security Rules dan test rules di emulator.
 - Jangan menambahkan Firebase Storage kecuali PRD diubah secara eksplisit.
 
 ### Google Drive
-- Drive connection terpisah dari Google login.
+- Drive OAuth adalah koneksi integrasi guru yang terpisah dari login TuturAI; bukan metode sign-in aplikasi.
 - Prefer least-privilege scope `drive.file`.
 - Assignment/submission file berada di Drive guru; Firestore menyimpan metadata.
 - OAuth refresh token, bila diperlukan, disimpan encrypted dan server-only.

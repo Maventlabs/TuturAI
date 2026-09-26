@@ -7,7 +7,14 @@ export type LearningContentType =
   | 'pronunciation'
   | 'speaking'
   | 'conversation'
-  | 'test'
+   | 'test'
+
+export function isAnswerableContentType(contentType: LearningContentType): boolean {
+  return contentType === 'question'
+    || contentType === 'vocabulary'
+    || contentType === 'listening'
+    || contentType === 'test'
+}
 
 export interface QuestionBankItem {
   id: string

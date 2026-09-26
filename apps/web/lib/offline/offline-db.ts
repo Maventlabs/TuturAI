@@ -11,7 +11,7 @@ import {
 } from './offline-queue'
 
 export const OFFLINE_DB_NAME = 'tuturai-offline'
-export const OFFLINE_DB_VERSION = 1
+export const OFFLINE_DB_VERSION = 2
 
 export const OFFLINE_STORES = {
   drafts: 'drafts',
@@ -38,7 +38,7 @@ export function openOfflineDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION)
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result
 
       for (const storeName of Object.values(OFFLINE_STORES)) {
@@ -47,6 +47,26 @@ export function openOfflineDb(): Promise<IDBDatabase> {
           if (storeName === OFFLINE_STORES.pendingMutations) {
             store.createIndex('status', 'status', { unique: false })
           }
+        }
+      }
+
+      if (event.oldVersion < 2) {
+        const transaction = request.transaction
+        if (!transaction) return
+        const mutations = transaction.objectStore(OFFLINE_STORES.pendingMutations)
+        const audio = transaction.objectStore(OFFLINE_STORES.audioQueue)
+        const cursorRequest = mutations.openCursor()
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result
+          if (!cursor) return
+
+          const mutation = cursor.value as PendingMutation
+          if (mutation.status === 'synced') {
+            const payload = mutation.payload as { sessionId?: unknown } | null
+            if (typeof payload?.sessionId === 'string') audio.delete(payload.sessionId)
+            cursor.update({ ...mutation, payload: null })
+          }
+          cursor.continue()
         }
       }
     }

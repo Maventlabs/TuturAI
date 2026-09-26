@@ -1,5 +1,6 @@
-const CACHE_NAME = 'tuturai-static-v1'
+const CACHE_NAME = 'tuturai-static-v2'
 const STATIC_ASSETS = [
+  '/offline.html',
   '/icon.svg',
   '/logo_tuturai.svg',
   '/placeholder.svg',
@@ -28,11 +29,19 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request
   const url = new URL(request.url)
+  const isNavigation = request.method === 'GET' && request.mode === 'navigate' && url.origin === self.location.origin
   const isStaticAsset =
     request.method === 'GET' &&
     url.origin === self.location.origin &&
     (['font', 'image', 'script', 'style'].includes(request.destination) ||
       url.pathname.startsWith('/_next/static/'))
+
+  if (isNavigation) {
+    event.respondWith(
+      fetch(request).catch(() => caches.match('/offline.html')),
+    )
+    return
+  }
 
   if (!isStaticAsset) return
 

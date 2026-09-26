@@ -3,6 +3,7 @@ import { validateAssignmentInput } from '@tuturai/domain'
 import { apiError } from '@tuturai/validation'
 import { requireAuth, requireRole } from '@/lib/api/auth-guard'
 import { createTeacherAssignment, listClassroomAssignments } from '@/lib/assignments'
+import { readJsonBody } from '@/lib/api/request'
 
 type RouteContext = { params: Promise<{ classroomId: string }> }
 
@@ -26,7 +27,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const auth = await requireRole('teacher')
   if (!auth.ok) return auth.response
 
-  const body = await request.json() as Record<string, unknown>
+  const rawBody = await readJsonBody(request)
+  const body = rawBody && typeof rawBody === 'object' ? rawBody as Record<string, unknown> : {}
   const validation = validateAssignmentInput(body)
   if (!validation.success) {
     return NextResponse.json(apiError('VALIDATION_ERROR', 'Invalid assignment input', validation.issues), { status: 400 })

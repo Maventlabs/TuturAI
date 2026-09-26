@@ -73,8 +73,8 @@ export function LoginForm() {
           <Label htmlFor="password">Kata Sandi</Label>
           <Input id="password" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
-        {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="h-11 w-full" disabled={loading}>
+        {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+      <Button type="submit" className="h-11 w-full" disabled={loading}>
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           Masuk
         </Button>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { User, Bell, Shield, Palette, School, Save, Mic2, Trash2 } from 'lucide-react'
+import { User, Bell, Shield, Palette, School, Mic2, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,6 +39,8 @@ export default function SettingsPage() {
     weekly: false,
     device: true,
   })
+  const [notifBusy, setNotifBusy] = useState(false)
+  const [notifMessage, setNotifMessage] = useState<string | null>(null)
   const [drive, setDrive] = useState<{ connected: boolean; scope: string | null; updatedAt: string | null } | null>(null)
   const [driveBusy, setDriveBusy] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
@@ -51,6 +53,14 @@ export default function SettingsPage() {
   const [profileError, setProfileError] = useState<string | null>(null)
   const [previewText, setPreviewText] = useState('Hello, welcome to our English class.')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    void fetch('/api/teacher/preferences', { cache: 'no-store' }).then(async (response) => {
+      const payload = await response.json()
+      if (response.ok) setNotif(payload.data)
+      else setNotifMessage(payload.error?.message ?? 'Preferensi notifikasi tidak tersedia')
+    }).catch(() => setNotifMessage('Preferensi notifikasi tidak tersedia'))
+  }, [])
 
   useEffect(() => {
     void fetch('/api/integrations/google-drive/status', { cache: 'no-store' }).then(async (response) => {
@@ -90,6 +100,19 @@ export default function SettingsPage() {
     } catch (cause) {
       setDriveError(cause instanceof Error ? cause.message : 'Gagal memutuskan Google Drive')
     } finally { setDriveBusy(false) }
+  }
+
+  async function saveNotifications() {
+    setNotifBusy(true); setNotifMessage(null)
+    try {
+      const response = await fetch('/api/teacher/preferences', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(notif) })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error?.message ?? 'Preferensi notifikasi gagal disimpan')
+      setNotif(payload.data)
+      setNotifMessage('Preferensi notifikasi tersimpan di server.')
+    } catch (cause) {
+      setNotifMessage(cause instanceof Error ? cause.message : 'Preferensi notifikasi gagal disimpan')
+    } finally { setNotifBusy(false) }
   }
 
   async function enrollVoice() {
@@ -144,10 +167,9 @@ export default function SettingsPage() {
         title="Pengaturan"
         description="Kelola profil, preferensi notifikasi, dan konfigurasi kelas."
       >
-          <Button size="sm" className="gap-2" disabled title="Profil dikelola melalui onboarding Firebase">
-          <Save className="h-4 w-4" />
-          Simpan Perubahan
-        </Button>
+        <span className="rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
+          Profil dikelola melalui onboarding Firebase
+        </span>
       </PageHeader>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -210,9 +232,7 @@ export default function SettingsPage() {
                     HW
                   </AvatarFallback>
                 </Avatar>
-                <Button variant="outline" size="sm" disabled title="Upload foto belum tersedia">
-                  Ubah Foto
-                </Button>
+                <span className="text-xs text-muted-foreground">Foto profil belum tersedia</span>
               </div>
               <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -283,6 +303,12 @@ export default function SettingsPage() {
                 onCheckedChange={(v) => setNotif((n) => ({ ...n, submissions: v }))}
               />
             </SettingRow>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button size="sm" onClick={() => void saveNotifications()} disabled={notifBusy}>
+                {notifBusy ? 'Menyimpan...' : 'Simpan preferensi'}
+              </Button>
+              {notifMessage && <p role="status" className="text-xs text-muted-foreground">{notifMessage}</p>}
+            </div>
             <Separator />
             <SettingRow
               title="Skor Rendah"
@@ -326,19 +352,10 @@ export default function SettingsPage() {
               </h3>
             </div>
             <Separator className="my-5" />
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="pw">Kata Sandi Baru</Label>
-                <Input id="pw" type="password" placeholder="••••••••" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pw2">Konfirmasi Kata Sandi</Label>
-                <Input id="pw2" type="password" placeholder="••••••••" />
-              </div>
-              <Button variant="outline" className="w-full" disabled title="Password dikelola melalui Firebase Auth">
-                Perbarui Kata Sandi
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Perubahan password belum tersedia di TuturAI. Password dikelola
+              melalui Firebase Auth dan tidak disimulasikan di halaman ini.
+            </p>
             <Separator className="my-5" />
             <div className="flex items-center gap-2">
               <Palette className="h-4 w-4 text-primary" />

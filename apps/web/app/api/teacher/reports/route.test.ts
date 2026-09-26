@@ -29,7 +29,7 @@ describe('GET /api/teacher/reports', () => {
   it('returns a PDF only for a teacher-owned classroom', async () => {
     mockedRequireRole.mockResolvedValue({ ok: true, user: { uid: 'teacher-1' } } as never)
     mockedListClassrooms.mockResolvedValue([{ id: 'class-1', name: 'XI IPA' }] as never)
-    mockedListMembers.mockResolvedValue([{ studentId: 'student-1', name: 'Siswa', email: null, joinedAt: '' }])
+    mockedListMembers.mockResolvedValue([{ studentId: 'student-1', name: 'Siswa', email: null, joinedAt: '', level: 1, streak: 0, speakingScore: 84 }])
     mockedGetAdminDb.mockReturnValue({
       collection: () => ({ where: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) }),
     } as never)

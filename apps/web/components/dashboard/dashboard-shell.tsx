@@ -64,17 +64,26 @@ export function DashboardShell({
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [logoutError, setLogoutError] = useState<string | null>(null)
   const router = useRouter()
   const pathname = usePathname()
   const nav = role === 'student' ? studentNav : teacherNav
 
   async function handleLogout() {
+    setLogoutError(null)
+    try {
+      const response = await fetch('/api/auth/session', { method: 'DELETE' })
+      if (!response.ok) throw new Error('SESSION_LOGOUT_FAILED')
+    } catch {
+      setLogoutError('Keluar tidak berhasil. Periksa koneksi internet, lalu coba lagi.')
+      return
+    }
+
     try {
       await signOut(getFirebaseAuth())
     } catch {
-      // The server cookie is still cleared below if the client session is unavailable.
+      // The server session is already cleared; continue to the login page.
     }
-    await fetch('/api/auth/session', { method: 'DELETE' })
     router.push('/auth/login')
     router.refresh()
   }
@@ -269,6 +278,7 @@ export function DashboardShell({
 
         {/* Page content */}
         <main className="flex-1 px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:pb-8">
+          {logoutError && <p role="alert" className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{logoutError}</p>}
           {children}
         </main>
       </div>
@@ -285,6 +295,7 @@ export function DashboardShell({
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
                   'flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5 text-[10px] font-medium transition-colors',
                   active ? 'text-primary' : 'text-muted-foreground',

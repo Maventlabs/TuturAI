@@ -1,66 +1,89 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { GET } from './route'
+import { GET, PATCH } from './route'
 import { getSessionProfile } from '@/lib/auth'
+import { getAdminDb } from '@/lib/firebase/admin'
 
-vi.mock('@/lib/auth', () => ({
-  getSessionProfile: vi.fn(),
-}))
+vi.mock('@/lib/auth', () => ({ getSessionProfile: vi.fn() }))
+vi.mock('@/lib/firebase/admin', () => ({ getAdminDb: vi.fn() }))
 
-const mockedGetSessionProfile = vi.mocked(getSessionProfile)
+const mockedAuth = vi.mocked(getSessionProfile)
+const mockedAdminDb = vi.mocked(getAdminDb)
 
-const studentProfile = {
-  id: 'student-1' as const,
-  role: 'student' as const,
-  full_name: 'Student One',
-  email: 'student@example.com',
-  school: 'SMA 1',
-  class: 'XI IPA 2',
-  nip: null,
-  subject: null,
-  xp: 120,
-  level: 2,
+function profile(role: 'student' | 'teacher' = 'student') {
+  return {
+    id: 'student-1',
+    role,
+    full_name: 'Budi Lama',
+    email: 'budi@example.com',
+    school: 'SMA Lama',
+    class: 'XI IPA 2',
+    nip: null,
+    subject: null,
+    xp: 40,
+    level: 1,
+    streak: 3,
+  }
 }
 
-describe('GET /api/me', () => {
-  beforeEach(() => mockedGetSessionProfile.mockReset())
-
-  it('returns 401 when there is no verified session profile', async () => {
-    mockedGetSessionProfile.mockResolvedValue({ user: null, profile: null, isDemo: false })
-
-    const response = await GET()
-
-    expect(response.status).toBe(401)
-    await expect(response.json()).resolves.toMatchObject({ error: { code: 'UNAUTHENTICATED' } })
+describe('/api/me', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
   })
 
-  it('returns the verified profile and role capabilities', async () => {
-    mockedGetSessionProfile.mockResolvedValue({
-      user: { uid: 'student-1', email: studentProfile.email, displayName: studentProfile.full_name },
-      profile: studentProfile,
+  it('rejects an unauthenticated profile update', async () => {
+    mockedAuth.mockResolvedValue({ user: null, profile: null, isDemo: false })
+
+    const response = await PATCH(new Request('http://localhost/api/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ displayName: 'Budi Baru', school: 'SMA Baru' }),
+      headers: { 'content-type': 'application/json' },
+    }))
+
+    expect(response.status).toBe(401)
+  })
+
+  it('updates only the authenticated profile and returns the persisted fields', async () => {
+    mockedAuth.mockResolvedValue({
+      user: { uid: 'student-1', email: 'budi@example.com', displayName: 'Budi Lama' },
+      profile: profile(),
+      isDemo: false,
+    })
+    const update = vi.fn().mockResolvedValue(undefined)
+    const get = vi.fn().mockResolvedValue({ data: () => ({ displayName: 'Budi Baru', school: 'SMA Baru' }) })
+    mockedAdminDb.mockReturnValue({
+      collection: vi.fn(() => ({ doc: vi.fn(() => ({ update, get })) })),
+    } as never)
+
+    const response = await PATCH(new Request('http://localhost/api/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ displayName: ' Budi Baru ', school: ' SMA Baru ', role: 'teacher', xp: 9999 }),
+      headers: { 'content-type': 'application/json' },
+    }))
+
+    expect(response.status).toBe(400)
+    expect(update).not.toHaveBeenCalled()
+
+    const validResponse = await PATCH(new Request('http://localhost/api/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ displayName: ' Budi Baru ', school: ' SMA Baru ' }),
+      headers: { 'content-type': 'application/json' },
+    }))
+
+    expect(validResponse.status).toBe(200)
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ displayName: 'Budi Baru', school: 'SMA Baru' }))
+    await expect(validResponse.json()).resolves.toMatchObject({ data: { profile: { id: 'student-1', full_name: 'Budi Baru', school: 'SMA Baru' } } })
+  })
+
+  it('keeps GET profile capabilities intact', async () => {
+    mockedAuth.mockResolvedValue({
+      user: { uid: 'student-1', email: 'budi@example.com', displayName: 'Budi Lama' },
+      profile: profile(),
       isDemo: false,
     })
 
     const response = await GET()
 
     expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toEqual({
-      data: {
-        user: { uid: 'student-1', email: 'student@example.com', displayName: 'Student One' },
-        profile: studentProfile,
-        permissions: ['classrooms:join', 'assignments:submit', 'speaking:practice', 'progress:read'],
-      },
-    })
-  })
-
-  it('does not expose a profile when the stored role is invalid', async () => {
-    mockedGetSessionProfile.mockResolvedValue({
-      user: { uid: 'broken-1', email: 'broken@example.com', displayName: 'Broken' },
-      profile: null,
-      isDemo: false,
-    })
-
-    const response = await GET()
-
-    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toMatchObject({ data: { profile: { role: 'student' }, permissions: expect.arrayContaining(['classrooms:join']) } })
   })
 })

@@ -26,7 +26,7 @@ The local route is reserved for the project's self-hosted OmniVoice/TTS service.
 
 ## Required Project Context
 
-- Read `PRD.md`, `AGENTS.md`, `tasks/todo.md`, `tasks/plan.md`, and relevant files under `docs/` before starting a new phase.
+- Read `PRD.md`, `AGENTS.md`, `MUST.md`, `EXECUTION.md`, and only the relevant provider files before starting a new phase. `EXECUTION.md` is the only runtime status source.
 - Use installed skills and relevant MCP servers; skills and MCP usage are mandatory project workflow, not optional suggestions.
 - Firestore is the durable database/source of truth. Local emulator verification exists; do not provision a replacement database because cloud discovery is unavailable in the current CLI session.
 - Do not claim a phase checkpoint until its acceptance criteria and verification evidence pass.

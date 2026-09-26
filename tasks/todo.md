@@ -1,5 +1,11 @@
 # TuturAI Task Checklist
 
+> HISTORICAL / DO NOT USE FOR EXECUTION STATE
+>
+> Runtime phase, task, evidence, blocker, and release state lives only in
+> [`../EXECUTION.md`](../EXECUTION.md). This file is retained for historical
+> evidence and migration traceability.
+
 ## Current Status
 
 - **Completion rule:** mark a feature `[x]` only after its full user path works end-to-end with the real configured boundary, durable state, success state, failure state, and verification evidence. Unit tests or provider adapters alone remain unchecked prework.
@@ -96,6 +102,7 @@
 - [x] Teacher core menus: dashboard, classes, assignments, students, speaking review, analytics, and leaderboard use real classroom-scoped data; authenticated Playwright verified all seven routes, analytics `200`, and wrong-class fail-closed `404`.
 - [x] Teacher integrations local boundary: `scripts/e2e-teacher-integrations.mjs` verified teacher settings/device routes, Drive status `200` with durable connection shape, missing-upload validation `400`, empty device state, invalid registration `400`, and missing-device removal `404`; real Drive consent/upload remains an external gate.
 - [ ] Breadth checkpoint: every menu has a verified happy path, failure path, and server-side authorization test before deep feature work resumes.
+- [ ] Production protected-route release gate: direct smoke found `/onboarding`, `/guru`, and `/siswa` returning `500` on Netlify while local unauthenticated requests correctly return `307 -> /auth/login`; production runtime CSP is also absent. A focused proxy regression test and edge redirect guard are implemented and fully tested locally; production still requires a deploy/recheck before this gate can be checked.
 
 ### Speaking-related scoring decision
 
@@ -154,7 +161,7 @@
 - [x] Added emulator-only Playwright E2E fixture script at `apps/web/scripts/e2e-speaking-assessment.mjs`; it fails closed when Auth/Firestore emulator variables are absent and seeds only test data.
 - [x] Completion-popup implementation checkpoint: Quiz, Vocabulary, Listening, Tes Pedagogis, and confirmed-provider Speaking now render reusable result dialogs; root typecheck passes, focused completion tests pass, changed-file lint has 0 errors, and `git diff --check` passes. Emulator-backed Playwright happy/failure evidence is still required before checking these menu slices.
 - [x] Conversation text scoring increment: deterministic keyword-relevance rubric, idempotent Firestore persistence, protected API, retryable UI error, completion popup, and focused route/domain tests are implemented. Full browser/emulator evidence remains open.
-- [x] Offline foundation increment: versioned IndexedDB stores, idempotent pending-mutation model, online/offline status indicator, and production service-worker registration/app-shell cache are implemented. Domain mutation wiring, reconnect replay, audio quota cleanup, and offline E2E remain open.
+- [x] Offline foundation increment: versioned IndexedDB stores, idempotent pending-mutation model, online/offline status indicator, and production service-worker registration/app-shell cache are implemented. Conversation text, assignment files, and conversation audio now enqueue durable mutations and replay only after server confirmation; browser proof for file/audio replay remains open.
 - [x] Current verification checkpoint: Firestore-emulator suite passed with 25 test files and 70 tests, root typecheck passed, production build passed, and full web lint passed with 0 errors and 5 existing React warnings.
 - [x] Continuation slice: OmniVoice voice-profile API/UI prework, teacher-isolated metadata lifecycle, consent/delete path, and fail-closed provider errors added with 8 focused tests; real OmniVoice remains explicitly provider-gated.
 - [x] Continuation slice: teacher-only voice synthesis preview now returns provider audio bytes with no-store headers only for a ready teacher profile; malformed/empty/provider failures remain explicit.
@@ -162,6 +169,8 @@
 - [x] Removed additional simulated/dead behavior: dashboard hardware `setTimeout` sync, hardcoded hardware metrics, static speaking prompts, example-audio dead button, null progress score rendered as `0`, and Drive attachment `href="#"` fallback.
 - [x] Dependency security gate: upgraded Next.js to `16.3.3` and PostCSS to `8.5.18`; `pnpm audit --prod --audit-level=high` now reports no high/critical vulnerabilities. Remaining audit findings are low/moderate and require separate upgrade compatibility review.
 - [x] Offline sync verification: IndexedDB replay now handles stable idempotency keys, transient retry/backoff, permanent conflicts, online reconnect, and 25 MB audio FIFO cleanup; typecheck and six offline queue tests pass.
+- [x] Offline payload wiring: assignment replay preserves the selected file and conversation voice replay preserves the audio Blob, sessionId, and expected text; web typecheck, production build, and emulator-backed suite pass with 37 files/119 tests.
+- [x] Offline browser payload proof: `scripts/e2e-offline-payloads.mjs` drives both UI flows offline, confirms the assignment file Blob and conversation audio Blob are retained in IndexedDB, confirms the audio idempotency key equals `sessionId`, and fixed the audio effect self-abort race discovered by the test.
 - [x] Adaptive assessment-history verification: focused adaptive/domain and route tests passed (5 tests), production build passed with `/api/student/adaptive`, and root typecheck passed after regenerating the interrupted Next cache.
 - [x] Phase 6 analytics/report slice: teacher analytics now shares one aggregation contract for periods, trends, skill distribution, common errors, and attention students; `/api/teacher/reports` enforces teacher classroom/student scope and returns a generated PDF; analytics UI supports period selection and PDF download. Focused tests passed (8 tests), changed-file lint passed, root typecheck passed, and emulator-backed Playwright verified populated analytics, period filtering, PDF content type, and outsider student denial (`403`).
 - [x] Playwright menu verification: assignment lifecycle passed `submit → return → resubmit → approve` with durable attempt 2; speaking review loaded a confirmed score of 80; Quiz, Listening, and Tes Pedagogis completed with confirmed `100/100` dialogs and 40 durable question attempts.

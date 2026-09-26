@@ -7,7 +7,7 @@ import { getStudentSubmission } from '@/lib/submissions'
 import { getAdminDb } from '@/lib/firebase/admin'
 import { buildDashboardInsights } from '@/lib/dashboard-insights'
 
-export async function GET() {
+export async function GET(request?: Request) {
   const auth = await requireRole('student')
   if (!auth.ok) return auth.response
 
@@ -29,8 +29,14 @@ export async function GET() {
     })
     const classrooms = await listStudentClassrooms(auth.user.uid)
     const classroomById = new Map(classrooms.map((classroom) => [classroom.id, classroom]))
-    const leaderboard = classrooms.length > 0 ? await listClassroomLeaderboard(classrooms[0].id, auth.user.uid) : []
-    const assignments = (await Promise.all(classrooms.map(async (classroom) => {
+    const requestedClassroomId = request ? new URL(request.url).searchParams.get('classroomId') : null
+    const activeClassroom = requestedClassroomId ? classroomById.get(requestedClassroomId) : classrooms[0]
+    if (requestedClassroomId && !activeClassroom) {
+      return NextResponse.json(apiError('NOT_FOUND', 'Classroom was not found'), { status: 404 })
+    }
+    const activeClassrooms = activeClassroom ? [activeClassroom] : []
+    const leaderboard = activeClassroom ? await listClassroomLeaderboard(activeClassroom.id, auth.user.uid) : []
+    const assignments = (await Promise.all(activeClassrooms.map(async (classroom) => {
       const classroomAssignments = await listClassroomAssignments(classroom.id, { role: 'student', uid: auth.user.uid })
       return Promise.all(classroomAssignments.map(async (assignment) => ({
         ...assignment,
@@ -53,6 +59,7 @@ export async function GET() {
           rank: leaderboard.find((row) => row.studentId === auth.user.uid)?.rank ?? null,
         },
         classrooms: [...classroomById.values()],
+        activeClassroomId: activeClassroom?.id ?? null,
         assignments,
         leaderboard,
         insights: buildDashboardInsights(attempts),

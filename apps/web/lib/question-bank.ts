@@ -1,5 +1,5 @@
 import { FieldValue, Timestamp, type DocumentData } from 'firebase-admin/firestore'
-import { applyLearningActivity, type LearningContentType, type QuestionBankItem, type QuestionLevel, type QuestionSkill } from '@tuturai/domain'
+import { applyLearningActivity, isAnswerableContentType, type LearningContentType, type QuestionBankItem, type QuestionLevel, type QuestionSkill } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
 
 export const QUESTION_BANK_COLLECTION = 'questionBank'
@@ -95,6 +95,8 @@ export async function answerQuestion(input: {
     if (!userSnapshot.exists) throw new Error('USER_NOT_FOUND')
 
     const question = questionSnapshot.data() ?? {}
+    const contentType = typeof question.contentType === 'string' ? question.contentType as LearningContentType : 'question'
+    if (!isAnswerableContentType(contentType)) throw new Error('QUESTION_TYPE_NOT_ANSWERABLE')
     const correctOption = typeof question.correctOption === 'number' ? question.correctOption : -1
     const isCorrect = input.selectedOption === correctOption
     const currentUser = userSnapshot.data() ?? {}

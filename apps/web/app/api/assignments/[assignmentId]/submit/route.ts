@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { DomainRuleError } from '@tuturai/domain'
 import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
 import { appendSubmissionFile, submitAssignment } from '@/lib/submissions'
@@ -39,8 +40,8 @@ export async function POST(request: Request, context: RouteContext) {
     if (cause instanceof Error && cause.message === 'CLASSROOM_NOT_FOUND') {
       return NextResponse.json(apiError('FORBIDDEN', 'Student is not an active classroom member'), { status: 403 })
     }
-    if (cause instanceof Error && cause.message === 'MAX_ATTEMPTS_REACHED') {
-      return NextResponse.json(apiError('CONFLICT', 'No attempts remaining'), { status: 409 })
+    if (cause instanceof DomainRuleError) {
+      return NextResponse.json(apiError('CONFLICT', cause.message), { status: 409 })
     }
     if (cause instanceof DriveConfigurationError || (cause instanceof Error && cause.message.startsWith('Missing required environment variable'))) {
       return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Google Drive OAuth is not configured'), { status: 501 })

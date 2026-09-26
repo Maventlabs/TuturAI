@@ -16,13 +16,22 @@
     "e2e:assignment": "node scripts/e2e-assignment-lifecycle.mjs",
     "e2e:student-history": "node scripts/e2e-student-history.mjs",
     "e2e:teacher-core": "node scripts/e2e-teacher-core.mjs",
+    "e2e:teacher-assignment-authoring": "node scripts/e2e-teacher-assignment-authoring.mjs",
     "e2e:teacher-integrations": "node scripts/e2e-teacher-integrations.mjs",
     "e2e:student-voice-gate": "node scripts/e2e-student-voice-gate.mjs",
     "e2e:adaptive-completion": "node scripts/e2e-adaptive-completion.mjs",
     "e2e:pronunciation-unavailable": "node scripts/e2e-pronunciation-unavailable.mjs",
     "e2e:speaking": "node scripts/e2e-speaking-assessment.mjs",
     "e2e:speaking-provider": "node scripts/e2e-speaking-provider.mjs",
-    "e2e:learning": "node scripts/e2e-learning-menus.mjs"
+    "e2e:learning": "node scripts/e2e-learning-menus.mjs",
+    "e2e:offline-payloads": "node scripts/e2e-offline-payloads.mjs",
+    "e2e:offline-refresh": "node scripts/e2e-offline-refresh.mjs",
+    "e2e:offline-migration": "node scripts/e2e-offline-migration.mjs",
+    "e2e:auth-accessibility": "node scripts/e2e-auth-accessibility.mjs",
+    "e2e:auth-logout": "node scripts/e2e-auth-logout.mjs",
+    "e2e:classroom-join": "node scripts/e2e-classroom-join.mjs",
+    "e2e:onboarding": "node scripts/e2e-onboarding.mjs",
+    "e2e:authorization-boundaries": "node scripts/e2e-authorization-boundaries.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

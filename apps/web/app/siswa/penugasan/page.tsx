@@ -59,7 +59,6 @@ export default function StudentAssignmentsPage() {
     const idempotencyKey = crypto.randomUUID()
     try {
       const selectedFile = files[assignmentId]
-      if (!navigator.onLine && selectedFile) throw new Error('File submission memerlukan koneksi online agar dapat disimpan ke Google Drive.')
       const body = new FormData()
       if (selectedFile) body.set('file', selectedFile)
       const response = await fetch(`/api/assignments/${assignmentId}/submit`, { method: 'POST', body, headers: { 'Idempotency-Key': idempotencyKey } })
@@ -68,8 +67,12 @@ export default function StudentAssignmentsPage() {
       setSubmissions((current) => ({ ...current, [assignmentId]: payload.data }))
       setCompletedAssignment(assignments.find((assignment) => assignment.id === assignmentId) ?? null)
     } catch (cause) {
-      if (!files[assignmentId] && (cause instanceof TypeError || !navigator.onLine)) {
-        await enqueuePendingMutation({ operation: 'submit-assignment', payload: { assignmentId }, idempotencyKey: idempotencyKey })
+      if (cause instanceof TypeError || !navigator.onLine) {
+        await enqueuePendingMutation({
+          operation: 'submit-assignment',
+          payload: { assignmentId, file: files[assignmentId] ?? null },
+          idempotencyKey,
+        })
         setError('Penugasan disimpan di antrean offline dan akan dikirim saat koneksi kembali.')
       } else {
         setError(cause instanceof Error ? cause.message : 'Gagal mengumpulkan penugasan')
@@ -95,7 +98,11 @@ export default function StudentAssignmentsPage() {
           <div className="grid gap-4">
             {assignments.map((assignment) => {
               const submission = submissions[assignment.id]
-              const canSubmit = !submission || submission.status === 'returned'
+              const attemptsRemain = !submission || submission.attempt < assignment.maxAttempts
+              const canSubmit = !submission || (submission.status === 'returned' && attemptsRemain)
+              const submitLabel = submission?.status === 'returned'
+                ? attemptsRemain ? 'Kirim ulang' : 'Tidak ada attempt tersisa'
+                : 'Kumpulkan'
               return (
                 <Card key={assignment.id} className="p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
@@ -105,7 +112,7 @@ export default function StudentAssignmentsPage() {
                       <p className="mt-3 text-xs text-muted-foreground">Maks. {assignment.maxAttempts} attempt · {assignment.dueAt ? new Date(assignment.dueAt).toLocaleString('id-ID') : 'Tanpa batas waktu'}</p>
                     </div>
                     <Button disabled={!canSubmit || action === assignment.id} onClick={() => void submit(assignment.id)}>
-                      {action === assignment.id ? 'Mengirim...' : submission?.status === 'returned' ? 'Kirim ulang' : 'Kumpulkan'}
+                      {action === assignment.id ? 'Mengirim...' : submitLabel}
                     </Button>
                   </div>
                   {canSubmit && <label className="mt-4 block text-sm font-medium">File submission (opsional)<input type="file" accept=".pdf,.docx,.pptx,.xlsx,.txt" onChange={(event) => setFiles((current) => ({ ...current, [assignment.id]: event.target.files?.[0] ?? null }))} className="mt-1 block w-full text-sm" /></label>}

@@ -55,6 +55,16 @@ describe('offline queue primitives', () => {
     expect(markMutationSynced(mutation).status).toBe('synced')
   })
 
+  it('clears the queued audio payload after the server confirms replay', () => {
+    const mutation = createPendingMutation(
+      { operation: 'assessment-audio', payload: { sessionId: 'session-1', audio: new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/webm' }) } },
+      1,
+      'audio-mutation',
+    )
+
+    expect(markMutationSynced(mutation)).toMatchObject({ status: 'synced', payload: null })
+  })
+
   it('marks permanent failures as conflicts without retrying them', () => {
     const mutation = createPendingMutation({ operation: 'submit', payload: null }, 1, 'one')
     expect(markMutationConflict(mutation).status).toBe('conflict')

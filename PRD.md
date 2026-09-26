@@ -65,7 +65,7 @@ UI utama Bahasa Indonesia. Materi latihan, contoh speaking, transkrip, dan targe
 Responsive Web/PWA untuk desktop dan mobile browser, deploy utama di **Netlify**. Hardware pendamping ESP32-S3 masuk dalam produk dan diintegrasikan pada fase perangkat. Tidak ada native iOS/Android app pada scope saat ini.
 
 **Out of Scope:**
-- Login GitHub, Facebook, Apple, atau provider sosial selain Google.
+- Login GitHub, Facebook, Apple, atau provider sosial lainnya selain Google.
 - Telegram/WhatsApp delivery dan bot messaging.
 - Pembayaran/subscription/billing.
 - Native mobile application.
@@ -93,12 +93,12 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 ## 3. Fitur & Sub-Fitur
 
 ### Fitur 1: Authentication & Permanent Role RBAC
-**Deskripsi:** Authentication hanya melalui Google atau email+password. Role dipilih saat registrasi dan tidak dapat diubah user setelah akun dibuat.  
+**Deskripsi:** Authentication production melalui Google atau email+password. Role dipilih saat registrasi dan tidak dapat diubah user setelah akun dibuat.
 **Prioritas:** P0  
 **Bergantung pada:** Tidak ada
 
 - **Email/password & Google Sign-In** — Firebase Authentication sebagai identity provider.
-  - Acceptance criteria: kedua metode login bekerja end-to-end; logout dan session restore valid.
+  - Acceptance criteria: kedua metode login bekerja end-to-end; logout dan session restore valid; UI login/registrasi tidak menyediakan GitHub atau provider sosial lain.
 - **Permanent role selection** — user memilih `student` atau `teacher` saat onboarding pertama.
   - Acceptance criteria: role tersimpan satu kali, perubahan role dari client ditolak oleh backend/security rules.
 - **Route guard** — dashboard, API, dan data dibatasi berdasarkan role.
@@ -122,7 +122,7 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 **Bergantung pada:** Fitur 1–2
 
 - **Create assignment** — title, instruction, due date, max attempts, attachments, link, dan status draft/published.
-- **Teacher Drive connection** — Google Drive OAuth terpisah dari Google login; gunakan scope minimum `drive.file`.
+- **Teacher Drive connection** — Google Drive OAuth terpisah dari login TuturAI dan bukan metode sign-in aplikasi; gunakan scope minimum `drive.file`.
   - Acceptance criteria: guru dapat connect, reconnect, disconnect, dan melihat folder TuturAI.
 - **File storage** — attachment dan submission file diarahkan ke Google Drive guru; Firestore hanya menyimpan metadata/file ID.
 - **Supported source** — upload gambar/dokumen atau external link.
@@ -154,7 +154,7 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 - **Assessment** — hasil minimum: pronunciation, fluency, intonation, grammar, vocabulary, overall score, transcript, feedback, confidence/error metadata.
 - **LLM analysis** — sementara dapat menggunakan Gemma melalui API, tetapi `model_id`, base URL, dan provider wajib configurable.
 - **AI environment policy** — konfigurasi `v1` yang dipakai STT/LLM wajib tersedia server-side. Konfigurasi `local` untuk OmniVoice/TTS boleh kosong sampai provider self-hosted selesai dibuat; kosong pada `AI_LOCAL_BASE_URL` dan `AI_TTS_MODEL_ID` dalam `.env.local` bukan credential blocker dan tidak boleh dianggap sebagai simulated success.
-- **Google environment policy** — Firebase Google Sign-In menggunakan konfigurasi provider Firebase yang sudah ada; jangan membuat client key Google kedua untuk login. Drive OAuth dan callback Google server-side harus memakai satu shared OAuth client (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`) dan token encryption key server-only.
+- **Google environment policy** — Firebase Google Sign-In memakai konfigurasi provider Firebase yang sudah ada; jangan membuat client key Google kedua untuk login. Drive OAuth dan callback Google server-side harus memakai satu shared OAuth client (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`) dan token encryption key server-only.
 - **Adaptive engine** — rekomendasi materi dan difficulty berdasarkan histori lima dimensi, assignment, dan performa terbaru.
 - **Provider adapter/fallback** — internal interface mendukung tunnel v1, API key, model ID, sync/async inference, timeout, retry, dan explicit error.
   - Acceptance criteria: kegagalan AI tidak boleh menghasilkan fake score atau simulated success.
@@ -236,7 +236,7 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 
 **Anggap fase ini selesai kalau:** kedua role dapat register/login dan hanya mengakses data/route yang diizinkan.
 
-**Verification evidence (2026-09-22):** student dan teacher berhasil register email/password melalui Firebase cloud (`accounts:signUp` 200), menyelesaikan onboarding (`201`), membuat server session (`200`), dan masuk ke dashboard role masing-masing. Session cookie diverifikasi server-side dengan Firebase session cookie, bukan raw ID token. Logout mengembalikan user ke login; cross-role route guard mengarahkan `/guru` dan `/siswa`; wrong-role API mengembalikan `403 FORBIDDEN`; unauthenticated route mengarahkan ke login. Firestore emulator rules suite lulus 37 tests. Google popup UI tersedia dan provider gate tetap memerlukan akun/consent Google nyata untuk evidence login eksternal.
+**Historical verification evidence (2026-09-22):** student dan teacher berhasil register email/password melalui Firebase cloud (`accounts:signUp` 200), menyelesaikan onboarding (`201`), membuat server session (`200`), dan masuk ke dashboard role masing-masing. Session cookie diverifikasi server-side dengan Firebase session cookie, bukan raw ID token. Logout mengembalikan user ke login; cross-role route guard mengarahkan `/guru` dan `/siswa`; wrong-role API mengembalikan `403 FORBIDDEN`; unauthenticated route mengarahkan ke login. Firestore emulator rules suite lulus 37 tests. Google popup UI pernah tersedia, tetapi browser consent/session proof belum menjadi bukti aktif dan kini diverifikasi oleh `WEB-AUTH-002`.
 
 ### Phase 2: Classroom, Student & Teacher Core
 **Terkait fitur:** Fitur 2, 4, 7
@@ -274,7 +274,7 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 
 **Konfigurasi development saat ini:** `apps/web/.env.local` memiliki konfigurasi `v1` untuk STT/LLM (`AI_V1_BASE_URL`, `AI_V1_API_KEY`, dan model ID terkait). `AI_LOCAL_BASE_URL` serta `AI_TTS_MODEL_ID` sengaja belum diisi karena OmniVoice/TTS self-hosted belum dibangun. Implementasi harus tetap menerima kondisi ini, fail closed bila TTS dipanggil sebelum provider tersedia, dan tidak mengarang audio atau score.
 
-**Status phase sebelum Phase 4:** fondasi Firebase/Firestore emulator, auth/session/onboarding, classroom, durable dashboard/gamification, dan sebagian assignment/submission sudah diimplementasikan. Phase 1 cloud auth/rules verification dan Phase 2 classroom checkpoint lulus untuk email/password, role boundaries, teacher create, invalid join-key rejection, student join, serta teacher/student membership visibility. Google popup consent dan Google Drive OAuth/upload evidence tetap menjadi provider gate; Phase 4 checkpoint tidak boleh ditandai lulus sebelum authenticated speaking-session provider response dan Firestore assessment write terverifikasi.
+**Historical status sebelum Phase 4 (bukan status eksekusi aktif):** fondasi Firebase/Firestore emulator, auth/session/onboarding, classroom, durable dashboard/gamification, dan sebagian assignment/submission sudah diimplementasikan. Phase 1 cloud auth/rules verification dan Phase 2 classroom checkpoint lulus untuk email/password, role boundaries, teacher create, invalid join-key rejection, student join, serta teacher/student membership visibility. Google popup consent/session dan Google Drive OAuth/upload evidence dipisahkan; `WEB-AUTH-002` memverifikasi Google Sign-In aplikasi, sedangkan Drive tetap gate integrasi tersendiri.
 
 ### Phase 5: Offline-First & Sync
 **Terkait fitur:** Fitur 8
@@ -739,5 +739,7 @@ Phase QA dan Phase Security wajib lulus sebelum release dianggap selesai.
 
 | Tanggal | Perubahan |
 |---|---|
+| 25 September 2026 | Scope auth dikoreksi kembali menjadi Google + email/password; GitHub tetap di luar scope. `WEB-AUTH-002` diaktifkan kembali untuk verifikasi browser/provider; Drive OAuth tetap integrasi terpisah. |
+| 25 September 2026 | Historical decision (superseded by the entry above and §1): production auth was considered email/password-only; Google is now in scope, while GitHub remains out of scope. Drive OAuth stays separate; prior verification evidence is retained as historical. |
 | 21 September 2026 | Draft v0.1 TuturAI berdasarkan proposal LIDM, produk aktif, dan keputusan final: Firebase/Netlify, classroom key, assignment+Drive, AI tunnel, teacher voice cloning, offline-first, PDF report, dan hardware integration. |
 | 18 September 2026 | Baseline template AnyMD: kontrak bahasa/Unicode, preset visual, functional-only output, skill recommendation, QA/Security, dan auto-continue antar-phase. |

@@ -29,7 +29,7 @@ describe('GET /api/teacher/leaderboard', () => {
   it('returns XP-ranked students with persisted speaking scores when available', async () => {
     mockedRequireRole.mockResolvedValue({ ok: true, user: { uid: 'teacher-1' } } as never)
     mockedListClassrooms.mockResolvedValue([{ id: 'class-1', name: 'XI IPA' }] as never)
-    mockedListMembers.mockResolvedValue([{ studentId: 'student-1', name: 'Ani', email: null, joinedAt: '' }])
+    mockedListMembers.mockResolvedValue([{ studentId: 'student-1', name: 'Ani', email: null, joinedAt: '', level: 1, streak: 0, speakingScore: 84 }])
     mockedGetAdminDb.mockReturnValue({
       collection: (name: string) => ({
         doc: () => ({}),
