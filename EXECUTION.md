@@ -5,17 +5,17 @@ NEVER RESTART COMPLETED WORK.
 NEVER RE-AUDIT COMPLETED PHASES WITHOUT NEW EVIDENCE OF REGRESSION.
 ALWAYS RESUME FROM CURRENT_PHASE and NEXT_TASK_ID.
 
-Last normalized: 2026-09-25
+Last normalized: 2026-09-26
 Product specification: `PRD.md`
 Architecture and security contract: `AGENTS.md`
 
 ## Execution Lock
 
 ```text
-CURRENT_PHASE=PHASE 13 - Final Production Readiness Certification
-CURRENT_TASK_ID=CERT-001
+CURRENT_PHASE=PHASE 2 - Authentication, Session & RBAC
+CURRENT_TASK_ID=WEB-AUTH-002
 CURRENT_TASK_STATUS=BLOCKED_EXTERNAL
-NEXT_TASK_ID=NONE
+NEXT_TASK_ID=DRIVE-001
 LAST_COMPLETED_TASK_ID=RELEASE-001
 BLOCKED_EXTERNAL=WEB-AUTH-002,DRIVE-001,OFFLINE-003,OFFLINE-004,SEC-002,DEPLOY-001,DEPLOY-002,DEPLOY-003,E2E-PROD-001,E2E-PROD-002,VOICE-001,WEB-SPEAK-002,PRON-001,HW-001
 RELEASE_READY=false
@@ -27,6 +27,7 @@ Only the coordinator updates this lock. A task moves monotonically through:
 ```text
 TODO -> IN_PROGRESS -> VERIFYING -> DONE
 TODO -> IN_PROGRESS -> BLOCKED_EXTERNAL
+BLOCKED_EXTERNAL -> IN_PROGRESS (dependency or runtime evidence changed; preserve prior attempts)
 TODO/BLOCKED_EXTERNAL -> NOT_REQUIRED (explicit product scope decision; history retained)
 ```
 
@@ -152,9 +153,9 @@ only when its status changes or it becomes the final release blocker.
 - Task IDs: `WEB-AUTH-001`, `WEB-AUTH-002`.
 - Acceptance criteria: Google and email/password paths are durable; all protected boundaries fail closed. GitHub and other social providers remain out of scope; Drive OAuth remains separate.
 - Required tests: unit/integration/rules plus browser happy and negative paths.
-- Evidence: email/password path is `DONE`; live Identity Toolkit `accounts:createAuthUri` returned `google.com` auth URLs for `http://localhost:3000` and `https://tuturai-apps.netlify.app`, confirming provider/continue-URI acceptance. Google UI, onboarding, and server-session boundaries are implemented. Full real-browser Google login/session/restore/logout proof still requires an authenticated Google browser account; Firebase Console currently redirects to Google account sign-in.
+- Evidence: email/password path is `DONE`; Firebase SDK config from the active Web App matches the user's supplied config. Production bundle previously had `NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-tuturai` while API key/authDomain/storage/sender/appId matched `gen-lang-client-0138449759`; the correction is now in `netlify.toml`/CI and production build validation. Added safe popup/session diagnostics, targeted Firebase error messages, project/emulator guards, and Admin/Web project matching. Focused tests pass (31/31), typecheck passes, and a production build with the actual project config passes. Local production smoke shows the correct project in the bundle and unauthenticated `/api/me` returns `401`. Google Auth Emulator local config remains demo-only and unchanged.
 - Exit criteria: no local auth regression and Google browser flow proves Firebase auth -> onboarding/session -> dashboard -> restore/logout.
-- Status: `BLOCKED_EXTERNAL` pending a real Google browser account/session and consent for the final end-to-end flow.
+- Status: `BLOCKED_EXTERNAL` after local code/config correction; production rebuild/runtime Admin environment and a real Google-account session/restore/logout E2E remain unverified.
 - Next phase: PHASE 3.
 
 ### PHASE 3 - Classroom & Assignment Durable Workflows
@@ -332,7 +333,7 @@ only when its status changes or it becomes the final release blocker.
 | `WEB-CORE-001` | DONE | 1 | Next.js route inventory and full compilation issues returned zero issues on port 3000 | 1 | none | reopen only on route/compile regression |
 | `WEB-CORE-002` | DONE | 1 | removed dead profile/language/photo/password controls; unavailable states are explicit | 1 | none | reopen only on a concrete dead interaction regression |
 | `WEB-AUTH-001` | DONE | 2 | email/password/session/RBAC/rules evidence | 1 | none | reopen only on regression |
-| `WEB-AUTH-002` | BLOCKED_EXTERNAL | 2 | Firebase web app exists; live `accounts:createAuthUri` returned a Google auth URI for localhost and Netlify; Console redirects to Google sign-in; full real browser -> Firebase -> onboarding/session -> dashboard -> restore/logout remains unverified | 3 | current Playwright/CLI browser has no authenticated Google user session; local Auth Emulator evidence is not production proof | when an authenticated Google browser account is available, complete sign-in, new/existing-user role path, server session, dashboard, reload/restore, logout, and role denial |
+| `WEB-AUTH-002` | BLOCKED_EXTERNAL | 2 | Verified Firebase Web App config matches the supplied values. Production JS had demo `projectId`; corrected in Netlify build config and CI. Added `client-config.mjs` production/demo/emulator validation, Admin/Web project consistency and PEM checks, stage-aware client UX/safe diagnostics, and safe session-route Firebase error logging. Focused auth/config/session tests 31/31, web typecheck and production build pass; local production bundle has the real project ID and unauth `/api/me` returns 401. | 5 | user reports account chooser opens but sign-in still fails after selection; production `/api/auth/session` previously returned empty `500`; local fake-token check surfaced `app/network-error` because this environment could not reach Firebase verification, so no real user's popup error code/session has been observed | publish/rebuild the latest source; in Netlify Functions scope verify `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, and `FIREBASE_ADMIN_PRIVATE_KEY` all belong to `gen-lang-client-0138449759`; then user retries Google login and provides only the safe diagnostic object, followed by session/onboarding/reload/logout E2E |
 | `WEB-CLASS-001` | DONE | 3 | classroom lifecycle checkpoint | 1 | none | reopen only on regression |
 | `WEB-ASSIGN-001` | DONE | 3 | submit/return/resubmit/approve durable E2E | 1 | none | reopen only on regression |
 | `WEB-TEACHER-004` | DONE | 3/6 | 2026-09-25 `e2e:teacher-assignment-authoring` PASS: email/password browser login -> UI publish -> POST 201 -> API read-back -> independent Firestore assertion -> reload heading -> wrong-class 404; assignment jfLHV57OaJMClQFtDUIk; root `pnpm emulators` pins demo-tuturai | 5 | resolved EMAIL_NOT_FOUND caused by CLI default project mismatch; initial restart seed preceded listener readiness | reopen only on regression; Drive remains separate |
@@ -381,7 +382,7 @@ status changes or it becomes the only remaining release blocker.
 
 | Gate | State | Reason / evidence | Resume verification |
 |---|---|---|---|
-| `WEB-AUTH-002` | BLOCKED_EXTERNAL | Google is active scope; live `accounts:createAuthUri` accepts Google provider and both local/Netlify continue URIs; Console redirects to Google account sign-in; end-to-end user identity and consent still need a real account | use an authorized Google browser account to complete Firebase auth -> onboarding/session -> dashboard -> reload/restore -> logout/role denial |
+| `WEB-AUTH-002` | BLOCKED_EXTERNAL | Google is active scope and the chooser opens; the previous production bundle had a mixed project ID and the live server-session endpoint returned an empty 500. Local source/config checks are fixed, but Netlify has not rebuilt and runtime Admin variables/session have not been confirmed. | publish/rebuild, verify Netlify Functions Admin project and credentials, then use an authorized Google browser account for Firebase auth -> onboarding/session -> dashboard -> reload/restore -> logout/role denial; capture only the safe diagnostic object |
 | `DRIVE-001` | BLOCKED_EXTERNAL | OAuth consent, callback, refresh, upload, and persisted metadata need a real teacher account; assignment file replay `OFFLINE-003` depends on the same provider boundary | Drive status -> consent -> upload -> Firestore metadata read-back -> resume `OFFLINE-003` |
 | `OFFLINE-004` | BLOCKED_EXTERNAL | Local payload scrubbing and v1->v2 migration pass; current `/api/student/assessment` audio replay returned HTTP 503 `PROVIDER_UNAVAILABLE` with `retryable=true`, so no completed assessment was fabricated | once the configured STT/LLM route (`AI_STT_ROUTE`, `AI_LLM_ROUTE`, associated model IDs and `AI_V1_BASE_URL`/key when selected) responds, run `e2e:offline-payloads` and confirm one assessment plus synced payload deletion |
 | `VOICE-001` / `WEB-SPEAK-002` | BLOCKED_EXTERNAL | OmniVoice/TTS endpoint/model is intentionally unconfigured | enrollment -> ready polling/webhook -> preview/playback -> delete |

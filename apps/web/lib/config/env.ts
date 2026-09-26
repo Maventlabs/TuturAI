@@ -41,10 +41,41 @@ export const publicEnv = {
 } as const
 
 export function getFirebaseAdminEnv() {
+  const projectId = required('FIREBASE_ADMIN_PROJECT_ID')
+  const clientProjectId = optional('NEXT_PUBLIC_FIREBASE_PROJECT_ID')
+  const clientEmail = required('FIREBASE_ADMIN_CLIENT_EMAIL')
+  const privateKey = required('FIREBASE_ADMIN_PRIVATE_KEY').replace(/\\n/g, '\n')
+
+  if (clientProjectId && clientProjectId !== projectId) {
+    throw new Error('FIREBASE_ADMIN_PROJECT_ID must match NEXT_PUBLIC_FIREBASE_PROJECT_ID')
+  }
+
+  if (!clientEmail.endsWith('.iam.gserviceaccount.com')) {
+    throw new Error('FIREBASE_ADMIN_CLIENT_EMAIL must be a service-account email')
+  }
+
+  if (!privateKey.startsWith('-----BEGIN PRIVATE KEY-----') || !privateKey.trimEnd().endsWith('-----END PRIVATE KEY-----')) {
+    throw new Error('FIREBASE_ADMIN_PRIVATE_KEY must be a PEM private key')
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    if (projectId.startsWith('demo-')) {
+      throw new Error('FIREBASE_ADMIN_PROJECT_ID cannot use a demo project in production')
+    }
+    const emulatorVariables = ['FIREBASE_AUTH_EMULATOR_HOST', 'FIRESTORE_EMULATOR_HOST']
+      .filter((name) => optional(name))
+    if (emulatorVariables.length > 0) {
+      throw new Error(`Firebase emulator variables must be unset in production: ${emulatorVariables.join(', ')}`)
+    }
+    if (!clientEmail.endsWith(`@${projectId}.iam.gserviceaccount.com`)) {
+      throw new Error('FIREBASE_ADMIN_CLIENT_EMAIL must belong to FIREBASE_ADMIN_PROJECT_ID')
+    }
+  }
+
   return {
-    projectId: required('FIREBASE_ADMIN_PROJECT_ID'),
-    clientEmail: required('FIREBASE_ADMIN_CLIENT_EMAIL'),
-    privateKey: required('FIREBASE_ADMIN_PRIVATE_KEY').replace(/\\n/g, '\n'),
+    projectId,
+    clientEmail,
+    privateKey,
   } as const
 }
 

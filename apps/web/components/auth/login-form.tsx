@@ -8,18 +8,34 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
-import { authErrorMessage } from '@/lib/firebase/auth-errors'
+import { AuthFlowError, authErrorMessage, firebaseAuthErrorCode, logGoogleAuthFailure, serverAuthErrorCode, serverFirebaseAuthErrorCode } from '@/lib/firebase/auth-errors'
+import { getFirebaseClientDiagnostics } from '@/lib/firebase/client'
 
 async function establishSession(authenticatedUser?: User) {
   const user = authenticatedUser ?? getFirebaseAuth().currentUser
-  if (!user) throw new Error('Sesi Firebase tidak tersedia')
-  const idToken = await user.getIdToken()
-  const response = await fetch('/api/auth/session', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ idToken }),
-  })
-  if (!response.ok) throw new Error('Sesi server gagal dibuat')
+  if (!user) throw new AuthFlowError('server-session', 0, 'FIREBASE_USER_MISSING')
+  let idToken: string
+  try {
+    idToken = await user.getIdToken()
+  } catch (error) {
+    throw new AuthFlowError('server-session', 0, 'FIREBASE_ID_TOKEN_UNAVAILABLE', firebaseAuthErrorCode(error))
+  }
+
+  let response: Response
+  try {
+    response = await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    })
+  } catch {
+    throw new AuthFlowError('server-session', 0, 'SESSION_NETWORK_ERROR')
+  }
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    throw new AuthFlowError('server-session', response.status, serverAuthErrorCode(payload) ?? `HTTP_${response.status}`, serverFirebaseAuthErrorCode(payload))
+  }
 }
 
 export function LoginForm() {
@@ -57,6 +73,13 @@ export function LoginForm() {
       router.push('/dashboard')
       router.refresh()
     } catch (error) {
+      logGoogleAuthFailure(error, {
+        failureStage: 'firebase-popup',
+        ...getFirebaseClientDiagnostics(),
+        currentOrigin: window.location.origin,
+        popupOrRedirect: 'popup',
+        environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+      })
       setError(authErrorMessage(error, 'google'))
       setLoading(false)
     }

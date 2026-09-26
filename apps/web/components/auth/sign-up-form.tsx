@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { authErrorMessage } from '@/lib/firebase/auth-errors'
+import { AuthFlowError, authErrorMessage, firebaseAuthErrorCode, logGoogleAuthFailure, serverAuthErrorCode, serverFirebaseAuthErrorCode } from '@/lib/firebase/auth-errors'
+import { getFirebaseClientDiagnostics } from '@/lib/firebase/client'
 import { GraduationCap, Presentation, Loader2 } from 'lucide-react'
 
 type Role = 'student' | 'teacher'
@@ -50,35 +51,71 @@ export function SignUpForm() {
       }
       await finishOnboarding(credential.user, credential.user.displayName ?? fullName)
     } catch (error) {
+      logGoogleAuthFailure(error, {
+        failureStage: 'firebase-popup',
+        ...getFirebaseClientDiagnostics(),
+        currentOrigin: window.location.origin,
+        popupOrRedirect: 'popup',
+        environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+      })
       setError(authErrorMessage(error, 'google'))
       setLoading(false)
     }
   }
 
   async function finishOnboarding(user: { getIdToken: () => Promise<string> }, displayName: string) {
-    const idToken = await user.getIdToken()
-    const response = await fetch('/api/auth/onboarding', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${idToken}` },
-      body: JSON.stringify({
-        displayName,
-        school,
-        role,
-        ...(role === 'student' ? { className: extra } : { subject: extra }),
-      }),
-    })
-    if (!response.ok) throw new Error('Onboarding gagal')
+    let idToken: string
+    try {
+      idToken = await user.getIdToken()
+    } catch (error) {
+      throw new AuthFlowError('onboarding', 0, 'FIREBASE_ID_TOKEN_UNAVAILABLE', firebaseAuthErrorCode(error))
+    }
+
+    let response: Response
+    try {
+      response = await fetch('/api/auth/onboarding', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({
+          displayName,
+          school,
+          role,
+          ...(role === 'student' ? { className: extra } : { subject: extra }),
+        }),
+      })
+    } catch {
+      throw new AuthFlowError('onboarding', 0, 'ONBOARDING_NETWORK_ERROR')
+    }
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null)
+      throw new AuthFlowError('onboarding', response.status, serverAuthErrorCode(payload) ?? `HTTP_${response.status}`, serverFirebaseAuthErrorCode(payload))
+    }
     await establishSession(user)
     redirectToDashboard()
   }
 
   async function establishSession(user: { getIdToken: () => Promise<string> }) {
-    const response = await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ idToken: await user.getIdToken() }),
-    })
-    if (!response.ok) throw new Error('Sesi server gagal dibuat')
+    let idToken: string
+    try {
+      idToken = await user.getIdToken()
+    } catch (error) {
+      throw new AuthFlowError('server-session', 0, 'FIREBASE_ID_TOKEN_UNAVAILABLE', firebaseAuthErrorCode(error))
+    }
+
+    let response: Response
+    try {
+      response = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      })
+    } catch {
+      throw new AuthFlowError('server-session', 0, 'SESSION_NETWORK_ERROR')
+    }
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null)
+      throw new AuthFlowError('server-session', response.status, serverAuthErrorCode(payload) ?? `HTTP_${response.status}`, serverFirebaseAuthErrorCode(payload))
+    }
   }
 
   function redirectToDashboard() {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { getAiEnv } from './env'
+import { getAiEnv, getFirebaseAdminEnv } from './env'
 
 const originalEnv = { ...process.env }
 
@@ -39,5 +39,50 @@ describe('AI environment configuration', () => {
     const config = getAiEnv().ai
 
     expect(config.tts.apiKey).toBeUndefined()
+  })
+})
+
+describe('Firebase Admin environment', () => {
+  it('rejects server credentials configured for a different Firebase Web project', () => {
+    process.env.FIREBASE_ADMIN_PROJECT_ID = 'server-project'
+    process.env.FIREBASE_ADMIN_CLIENT_EMAIL = 'firebase-adminsdk@server-project.iam.gserviceaccount.com'
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----'
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'web-project'
+
+    expect(() => getFirebaseAdminEnv()).toThrow('FIREBASE_ADMIN_PROJECT_ID')
+  })
+
+  it('normalizes escaped private-key newlines without exposing the key', () => {
+    process.env.FIREBASE_ADMIN_PROJECT_ID = 'web-project'
+    process.env.FIREBASE_ADMIN_CLIENT_EMAIL = 'firebase-adminsdk@web-project.iam.gserviceaccount.com'
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----'
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'web-project'
+
+    const config = getFirebaseAdminEnv()
+
+    expect(config.privateKey).toContain('\nkey\n')
+    expect(config.projectId).toBe('web-project')
+  })
+
+  it('rejects demo projects and emulator hosts in production', () => {
+    Reflect.set(process.env, 'NODE_ENV', 'production')
+    process.env.FIREBASE_ADMIN_PROJECT_ID = 'demo-tuturai'
+    process.env.FIREBASE_ADMIN_CLIENT_EMAIL = 'firebase-adminsdk@demo-tuturai.iam.gserviceaccount.com'
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----'
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'demo-tuturai'
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080'
+
+    expect(() => getFirebaseAdminEnv()).toThrow('cannot use a demo project in production')
+  })
+
+  it('rejects emulator endpoints in production even when project IDs match', () => {
+    Reflect.set(process.env, 'NODE_ENV', 'production')
+    process.env.FIREBASE_ADMIN_PROJECT_ID = 'web-project'
+    process.env.FIREBASE_ADMIN_CLIENT_EMAIL = 'firebase-adminsdk@web-project.iam.gserviceaccount.com'
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----'
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'web-project'
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080'
+
+    expect(() => getFirebaseAdminEnv()).toThrow('Firebase emulator variables must be unset in production')
   })
 })

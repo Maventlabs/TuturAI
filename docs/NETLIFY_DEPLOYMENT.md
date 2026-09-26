@@ -2,23 +2,26 @@
 
 ## Repository Preconditions
 
-The root repository currently records `apps/web` and `source/TuturAI` as gitlink
-entries without a `.gitmodules` mapping. Do not push the root repository as-is
-and assume Netlify can fetch those directories. The active web source must be
-flattened into the canonical `Maventlabs/TuturAI` repository, or the linked
-repositories must be made accessible and documented.
+The canonical root repository contains `apps/web` as a normal tracked directory
+(Git tree mode `040000`), not a gitlink. The current root has no `source/TuturAI`
+directory or `.gitmodules`; the Netlify build base is `.` and can read the active
+web app from the same repository. Do not follow older instructions to flatten a
+gitlink or remove a nested `.git` directory unless the tree evidence changes.
 
-Inspect before changing the boundary:
+Verify the repository boundary before changing it:
 
 ```powershell
-git ls-tree HEAD apps/web source/TuturAI
-git -C apps/web status --short --branch
-git -C source/TuturAI status --short --branch
+git ls-tree HEAD apps/web source/TuturAI .gitmodules
+git status --short --branch
 ```
 
-If the intent is to publish the complete source in the root repository, make a
-backup branch first, then convert the gitlinks deliberately. Do not delete any
-nested `.git` directory until its history is backed up.
+The remote default branch is `main` (confirmed by
+`git ls-remote --symref origin HEAD`); the current `main` tracks `origin/main`.
+`netlify.toml` defines production build behavior, but the
+Netlify site's production-branch selection is stored in Netlify site settings,
+not this file. Changes intended for the existing production connection must be
+pushed to its configured production branch; do not create an unrelated preview
+branch.
 
 ## Netlify Settings
 
