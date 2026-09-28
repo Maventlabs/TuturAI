@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDeviceSecret, hashDeviceSecret, isValidDeviceId, verifyDeviceSecret } from './devices'
+import { createDeviceSecret, hashDeviceSecret, isValidDeviceId, parseDeviceHeartbeat, verifyDeviceSecret } from './devices'
 
 describe('device credential model', () => {
   it('accepts bounded device ids and rejects unsafe values', () => {
@@ -16,5 +16,15 @@ describe('device credential model', () => {
     expect(hash).not.toContain(secret)
     await expect(verifyDeviceSecret(secret, hash)).resolves.toBe(true)
     await expect(verifyDeviceSecret('wrong-secret', hash)).resolves.toBe(false)
+  })
+
+  it('accepts only bounded numeric telemetry and a short firmware string', () => {
+    expect(parseDeviceHeartbeat({ battery: 82, signal: 67, firmware: '1.2.3' })).toEqual({ battery: 82, signal: 67, firmware: '1.2.3' })
+    expect(parseDeviceHeartbeat({})).toEqual({})
+    expect(parseDeviceHeartbeat({ battery: '82' })).toBeNull()
+    expect(parseDeviceHeartbeat({ signal: 101 })).toBeNull()
+    expect(parseDeviceHeartbeat({ firmware: 'x'.repeat(65) })).toBeNull()
+    expect(parseDeviceHeartbeat({ command: 'unlock' })).toBeNull()
+    expect(parseDeviceHeartbeat(null)).toBeNull()
   })
 })

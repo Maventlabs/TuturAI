@@ -8,6 +8,8 @@ export class AuthFlowError extends Error {
     public readonly httpStatus: number,
     public readonly serverErrorCode: string | null,
     public readonly firebaseErrorCode: string | null = null,
+    public readonly requestId: string | null = null,
+    public readonly configField: string | null = null,
   ) {
     super('Authentication flow failed')
     this.name = 'AuthFlowError'
@@ -41,6 +43,21 @@ export function serverFirebaseAuthErrorCode(payload: unknown): string | null {
   if (!details || typeof details !== 'object' || !('firebaseErrorCode' in details)) return null
   const code = details.firebaseErrorCode
   return typeof code === 'string' && /^(auth|app)\/[a-z0-9-]+$/i.test(code) ? code : null
+}
+
+export function serverConfigField(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object' || !('error' in payload)) return null
+  const apiError = payload.error
+  if (!apiError || typeof apiError !== 'object' || !('details' in apiError)) return null
+  const details = apiError.details
+  if (!details || typeof details !== 'object' || !('configField' in details)) return null
+  const field = details.configField
+  return typeof field === 'string' && /^[A-Z0-9_]{1,100}$/.test(field) ? field : null
+}
+
+export function serverRequestId(response: Response): string | null {
+  const requestId = response.headers.get('x-request-id')?.trim() ?? ''
+  return /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(requestId) ? requestId : null
 }
 
 export function authErrorMessage(error: unknown, action: 'login' | 'signup' | 'google') {
@@ -133,6 +150,8 @@ export function createGoogleAuthDiagnostic(error: unknown, context: GoogleAuthDi
     failureStage: flowError?.stage ?? context.failureStage,
     httpStatus: flowError?.httpStatus ?? null,
     serverErrorCode: flowError?.serverErrorCode ?? null,
+    requestId: flowError?.requestId ?? null,
+    configField: flowError?.configField ?? null,
   }
 }
 

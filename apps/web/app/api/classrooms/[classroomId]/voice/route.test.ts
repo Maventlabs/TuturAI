@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { POST } from './route'
 import { requireRole } from '@/lib/api/auth-guard'
 import { HttpVoiceProvider } from '@/lib/ai/voice-provider'
-import { getAiEnv } from '@/lib/config/env'
+import { getTtsEnv } from '@/lib/config/env'
 import { getStudentClassroomVoiceProfile } from '@/lib/voice-profile'
 
 vi.mock('@/lib/api/auth-guard', () => ({ requireRole: vi.fn() }))
@@ -14,12 +14,12 @@ vi.mock('@/lib/ai/voice-provider', () => ({
     retryable = true
   },
 }))
-vi.mock('@/lib/config/env', () => ({ getAiEnv: vi.fn() }))
+vi.mock('@/lib/config/env', () => ({ getTtsEnv: vi.fn() }))
 vi.mock('@/lib/voice-profile', () => ({ getStudentClassroomVoiceProfile: vi.fn() }))
 
 const mockedRequireRole = vi.mocked(requireRole)
 const mockedProvider = vi.mocked(HttpVoiceProvider)
-const mockedGetAiEnv = vi.mocked(getAiEnv)
+const mockedGetTtsEnv = vi.mocked(getTtsEnv)
 const mockedGetProfile = vi.mocked(getStudentClassroomVoiceProfile)
 
 function request(text: unknown) {
@@ -34,7 +34,7 @@ describe('/api/classrooms/[classroomId]/voice', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mockedRequireRole.mockResolvedValue({ ok: true, user: { uid: 'student-1' } } as never)
-    mockedGetAiEnv.mockReturnValue({ ai: { tts: { route: 'local', baseUrl: 'http://localhost:3900', apiKey: undefined, modelId: 'omnivoice-v1', synthesisPath: '/v1/audio/speech' } } } as never)
+    mockedGetTtsEnv.mockReturnValue({ route: 'local', baseUrl: 'http://localhost:3900', apiKey: undefined, modelId: 'omnivoice-v1', enrollmentPath: '/v1/voice-clones', statusPath: '/v1/voice-clones', synthesisPath: '/v1/audio/speech', deletePath: '/v1/voice-clones' })
     mockedProvider.mockImplementation(() => ({ synthesize: vi.fn().mockResolvedValue({ audio: new ArrayBuffer(2), contentType: 'audio/wav' }) }) as never)
   })
 

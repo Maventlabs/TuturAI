@@ -21,6 +21,30 @@ export interface DeviceRecord {
   updatedAt: string | null
 }
 
+export type DeviceHeartbeat = { battery?: number; signal?: number; firmware?: string }
+
+export function parseDeviceHeartbeat(value: unknown): DeviceHeartbeat | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+
+  const raw = value as Record<string, unknown>
+  if (Object.keys(raw).some((key) => !['battery', 'signal', 'firmware'].includes(key))) return null
+
+  const telemetry: DeviceHeartbeat = {}
+  for (const key of ['battery', 'signal'] as const) {
+    const value = raw[key]
+    if (value === undefined) continue
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 100) return null
+    telemetry[key] = value
+  }
+
+  if (raw.firmware !== undefined) {
+    if (typeof raw.firmware !== 'string' || raw.firmware.trim().length === 0 || raw.firmware.length > 64) return null
+    telemetry.firmware = raw.firmware.trim()
+  }
+
+  return telemetry
+}
+
 export function isValidDeviceId(value: string) {
   return /^[A-Za-z0-9_-]{4,64}$/.test(value)
 }

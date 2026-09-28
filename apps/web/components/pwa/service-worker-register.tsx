@@ -4,6 +4,13 @@ import { useEffect } from 'react'
 import { cleanupAudioQueue, deleteOfflineRecord, replayPendingMutations } from '@/lib/offline/offline-db'
 import { OfflineMutationError } from '@/lib/offline/offline-queue'
 
+export async function ensureReplayResponse(response: Response, fallbackMessage: string) {
+  if (response.ok) return
+  const payload = await response.json().catch(() => null) as { error?: { message?: string; details?: { retryable?: boolean } } } | null
+  const retryable = response.status === 408 || response.status === 425 || response.status === 429 || response.status >= 500 || payload?.error?.details?.retryable === true
+  throw new OfflineMutationError(payload?.error?.message ?? fallbackMessage, retryable)
+}
+
 async function replayMutation(mutation: { operation: string; payload: unknown; idempotencyKey: string }) {
   const payload = mutation.payload as Record<string, unknown>
   if (mutation.operation === 'conversation-text') {
@@ -12,7 +19,7 @@ async function replayMutation(mutation: { operation: string; payload: unknown; i
       headers: { 'content-type': 'application/json', 'Idempotency-Key': mutation.idempotencyKey },
       body: JSON.stringify(payload),
     })
-    if (!response.ok) throw new OfflineMutationError('Conversation replay failed', response.status >= 500)
+    await ensureReplayResponse(response, 'Conversation replay failed')
     return
   }
   if (mutation.operation === 'submit-assignment') {
@@ -26,7 +33,7 @@ async function replayMutation(mutation: { operation: string; payload: unknown; i
       headers: { 'Idempotency-Key': mutation.idempotencyKey },
       body,
     })
-    if (!response.ok) throw new OfflineMutationError('Assignment replay failed', response.status >= 500)
+    await ensureReplayResponse(response, 'Assignment replay failed')
     return
   }
   if (mutation.operation === 'assessment-audio') {
@@ -44,7 +51,7 @@ async function replayMutation(mutation: { operation: string; payload: unknown; i
       headers: { 'Idempotency-Key': mutation.idempotencyKey },
       body,
     })
-    if (!response.ok) throw new OfflineMutationError('Audio assessment replay failed', response.status >= 500)
+    await ensureReplayResponse(response, 'Audio assessment replay failed')
     await deleteOfflineRecord('audioQueue', String(payload.sessionId))
     return
   }

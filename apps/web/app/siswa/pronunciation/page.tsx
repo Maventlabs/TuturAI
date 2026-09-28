@@ -21,12 +21,31 @@ import { useMicrophone } from '@/hooks/use-microphone'
 import { cn } from '@/lib/utils'
 import type { QuestionBankItem } from '@tuturai/domain'
 
+type PronunciationResult = {
+  id: string
+  questionId: string
+  targetText: string
+  transcript: string
+  score: number
+  confidence: number | null
+  feedback: string
+  words: Array<{
+    word: string
+    expected: string
+    actual: string
+    score: number
+    confidence: number | null
+    phonemes: Array<{ phoneme: string; expected: string; actual: string | null; score: number; confidence: number | null; startMs: number; endMs: number; issue: string | null }>
+  }>
+}
+
 export default function PronunciationPage() {
   const [words, setWords] = useState<QuestionBankItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
   const [scored, setScored] = useState(false)
+  const [pronunciationResult, setPronunciationResult] = useState<PronunciationResult | null>(null)
   const [practiceMessage, setPracticeMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const submittedAudio = useRef<Blob | null>(null)
@@ -50,6 +69,27 @@ export default function PronunciationPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    if (!words.length) return
+    const attemptId = new URLSearchParams(window.location.search).get('attemptId')
+    if (!attemptId) return
+    const controller = new AbortController()
+    fetch(`/api/student/pronunciation?attemptId=${encodeURIComponent(attemptId)}`, { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => {
+        const payload = await response.json() as { data?: PronunciationResult; error?: { message?: string } }
+        if (!response.ok || !payload.data || payload.data.questionId !== word?.id) {
+          throw new Error(payload.error?.message ?? 'Hasil pronunciation tidak tersedia untuk latihan ini.')
+        }
+        setPronunciationResult(payload.data)
+        setScored(true)
+        setPracticeMessage(payload.data.feedback)
+      })
+      .catch((cause) => {
+        if (!controller.signal.aborted) setPracticeMessage(cause instanceof Error ? cause.message : 'Hasil pronunciation tidak dapat dimuat.')
+      })
+    return () => controller.abort()
+  }, [words, word?.id])
+
   const recording = mic.status === 'recording'
   const micBlocked =
     mic.status === 'denied' || mic.status === 'error' || mic.status === 'unsupported'
@@ -61,20 +101,28 @@ export default function PronunciationPage() {
     const submit = async () => {
       setSubmitting(true)
       setScored(false)
+      setPronunciationResult(null)
       setPracticeMessage(null)
       try {
         const idempotencyKey = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${word.id}-${Date.now()}`
-        const response = await fetch('/api/student/practice-attempts', {
+        const form = new FormData()
+        form.append('questionId', word.id)
+        form.append('audio', mic.audioBlob as Blob, 'pronunciation.webm')
+        const response = await fetch('/api/student/pronunciation', {
           method: 'POST',
-          headers: { 'content-type': 'application/json', 'Idempotency-Key': idempotencyKey },
-          body: JSON.stringify({ questionId: word.id, contentType: 'pronunciation', idempotencyKey }),
+          headers: { 'Idempotency-Key': idempotencyKey },
+          body: form,
           signal: controller.signal,
         })
-        const payload = await response.json() as { data?: { assessmentStatus?: string; score?: number | null }; error?: { message?: string } }
+        const payload = await response.json() as { data?: PronunciationResult; error?: { message?: string } }
         if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? 'Latihan pronunciation gagal disimpan.')
-        if (payload.data.assessmentStatus !== 'provider_unavailable' || payload.data.score !== null) throw new Error('Hasil pronunciation tidak valid.')
+        if (payload.data.questionId !== word.id || !Array.isArray(payload.data.words) || payload.data.words.length === 0) throw new Error('Hasil phoneme tidak valid.')
+        setPronunciationResult(payload.data)
         setScored(true)
-        setPracticeMessage('Latihan tercatat. Skor pronunciation tersedia setelah provider fonetik dikonfigurasi.')
+        setPracticeMessage(payload.data.feedback)
+        const url = new URL(window.location.href)
+        url.searchParams.set('attemptId', payload.data.id)
+        window.history.replaceState(null, '', url)
       } catch (cause) {
         if (!controller.signal.aborted) setPracticeMessage(cause instanceof Error ? cause.message : 'Penilaian pronunciation gagal. Coba lagi.')
       } finally {
@@ -102,8 +150,16 @@ export default function PronunciationPage() {
   }
 
   function go(dir: number) {
-    setIndex((i) => (i + dir + words.length) % words.length)
+    const nextIndex = (index + dir + words.length) % words.length
+    setIndex(nextIndex)
+    if (words[nextIndex]) {
+      const url = new URL(window.location.href)
+      url.searchParams.set('questionId', words[nextIndex].id)
+      url.searchParams.delete('attemptId')
+      window.history.replaceState(null, '', url)
+    }
     setScored(false)
+    setPronunciationResult(null)
     setPracticeMessage(null)
     mic.reset()
     submittedAudio.current = null
@@ -189,15 +245,21 @@ export default function PronunciationPage() {
             </div>
 
              {scored && (
-               <FadeIn className="mt-6 rounded-xl border border-success/30 bg-success/10 p-4">
-                 <div className="flex items-center justify-between">
-                   <span className="flex items-center gap-2 text-sm font-semibold text-success">
-                     <Check className="h-4 w-4" /> Latihan tercatat
-                   </span>
-                    <span className="font-mono text-sm font-bold text-foreground">Provider belum tersedia</span>
-                 </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{practiceMessage}</p>
-                 {mic.audioUrl && (
+                <FadeIn className="mt-6 rounded-xl border border-success/30 bg-success/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-sm font-semibold text-success">
+                      <Check className="h-4 w-4" /> Hasil provider tersimpan
+                    </span>
+                     <span className="font-mono text-sm font-bold text-foreground">{pronunciationResult?.score}/100</span>
+                  </div>
+                   <p className="mt-2 text-sm text-muted-foreground">{pronunciationResult?.feedback}</p>
+                   <p className="mt-2 text-sm text-foreground">Transkrip: {pronunciationResult?.transcript}</p>
+                   <p className="mt-1 text-xs text-muted-foreground">Confidence: {pronunciationResult?.confidence === null ? 'tidak tersedia' : `${Math.round((pronunciationResult?.confidence ?? 0) * 100)}%`}</p>
+                   <ul className="mt-4 space-y-3">{pronunciationResult?.words.map((resultWord) => <li key={`${resultWord.expected}-${resultWord.phonemes[0]?.startMs ?? 0}`} className="rounded-lg border border-success/20 bg-background/60 p-3">
+                     <div className="flex items-center justify-between gap-3"><span className="font-medium text-foreground">{resultWord.expected} <span className="text-muted-foreground">→ {resultWord.actual}</span></span><span className="font-mono text-sm font-semibold text-foreground">{resultWord.score}/100</span></div>
+                     <ul className="mt-2 flex flex-wrap gap-2">{resultWord.phonemes.map((phoneme, phonemeIndex) => <li key={`${phoneme.phoneme}-${phonemeIndex}`} className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground"><span className="font-mono text-foreground">/{phoneme.expected}/</span> → {phoneme.actual ? `/${phoneme.actual}/` : 'tidak terdeteksi'} · {phoneme.score}/100{phoneme.issue ? ` · ${phoneme.issue}` : ''}</li>)}</ul>
+                   </li>)}</ul>
+                  {mic.audioUrl && (
                     <audio controls src={mic.audioUrl} className="mt-3 h-9 w-full" />
                  )}
                </FadeIn>

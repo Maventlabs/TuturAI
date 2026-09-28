@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { apiError } from '@tuturai/validation'
 import { HttpVoiceProvider, VoiceProviderError } from '@/lib/ai/voice-provider'
 import { requireRole } from '@/lib/api/auth-guard'
-import { getAiEnv } from '@/lib/config/env'
+import { getTtsEnv } from '@/lib/config/env'
 import { getTeacherVoiceProfile } from '@/lib/voice-profile'
 
 export async function POST(request: NextRequest) {
@@ -12,10 +12,10 @@ export async function POST(request: NextRequest) {
   const text = typeof body?.text === 'string' ? body.text.trim() : ''
   if (!text || text.length > 500) return NextResponse.json(apiError('VALIDATION_ERROR', 'Preview text must be 1-500 characters'), { status: 400 })
   const profile = await getTeacherVoiceProfile(auth.user.uid)
-  if (!profile || profile.status !== 'ready') return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Voice profile is not ready'), { status: 409 })
-  let config: ReturnType<typeof getAiEnv>['ai']['tts']
+  if (!profile || profile.status !== 'ready' || !profile.providerVoiceId) return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Voice profile is not ready'), { status: 409 })
+  let config: ReturnType<typeof getTtsEnv>
   try {
-    config = getAiEnv().ai.tts
+    config = getTtsEnv()
   } catch {
     return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'OmniVoice is not configured'), { status: 503 })
   }
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
       modelId: config.modelId,
+      statusPath: config.statusPath,
       synthesisPath: config.synthesisPath,
     }).synthesize({ providerVoiceId: profile.providerVoiceId, text })
     return new NextResponse(audio.audio, { status: 200, headers: { 'Content-Type': audio.contentType, 'Cache-Control': 'no-store' } })

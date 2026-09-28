@@ -1,0 +1,51 @@
+# Manual Netlify UI reference only. Do not import this file as-is and never put
+# secret values in it. Put secret values directly in Netlify's Functions scope.
+
+NEXT_PUBLIC_APP_URL=https://tuturai-apps.netlify.app
+
+# Public Firebase Web App settings for gen-lang-client-0138449759.
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyAXOPWBW2kJaQEPtPCdga-mNi_14gHDdf8
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=gen-lang-client-0138449759.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=gen-lang-client-0138449759
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=gen-lang-client-0138449759.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=673117335596
+NEXT_PUBLIC_FIREBASE_APP_ID=1:673117335596:web:e97cbc44894d30d3f4e189
+
+# Keep all emulator variables unset or empty in Netlify.
+NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST=
+NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST=
+FIREBASE_AUTH_EMULATOR_HOST=
+FIRESTORE_EMULATOR_HOST=
+
+# Firebase Admin: use credentials for the real project, not apps/web/.env.local.
+FIREBASE_ADMIN_PROJECT_ID=gen-lang-client-0138449759
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
+
+# Drive OAuth is separate from TuturAI sign-in. Register this callback with the
+# existing Google OAuth client before enabling the integration in production.
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+GOOGLE_OAUTH_REDIRECT_URI=https://tuturai-apps.netlify.app/api/integrations/google-drive/callback
+GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY=
+
+# These non-secret route/model fields match the current server-side contract.
+# Copy configured v1 URL/key/model values only through Netlify's secret UI.
+AI_V1_BASE_URL=
+AI_V1_API_KEY=
+AI_PRONUNCIATION_ROUTE=v1
+AI_PRONUNCIATION_MODEL_ID=
+AI_PRONUNCIATION_PATH=
+AI_PRONUNCIATION_TIMEOUT_MS=30000
+AI_STT_ROUTE=v1
+AI_STT_MODEL_ID=
+AI_TTS_ROUTE=local
+AI_TTS_MODEL_ID=
+AI_TTS_STATUS_PATH=/v1/voice-clones
+AI_LLM_ROUTE=v1
+AI_LLM_MODEL_ID=
+
+# OmniVoice/self-hosted TTS is not configured locally yet; leave unset until the
+# provider endpoint and model are available. The app must remain unavailable.
+AI_LOCAL_BASE_URL=
+AI_LOCAL_API_KEY=

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
 import { HttpVoiceProvider, VoiceProviderError } from '@/lib/ai/voice-provider'
-import { getAiEnv } from '@/lib/config/env'
+import { getTtsEnv } from '@/lib/config/env'
 import { getStudentClassroomVoiceProfile } from '@/lib/voice-profile'
 import { readJsonBody } from '@/lib/api/request'
 
@@ -25,13 +25,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (!profile || profile.status === 'processing') {
       return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Teacher voice is not ready', { status: profile?.status ?? 'not_configured' }), { status: 409 })
     }
-    if (profile.status === 'failed') {
+    if (profile.status === 'failed' || !profile.providerVoiceId) {
       return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Teacher voice is unavailable', { status: profile.status, code: profile.errorCode }), { status: 503 })
     }
 
-    let config: ReturnType<typeof getAiEnv>['ai']['tts']
+    let config: ReturnType<typeof getTtsEnv>
     try {
-      config = getAiEnv().ai.tts
+      config = getTtsEnv()
     } catch {
       return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'OmniVoice is not configured'), { status: 503 })
     }
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
       modelId: config.modelId,
+      statusPath: config.statusPath,
       synthesisPath: config.synthesisPath,
     }).synthesize({ providerVoiceId: profile.providerVoiceId, text })
 

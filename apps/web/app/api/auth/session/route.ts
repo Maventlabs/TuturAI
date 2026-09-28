@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { apiError, type ApiErrorCode } from '@tuturai/validation'
 import { createSessionCookie, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/firebase/session'
 import { readJsonBody } from '@/lib/api/request'
+import { getRequestId, logApiFailure } from '@/lib/api/observability'
 
 function classifySessionFailure(error: unknown) {
   const message = error instanceof Error ? error.message : ''
@@ -44,6 +45,8 @@ function classifySessionFailure(error: unknown) {
 }
 
 export async function POST(request: NextRequest) {
+  const startedAt = performance.now()
+  const requestId = getRequestId(request)
   try {
     const raw = await readJsonBody(request)
     const body = raw && typeof raw === 'object' ? raw as { idToken?: unknown } : {}
@@ -60,30 +63,35 @@ export async function POST(request: NextRequest) {
       path: '/',
       maxAge: SESSION_MAX_AGE_SECONDS,
     })
+    response.headers.set('x-request-id', requestId)
     return response
   } catch (error) {
     const failure = classifySessionFailure(error)
-    console.error('[auth/session] Firebase session creation failed', {
+    logApiFailure({
+      requestId,
+      route: '/api/auth/session',
+      status: failure.status,
+      errorCode: failure.code,
       provider: 'firebase-admin',
-      stage: 'create-session-cookie',
-      firebaseErrorCode: failure.firebaseErrorCode,
-      serverErrorCode: failure.code,
+      durationMs: performance.now() - startedAt,
+      providerErrorCode: failure.firebaseErrorCode,
       configField: failure.missingEnvironmentVariable,
       projectId: process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() || null,
-      webProjectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() || null,
-      environment: process.env.NODE_ENV ?? 'unknown',
     })
-    return NextResponse.json(
+    const response = NextResponse.json(
       apiError(
         failure.apiErrorCode,
         failure.status === 401 ? 'Unable to verify Firebase identity' : 'Unable to establish a server session',
         {
           code: failure.code,
           ...(failure.firebaseErrorCode ? { firebaseErrorCode: failure.firebaseErrorCode } : {}),
+          ...(failure.missingEnvironmentVariable ? { configField: failure.missingEnvironmentVariable } : {}),
         },
       ),
       { status: failure.status },
     )
+    response.headers.set('x-request-id', requestId)
+    return response
   }
 }
 

@@ -13,7 +13,7 @@ import { Waveform } from '@/components/dashboard/waveform'
 import { useMicrophone } from '@/hooks/use-microphone'
 import { cn } from '@/lib/utils'
 import { CompletionDialog } from '@/components/dashboard/completion-dialog'
-import { deleteOfflineRecord, enqueuePendingMutation, putOfflineRecord, OFFLINE_STORES } from '@/lib/offline/offline-db'
+import { deleteOfflineRecord, enqueuePendingMutation, putOfflineRecord, OFFLINE_MUTATION_SYNCED_EVENT, OFFLINE_STORES } from '@/lib/offline/offline-db'
 
 interface Msg {
   id: string
@@ -42,6 +42,7 @@ export default function PercakapanPage() {
   const [playingTutorVoice, setPlayingTutorVoice] = useState(false)
   const [sessionId] = useState(() => crypto.randomUUID())
   const submittedAudio = useRef<Blob | null>(null)
+  const offlineAssessmentSessionId = useRef<string | null>(null)
   const assessingRef = useRef(false)
   const tutorAudio = useRef<HTMLAudioElement | null>(null)
   const tutorAudioUrl = useRef<string | null>(null)
@@ -99,6 +100,7 @@ export default function PercakapanPage() {
       } catch (cause) {
         if (!controller.signal.aborted) {
           if (cause instanceof TypeError || !navigator.onLine) {
+            offlineAssessmentSessionId.current = assessmentSessionId
             await enqueuePendingMutation({
               operation: 'assessment-audio',
               payload: { sessionId: assessmentSessionId, mode: 'conversation', expectedText: selected.prompt, audio: mic.audioBlob },
@@ -117,6 +119,25 @@ export default function PercakapanPage() {
     void submit()
     return () => controller.abort()
   }, [mic.audioBlob, selected, recording])
+
+  useEffect(() => {
+    const handleOfflineAssessmentSync = (event: Event) => {
+      const detail = (event as CustomEvent<{ operation?: string; idempotencyKey?: string }>).detail
+      if (detail?.operation !== 'assessment-audio' || detail.idempotencyKey !== offlineAssessmentSessionId.current) return
+      const query = new URLSearchParams({ sessionId: detail.idempotencyKey })
+      void fetch(`/api/student/assessment?${query}`, { cache: 'no-store' })
+        .then(async (response) => {
+          const payload = await response.json() as { data?: Assessment; error?: { message?: string } }
+          if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? 'Assessment read-back failed')
+          setAssessment(payload.data)
+          setShowCompletion(true)
+          setProviderMessage(`Skor percakapan: ${payload.data.overall}/100. ${payload.data.feedback}`)
+        })
+        .catch(() => setProviderMessage('Audio tersinkron, tetapi hasil penilaian belum dapat dimuat ulang.'))
+    }
+    window.addEventListener(OFFLINE_MUTATION_SYNCED_EVENT, handleOfflineAssessmentSync)
+    return () => window.removeEventListener(OFFLINE_MUTATION_SYNCED_EVENT, handleOfflineAssessmentSync)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()

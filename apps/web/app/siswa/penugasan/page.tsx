@@ -115,8 +115,9 @@ export default function StudentAssignmentsPage() {
                       {action === assignment.id ? 'Mengirim...' : submitLabel}
                     </Button>
                   </div>
-                  {canSubmit && <label className="mt-4 block text-sm font-medium">File submission (opsional)<input type="file" accept=".pdf,.docx,.pptx,.xlsx,.txt" onChange={(event) => setFiles((current) => ({ ...current, [assignment.id]: event.target.files?.[0] ?? null }))} className="mt-1 block w-full text-sm" /></label>}
+                  {canSubmit && <label className="mt-4 block text-sm font-medium">File submission (opsional)<input type="file" accept=".pdf,.docx,.pptx,.xlsx,.txt,.jpg,.jpeg,.png,.webp" onChange={(event) => setFiles((current) => ({ ...current, [assignment.id]: event.target.files?.[0] ?? null }))} className="mt-1 block w-full text-sm" /></label>}
                   {submission && <p className="mt-3 text-xs font-medium text-muted-foreground">Status: {submission.status} · Attempt {submission.attempt}</p>}
+                  {submission?.files?.length ? <ul aria-label="File submission terkirim" className="mt-2 space-y-1 text-xs">{submission.files.map((file) => <li key={file.id}>{file.webViewLink ? <a className="text-primary underline" href={file.webViewLink} target="_blank" rel="noreferrer">{file.name}</a> : <span>{file.name}</span>}</li>)}</ul> : null}
                 </Card>
               )
             })}

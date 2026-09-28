@@ -7,6 +7,8 @@ import { HttpSttProvider, SttProviderError } from '@/lib/ai/stt-provider'
 import { requireRole } from '@/lib/api/auth-guard'
 import { getAiEnv } from '@/lib/config/env'
 import { getAdminDb } from '@/lib/firebase/admin'
+import { consumeApiRateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { getRequestId, logApiFailure } from '@/lib/api/observability'
 
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
@@ -22,6 +24,28 @@ async function saveAssessment(assessment: Assessment) {
     transaction.create(reference, assessment)
     return assessment
   })
+}
+
+export async function GET(request: NextRequest) {
+  const auth = await requireRole('student')
+  if (!auth.ok) return auth.response
+  const requestId = getRequestId(request)
+  const sessionId = request.nextUrl.searchParams.get('sessionId')?.trim() ?? ''
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(sessionId)) {
+    return NextResponse.json(apiError('VALIDATION_ERROR', 'A valid sessionId is required', { requestId }), { status: 400 })
+  }
+
+  try {
+    const snapshot = await getAdminDb().collection('assessments').doc(`${auth.user.uid}_${sessionId}`).get()
+    const assessment = snapshot.data()
+    if (!snapshot.exists || assessment?.studentId !== auth.user.uid || assessment?.sessionId !== sessionId) {
+      return NextResponse.json(apiError('NOT_FOUND', 'Assessment result was not found', { requestId }), { status: 404 })
+    }
+    return NextResponse.json({ data: assessment }, { headers: { 'cache-control': 'no-store', 'x-request-id': requestId } })
+  } catch {
+    logApiFailure({ requestId, route: '/api/student/assessment', status: 500, errorCode: 'ASSESSMENT_READBACK_FAILED', provider: 'firestore', durationMs: 0 })
+    return NextResponse.json(apiError('INTERNAL_ERROR', 'Assessment result could not be loaded', { code: 'ASSESSMENT_READBACK_FAILED', retryable: true, requestId }), { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -40,6 +64,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    try {
+      await consumeApiRateLimit({ scope: 'student-assessment', subject: auth.user.uid, limit: 12, windowMs: 60_000 })
+    } catch (error) {
+      const limited = rateLimitResponse(error)
+      if (limited) return limited
+      throw error
+    }
     let config: ReturnType<typeof getAiEnv>['ai']
     try {
       config = getAiEnv().ai

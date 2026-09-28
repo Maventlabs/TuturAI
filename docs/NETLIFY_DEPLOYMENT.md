@@ -39,6 +39,58 @@ The committed `netlify.toml` defines:
 Sensitive values must be entered in Netlify UI or CLI environment management,
 never in `netlify.toml`.
 
+Use `apps/web/netlify-env.template` as a manual entry sheet only; do not import
+it as-is. The checked-in `apps/web/.env.local` is for emulator development and
+uses project `demo-tuturai` with Auth/Firestore emulators at localhost. Do not
+copy its Firebase Admin values or emulator hosts to production. The configured
+`AI_V1_*` entries may be copied to Netlify Functions only if they are the
+intended production provider credentials; those variables and v1 model IDs are
+present in the local file, but their secret values are deliberately not repeated
+here and the provider has not been probed in this deployment check. Copy them
+through Netlify's Functions environment UI if they are the intended production
+endpoint; never put their values in Git. The
+TTS/local provider remains explicitly unavailable while `AI_LOCAL_BASE_URL` is
+unset.
+
+`apps/web/e2e-prod.env.template` is a separate local Playwright-runner template,
+not a Netlify environment file. It deliberately disables gated suites until
+dedicated production test accounts, matching Firebase Admin credentials, and
+real provider access are configured. Do not set local Firebase emulator hosts
+when running `pnpm e2e:prod:*`.
+
+Copy it to `apps/web/.env.e2e.production` and fill values locally. The runner
+loads only that file; it never loads `.env.local`. This file is Git-ignored.
+`E2E_TEST_DATA_APPROVED=true` and `E2E_*_ACCOUNT_APPROVED=true` are explicit
+operator assertions that the accounts and fixtures are dedicated and safe to
+mutate. `E2E_HEADLESS=false` is required for the Google Sign-In and Drive consent
+checkpoints. The runner fails on missing provider flags/configuration and does
+not turn an unrun or unavailable flow into a pass.
+
+Available production commands:
+
+```powershell
+pnpm e2e:prod:config:test
+pnpm e2e:prod:smoke
+pnpm e2e:prod:auth
+pnpm e2e:prod:student
+pnpm e2e:prod:teacher
+pnpm e2e:prod:classroom
+pnpm e2e:prod:assignment
+pnpm e2e:prod:drive
+pnpm e2e:prod:speaking
+pnpm e2e:prod:pronunciation
+pnpm e2e:prod:voice
+pnpm e2e:prod:offline
+pnpm e2e:prod:security
+pnpm e2e:prod:all
+```
+
+`e2e:prod:all` validates every suite's required credentials and explicit enable
+flags before it starts; run individual suites while a provider is being brought
+online. Drive E2E cleanup only accepts files associated with an E2E-marked
+assignment owned by the authenticated teacher and removes both Drive objects and
+their Firestore metadata.
+
 Do not configure `FIREBASE_AUTH_EMULATOR_HOST`, `FIRESTORE_EMULATOR_HOST`,
 `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST`, or
 `NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST` in Netlify production. Those

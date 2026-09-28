@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { AuthFlowError, authErrorMessage, firebaseAuthErrorCode, logGoogleAuthFailure, serverAuthErrorCode, serverFirebaseAuthErrorCode } from '@/lib/firebase/auth-errors'
+import { AuthFlowError, authErrorMessage, firebaseAuthErrorCode, logGoogleAuthFailure, serverAuthErrorCode, serverConfigField, serverFirebaseAuthErrorCode, serverRequestId } from '@/lib/firebase/auth-errors'
 import { getFirebaseClientDiagnostics } from '@/lib/firebase/client'
 import { GraduationCap, Presentation, Loader2 } from 'lucide-react'
 
@@ -88,7 +88,7 @@ export function SignUpForm() {
     }
     if (!response.ok) {
       const payload = await response.json().catch(() => null)
-      throw new AuthFlowError('onboarding', response.status, serverAuthErrorCode(payload) ?? `HTTP_${response.status}`, serverFirebaseAuthErrorCode(payload))
+      throw new AuthFlowError('onboarding', response.status, serverAuthErrorCode(payload) ?? `HTTP_${response.status}`, serverFirebaseAuthErrorCode(payload), serverRequestId(response), serverConfigField(payload))
     }
     await establishSession(user)
     redirectToDashboard()
@@ -114,7 +114,7 @@ export function SignUpForm() {
     }
     if (!response.ok) {
       const payload = await response.json().catch(() => null)
-      throw new AuthFlowError('server-session', response.status, serverAuthErrorCode(payload) ?? `HTTP_${response.status}`, serverFirebaseAuthErrorCode(payload))
+      throw new AuthFlowError('server-session', response.status, serverAuthErrorCode(payload) ?? `HTTP_${response.status}`, serverFirebaseAuthErrorCode(payload), serverRequestId(response), serverConfigField(payload))
     }
   }
 
@@ -132,13 +132,13 @@ export function SignUpForm() {
           <RoleCard active={role === 'teacher'} onClick={() => setRole('teacher')} icon={<Presentation className="h-5 w-5" />} label="Guru" />
         </div>
       </div>
-      <div className="space-y-2"><Label htmlFor="fullName">Nama Lengkap</Label><Input id="fullName" required value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
-      <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+      <div className="space-y-2"><Label htmlFor="fullName">Nama Lengkap</Label><Input id="fullName" required autoComplete="name" placeholder="Nama lengkap" value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
+      <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" required autoComplete="email" placeholder="nama@sekolah.id" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2"><Label htmlFor="school">Asal Sekolah</Label><Input id="school" required value={school} onChange={(e) => setSchool(e.target.value)} /></div>
-        <div className="space-y-2"><Label htmlFor="extra">{role === 'student' ? 'Kelas' : 'Mata Pelajaran'}</Label><Input id="extra" required value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
+        <div className="space-y-2"><Label htmlFor="school">Asal Sekolah</Label><Input id="school" required autoComplete="organization" placeholder="Nama sekolah" value={school} onChange={(e) => setSchool(e.target.value)} /></div>
+        <div className="space-y-2"><Label htmlFor="extra">{role === 'student' ? 'Kelas' : 'Mata Pelajaran'}</Label><Input id="extra" required placeholder={role === 'student' ? 'Contoh: XI IPA 2' : 'Contoh: Bahasa Inggris'} value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
       </div>
-      <div className="space-y-2"><Label htmlFor="password">Kata Sandi</Label><Input id="password" type="password" required minLength={6} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+      <div className="space-y-2"><Label htmlFor="password">Kata Sandi</Label><Input id="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Buat kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
       {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
       <Button type="submit" className="h-11 w-full" disabled={loading}>{loading && <Loader2 className="h-4 w-4 animate-spin" />}Buat Akun</Button>
       <div className="relative py-1 text-center text-xs text-muted-foreground"><span className="bg-background px-2">atau</span><span className="absolute inset-x-0 top-1/2 -z-10 border-t border-border" /></div>

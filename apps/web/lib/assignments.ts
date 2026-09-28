@@ -1,5 +1,5 @@
 import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase-admin/firestore'
-import type { Assignment, AssignmentInput, AssignmentStatus, DriveFileMetadata } from '@tuturai/domain'
+import { transitionAssignment, AssignmentRuleError, type Assignment, type AssignmentInput, type AssignmentStatus, type DriveFileMetadata } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
 
 export const ASSIGNMENTS_COLLECTION = 'assignments'
@@ -78,10 +78,39 @@ export async function getTeacherAssignmentDriveContext(assignmentId: string, tea
 }
 
 export async function appendAssignmentAttachment(assignmentId: string, teacherId: string, attachment: DriveFileMetadata) {
-  const reference = getAdminDb().collection(ASSIGNMENTS_COLLECTION).doc(assignmentId)
-  const context = await getTeacherAssignmentDriveContext(assignmentId, teacherId)
-  const attachments = [...(context.assignment.attachments ?? []), attachment]
-  await reference.update({ attachments, updatedAt: Timestamp.now() })
+  const db = getAdminDb()
+  const reference = db.collection(ASSIGNMENTS_COLLECTION).doc(assignmentId)
+  await db.runTransaction(async (transaction) => {
+    const assignment = await transaction.get(reference)
+    const classroomId = assignment.data()?.classId
+    const classroomReference = typeof classroomId === 'string' ? db.collection(CLASSROOMS_COLLECTION).doc(classroomId) : null
+    const classroom = classroomReference ? await transaction.get(classroomReference) : null
+    if (!assignment.exists || !classroom?.exists || classroom.data()?.teacherId !== teacherId || classroom.data()?.status !== 'active') {
+      throw new Error('ASSIGNMENT_NOT_FOUND')
+    }
+    const current = Array.isArray(assignment.data()?.attachments) ? assignment.data()?.attachments as DriveFileMetadata[] : []
+    if (current.some((file) => file.id === attachment.id)) return
+    transaction.update(reference, { attachments: [...current, attachment], updatedAt: Timestamp.now() })
+  })
+  return assignmentFromSnapshot(await reference.get())
+}
+
+export async function publishTeacherAssignment(assignmentId: string, teacherId: string) {
+  const db = getAdminDb()
+  const reference = db.collection(ASSIGNMENTS_COLLECTION).doc(assignmentId)
+  await db.runTransaction(async (transaction) => {
+    const assignment = await transaction.get(reference)
+    const classroomId = assignment.data()?.classId
+    const classroom = typeof classroomId === 'string'
+      ? await transaction.get(db.collection(CLASSROOMS_COLLECTION).doc(classroomId))
+      : null
+    if (!assignment.exists || !classroom?.exists || classroom.data()?.teacherId !== teacherId || classroom.data()?.status !== 'active') {
+      throw new Error('ASSIGNMENT_NOT_FOUND')
+    }
+    const status = transitionAssignment(assignment.data()?.status as AssignmentStatus, 'publish')
+    if (status !== 'published') throw new AssignmentRuleError('INVALID_TRANSITION', 'Assignment could not be published')
+    transaction.update(reference, { status, updatedAt: Timestamp.now() })
+  })
   return assignmentFromSnapshot(await reference.get())
 }
 

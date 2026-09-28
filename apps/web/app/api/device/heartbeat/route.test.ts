@@ -5,7 +5,10 @@ import { getAdminDb } from '@/lib/firebase/admin'
 import { getDevice, updateDeviceHeartbeat, verifyDeviceSecret } from '@/lib/devices'
 
 vi.mock('@/lib/firebase/admin', () => ({ getAdminDb: vi.fn() }))
-vi.mock('@/lib/devices', () => ({ getDevice: vi.fn(), updateDeviceHeartbeat: vi.fn(), verifyDeviceSecret: vi.fn() }))
+vi.mock('@/lib/devices', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/devices')>()
+  return { ...actual, getDevice: vi.fn(), updateDeviceHeartbeat: vi.fn(), verifyDeviceSecret: vi.fn() }
+})
 
 const mockedDb = vi.mocked(getAdminDb)
 const mockedGetDevice = vi.mocked(getDevice)

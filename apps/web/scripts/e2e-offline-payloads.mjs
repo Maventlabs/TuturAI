@@ -64,10 +64,11 @@ async function readOfflinePayloads(page) {
         operation: entry.operation,
         status: entry.status,
         idempotencyKey: entry.idempotencyKey,
-        fileName: entry.payload?.file?.name ?? null,
-        fileSize: entry.payload?.file instanceof Blob ? entry.payload.file.size : 0,
-        audioSize: entry.payload?.audio instanceof Blob ? entry.payload.audio.size : 0,
-        sessionId: entry.payload?.sessionId ?? null,
+      fileName: entry.payload?.file?.name ?? null,
+      fileSize: entry.payload?.file instanceof Blob ? entry.payload.file.size : 0,
+      audioSize: entry.payload?.audio instanceof Blob ? entry.payload.audio.size : 0,
+      attempts: entry.attempts,
+      sessionId: entry.payload?.sessionId ?? null,
         expectedText: entry.payload?.expectedText ?? null,
       })),
       audioQueue: audioQueue.map((entry) => ({ id: entry.id, size: entry.value instanceof Blob ? entry.value.size : 0 })),
@@ -96,7 +97,17 @@ const context = await browser.newContext({ permissions: ['microphone'] })
 const page = await context.newPage()
 const audioContext = await browser.newContext({ permissions: ['microphone'] })
 const audioPage = await audioContext.newPage()
+const assignmentReplayResponses = []
 const assessmentReplayResponses = []
+page.on('response', async (response) => {
+  if (new URL(response.url()).pathname !== `/api/assignments/${assignmentId}/submit` || response.request().method() !== 'POST') return
+  const payload = await response.json().catch(() => ({}))
+  assignmentReplayResponses.push({
+    status: response.status(),
+    errorCode: payload.error?.details?.code ?? payload.error?.code ?? null,
+    retryable: payload.error?.details?.retryable ?? null,
+  })
+})
 audioPage.on('response', async (response) => {
   if (new URL(response.url()).pathname !== '/api/student/assessment' || response.request().method() !== 'POST') return
   const payload = await response.json().catch(() => ({}))
@@ -127,6 +138,17 @@ try {
 
   await context.setOffline(false)
   const assignmentReplay = await waitForMutationStatus(page, 'submit-assignment', ['failed', 'synced', 'conflict'])
+  const assignmentReplayMutation = assignmentReplay.mutations.find((entry) => entry.operation === 'submit-assignment')
+  if (assignmentReplayMutation?.status !== 'failed' || assignmentReplayMutation.fileSize <= 0) {
+    throw new Error(`Unconfigured Drive must leave the offline file retryable and retained: ${JSON.stringify(assignmentReplayMutation)}`)
+  }
+  const assignmentFailure = assignmentReplayResponses.at(-1)
+  if (assignmentFailure?.status !== 503 || assignmentFailure.errorCode !== 'DRIVE_NOT_CONNECTED' || assignmentFailure.retryable !== true) {
+    throw new Error(`Offline file replay did not return the explicit retryable Drive gate: ${JSON.stringify(assignmentFailure)}`)
+  }
+  if ((await db.collection('submissions').doc(`${assignmentId}_${studentId}`).get()).exists) {
+    throw new Error('Unconfirmed Drive upload created a durable submission.')
+  }
 
   await login(audioPage)
   await audioPage.goto(`${baseURL}/siswa/percakapan?questionId=${questionId}`)
@@ -162,13 +184,21 @@ try {
     if (assessment.size !== 1 || audioReplay.audioQueue.some((entry) => entry.id === audioMutation.sessionId)) {
       throw new Error(`Successful audio replay did not confirm assessment persistence and cleanup: ${JSON.stringify({ audioReplay, assessmentCount: assessment.size })}`)
     }
+  } else if (audioReplayMutation?.status === 'failed') {
+    const failure = assessmentReplayResponses.at(-1)
+    if (!failure || failure.status < 500 || failure.retryable !== true) {
+      throw new Error(`Unavailable speech provider did not remain retryable: ${JSON.stringify(failure)}`)
+    }
+    if (!audioReplay.audioQueue.some((entry) => entry.id === audioMutation.sessionId && entry.size > 0)) {
+      throw new Error(`Retryable provider failure removed the local audio Blob: ${JSON.stringify(audioReplay)}`)
+    }
   } else if (!audioReplay.audioQueue.some((entry) => entry.id === audioMutation.sessionId && entry.size > 0)) {
     throw new Error(`Failed audio replay removed the temporary Blob: ${JSON.stringify(audioReplay)}`)
   } else if (audioReplayMutation.audioSize <= 0) {
     throw new Error(`Failed audio replay removed the pending mutation payload: ${JSON.stringify(audioReplayMutation)}`)
   }
 
-  console.log(JSON.stringify({ ok: true, assignmentFileQueued: true, assignmentReplayStatus: assignmentReplay.mutations.find((entry) => entry.operation === 'submit-assignment')?.status, conversationAudioQueued: true, conversationAudioReplayStatus: audioReplayMutation?.status, assessmentReplayResponses, audioSessionId: audioMutation.sessionId }))
+  console.log(JSON.stringify({ ok: true, assignmentFileQueued: true, assignmentReplayStatus: assignmentReplayMutation.status, assignmentReplayError: assignmentFailure.errorCode, conversationAudioQueued: true, conversationAudioReplayStatus: audioReplayMutation?.status, assessmentReplayResponses, audioSessionId: audioMutation.sessionId }))
 } finally {
   await context.close()
   await audioContext.close()

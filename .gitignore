@@ -12,6 +12,7 @@ coverage/
 # Local environment and secrets
 .env
 .env.*
+apps/web/.env.e2e.production
 !.env.example
 !.env.sample
 !.env.template

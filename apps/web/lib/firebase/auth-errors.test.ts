@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { authErrorMessage, AuthFlowError, createGoogleAuthDiagnostic } from './auth-errors'
+import { authErrorMessage, AuthFlowError, createGoogleAuthDiagnostic, serverConfigField, serverRequestId } from './auth-errors'
 
 describe('authErrorMessage', () => {
   it('explains duplicate email signup without hiding the next action', () => {
@@ -65,5 +65,29 @@ describe('authErrorMessage', () => {
       failureStage: 'firebase-popup',
     })
     expect(JSON.stringify(diagnostic)).not.toContain('raw token')
+  })
+
+  it('carries safe request correlation and config field metadata to browser diagnostics', () => {
+    const payload = { error: { details: { code: 'FIREBASE_ADMIN_MISCONFIGURED', configField: 'FIREBASE_ADMIN_PRIVATE_KEY' } } }
+    const response = new Response(null, { headers: { 'x-request-id': 'nf-request-123' } })
+    const error = new AuthFlowError(
+      'server-session',
+      500,
+      'FIREBASE_ADMIN_MISCONFIGURED',
+      null,
+      serverRequestId(response),
+      serverConfigField(payload),
+    )
+    const diagnostic = createGoogleAuthDiagnostic(error, {
+      failureStage: 'firebase-popup',
+      projectId: 'gen-lang-client-0138449759',
+      authDomain: 'gen-lang-client-0138449759.firebaseapp.com',
+      currentOrigin: 'https://tuturai-apps.netlify.app',
+      popupOrRedirect: 'popup',
+      environment: 'production',
+    })
+
+    expect(diagnostic).toMatchObject({ requestId: 'nf-request-123', configField: 'FIREBASE_ADMIN_PRIVATE_KEY' })
+    expect(JSON.stringify(diagnostic)).not.toContain('private-key-value')
   })
 })

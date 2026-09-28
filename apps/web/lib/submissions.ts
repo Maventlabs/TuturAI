@@ -108,11 +108,15 @@ export async function getStudentSubmission(assignmentId: string, studentId: stri
 }
 
 export async function appendSubmissionFile(submissionIdValue: string, studentId: string, file: DriveFileMetadata) {
-  const reference = getAdminDb().collection(SUBMISSIONS_COLLECTION).doc(submissionIdValue)
-  const snapshot = await reference.get()
-  if (!snapshot.exists || snapshot.data()?.studentId !== studentId) throw new Error('SUBMISSION_NOT_FOUND')
-  const files = [...((submissionFromSnapshot(snapshot).files ?? [])), file]
-  await reference.update({ files, updatedAt: Timestamp.now() })
+  const db = getAdminDb()
+  const reference = db.collection(SUBMISSIONS_COLLECTION).doc(submissionIdValue)
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(reference)
+    if (!snapshot.exists || snapshot.data()?.studentId !== studentId) throw new Error('SUBMISSION_NOT_FOUND')
+    const files = Array.isArray(snapshot.data()?.files) ? snapshot.data()?.files as DriveFileMetadata[] : []
+    if (files.some((existing) => existing.id === file.id)) return
+    transaction.update(reference, { files: [...files, file], updatedAt: Timestamp.now() })
+  })
   return submissionFromSnapshot(await reference.get())
 }
 

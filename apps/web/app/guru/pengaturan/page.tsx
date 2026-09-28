@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { User, Bell, Shield, Palette, School, Mic2, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,31 @@ function SettingRow({
   )
 }
 
+async function pollVoiceProfile(
+  signal: AbortSignal,
+  updateProfile: (profile: { status: string; providerVoiceId?: string | null; errorCode?: string | null }) => void,
+  setError: (message: string | null) => void,
+) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    if (signal.aborted) return
+    try {
+      const response = await fetch('/api/teacher/voice-profile', { cache: 'no-store', signal })
+      const payload = await response.json()
+      if (!response.ok) {
+        setError(payload.error?.message ?? 'Status voice profile tidak tersedia')
+        return
+      }
+      updateProfile(payload.data)
+      if (payload.data?.status !== 'processing') return
+    } catch {
+      if (!signal.aborted) setError('Status voice profile tidak tersedia')
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2_000))
+  }
+  if (!signal.aborted) setError('Proses voice masih berjalan. Periksa status kembali untuk melanjutkan.')
+}
+
 export default function SettingsPage() {
   const [notif, setNotif] = useState({
     submissions: true,
@@ -44,15 +69,18 @@ export default function SettingsPage() {
   const [drive, setDrive] = useState<{ connected: boolean; scope: string | null; updatedAt: string | null } | null>(null)
   const [driveBusy, setDriveBusy] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
-  const [voiceProfile, setVoiceProfile] = useState<{ status: string; providerVoiceId?: string } | null>(null)
+  const [voiceProfile, setVoiceProfile] = useState<{ status: string; providerVoiceId?: string | null; errorCode?: string | null } | null>(null)
   const [voiceText, setVoiceText] = useState('')
   const [voiceFile, setVoiceFile] = useState<File | null>(null)
+  const [voiceConsent, setVoiceConsent] = useState(false)
+  const [voiceEnrollmentKey, setVoiceEnrollmentKey] = useState<string | null>(null)
   const [voiceBusy, setVoiceBusy] = useState(false)
   const [voiceError, setVoiceError] = useState<string | null>(null)
   const [profile, setProfile] = useState<{ displayName: string; email: string; school: string; subject: string | null } | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [previewText, setPreviewText] = useState('Hello, welcome to our English class.')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const voicePollController = useRef<AbortController | null>(null)
 
   useEffect(() => {
     void fetch('/api/teacher/preferences', { cache: 'no-store' }).then(async (response) => {
@@ -75,11 +103,13 @@ export default function SettingsPage() {
   }, [previewUrl])
 
   useEffect(() => {
-    void fetch('/api/teacher/voice-profile', { cache: 'no-store' }).then(async (response) => {
-      const payload = await response.json()
-      if (response.ok) setVoiceProfile(payload.data)
-      else setVoiceError(payload.error?.message ?? 'Status voice profile tidak tersedia')
-    }).catch(() => setVoiceError('Status voice profile tidak tersedia'))
+    const controller = new AbortController()
+    voicePollController.current = controller
+    void pollVoiceProfile(controller.signal, setVoiceProfile, setVoiceError)
+    return () => {
+      controller.abort()
+      voicePollController.current?.abort()
+    }
   }, [])
 
   useEffect(() => {
@@ -116,18 +146,31 @@ export default function SettingsPage() {
   }
 
   async function enrollVoice() {
-    if (!voiceFile || !voiceText.trim()) return
+    if (!voiceFile || !voiceText.trim() || !voiceConsent) return
+    const idempotencyKey = voiceEnrollmentKey ?? crypto.randomUUID()
+    setVoiceEnrollmentKey(idempotencyKey)
     setVoiceBusy(true); setVoiceError(null)
     try {
       const form = new FormData()
       form.set('audio', voiceFile)
       form.set('referenceText', voiceText)
-      form.set('consent', 'true')
-      const response = await fetch('/api/teacher/voice-profile', { method: 'POST', body: form })
+      form.set('consent', String(voiceConsent))
+      const response = await fetch('/api/teacher/voice-profile', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: form })
       const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error?.message ?? 'Pendaftaran voice profile gagal')
+      if (!response.ok) {
+        if (payload.error?.details?.status === 'failed') {
+          setVoiceProfile({ status: 'failed', errorCode: payload.error?.details?.code ?? null })
+        }
+        throw new Error(payload.error?.message ?? 'Pendaftaran voice profile gagal')
+      }
       setVoiceProfile(payload.data)
       setVoiceFile(null); setVoiceText('')
+      if (payload.data?.status === 'processing') {
+        voicePollController.current?.abort()
+        const controller = new AbortController()
+        voicePollController.current = controller
+        void pollVoiceProfile(controller.signal, setVoiceProfile, setVoiceError)
+      }
     } catch (cause) {
       setVoiceError(cause instanceof Error ? cause.message : 'Pendaftaran voice profile gagal')
     } finally { setVoiceBusy(false) }
@@ -136,10 +179,13 @@ export default function SettingsPage() {
   async function deleteVoice() {
     setVoiceBusy(true); setVoiceError(null)
     try {
+      voicePollController.current?.abort()
       const response = await fetch('/api/teacher/voice-profile', { method: 'DELETE' })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error?.message ?? 'Penghapusan voice profile gagal')
       setVoiceProfile(payload.data)
+      setVoiceEnrollmentKey(null)
+      setVoiceConsent(false)
     } catch (cause) {
       setVoiceError(cause instanceof Error ? cause.message : 'Penghapusan voice profile gagal')
     } finally { setVoiceBusy(false) }
@@ -196,20 +242,33 @@ export default function SettingsPage() {
                 <Mic2 className="mt-0.5 h-4 w-4 text-primary" />
                 <div>
                   <h3 className="font-heading text-base font-semibold text-foreground">Voice profile OmniVoice</h3>
-                  <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Gunakan hanya dengan persetujuan Anda. Sample audio diproses oleh provider dan tidak disimpan oleh TuturAI.</p>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Sample audio hanya dikirim untuk enrollment voice profile guru ini dan tidak disimpan oleh TuturAI.</p>
                   {voiceProfile && <p className="mt-2 text-xs text-muted-foreground">Status: {voiceProfile.status === 'not_configured' ? 'Belum terdaftar' : voiceProfile.status}</p>}
                   {voiceError && <p role="alert" className="mt-2 text-sm text-destructive">{voiceError}</p>}
                 </div>
               </div>
               {voiceProfile?.status && voiceProfile.status !== 'not_configured' && <Button variant="outline" size="sm" onClick={() => void deleteVoice()} disabled={voiceBusy} className="gap-2"><Trash2 className="h-4 w-4" />Hapus profile</Button>}
             </div>
-            {(!voiceProfile || voiceProfile.status === 'not_configured' || voiceProfile.status === 'failed') && <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
-              <label className="space-y-1 text-sm font-medium">Transcript sample<input value={voiceText} onChange={(event) => setVoiceText(event.target.value)} placeholder="Tulis persis kalimat yang direkam" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm" /></label>
-              <label className="space-y-1 text-sm font-medium">Sample audio<input type="file" accept="audio/*" onChange={(event) => setVoiceFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full text-sm" /></label>
-              <Button onClick={() => void enrollVoice()} disabled={voiceBusy || !voiceFile || voiceText.trim().length < 3}>{voiceBusy ? 'Memproses...' : 'Daftarkan voice'}</Button>
+            {voiceProfile?.status === 'processing' && <Button variant="outline" size="sm" className="mt-4" disabled={voiceBusy} onClick={() => {
+              voicePollController.current?.abort()
+              const controller = new AbortController()
+              voicePollController.current = controller
+              setVoiceError(null)
+              void pollVoiceProfile(controller.signal, setVoiceProfile, setVoiceError)
+            }}>Periksa status</Button>}
+            {(!voiceProfile || voiceProfile.status === 'not_configured' || voiceProfile.status === 'failed') && <div className="mt-5 space-y-4">
+              <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+              <label className="space-y-1 text-sm font-medium">Transcript sample<input value={voiceText} onChange={(event) => { setVoiceText(event.target.value); setVoiceEnrollmentKey(null) }} placeholder="Tulis persis kalimat yang direkam" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm" /></label>
+              <label className="space-y-1 text-sm font-medium">Sample audio<input type="file" accept="audio/*" onChange={(event) => { setVoiceFile(event.target.files?.[0] ?? null); setVoiceEnrollmentKey(null) }} className="mt-1 block w-full text-sm" /></label>
+                <Button onClick={() => void enrollVoice()} disabled={voiceBusy || !voiceFile || voiceText.trim().length < 3 || !voiceConsent}>{voiceBusy ? 'Memproses...' : 'Daftarkan voice'}</Button>
+              </div>
+              <label className="flex items-start gap-2 text-sm text-foreground">
+                <input type="checkbox" checked={voiceConsent} onChange={(event) => setVoiceConsent(event.target.checked)} className="mt-1 h-4 w-4 accent-primary" />
+                <span>Saya menyetujui sample suara ini diproses khusus untuk membuat voice profile TuturAI saya.</span>
+              </label>
             </div>}
             {voiceProfile?.status === 'ready' && <div className="mt-5 space-y-3">
-              <label className="block space-y-1 text-sm font-medium">Preview audio<input value={previewText} onChange={(event) => setPreviewText(event.target.value)} maxLength={500} className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm" /></label>
+              <label className="block space-y-1 text-sm font-medium">Preview audio<input value={previewText} onChange={(event) => setPreviewText(event.target.value)} maxLength={500} placeholder="Tulis teks untuk preview suara" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm" /></label>
               <Button variant="outline" onClick={() => void previewVoice()} disabled={voiceBusy || !previewText.trim()}>Putar preview</Button>
               {previewUrl && <audio controls src={previewUrl} className="h-9 w-full max-w-md" />}
             </div>}

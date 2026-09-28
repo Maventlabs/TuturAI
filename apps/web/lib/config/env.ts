@@ -88,10 +88,42 @@ export function getGoogleOAuthEnv() {
   } as const
 }
 
+export function getTtsEnv() {
+  const ttsRoute = route('AI_TTS_ROUTE', 'local')
+  return {
+    route: ttsRoute,
+    baseUrl: baseUrlFor(ttsRoute),
+    apiKey: apiKeyFor(ttsRoute),
+    modelId: optional('AI_TTS_MODEL_ID'),
+    enrollmentPath: optional('AI_TTS_ENROLLMENT_PATH') ?? '/v1/voice-clones',
+    statusPath: optional('AI_TTS_STATUS_PATH') ?? optional('AI_TTS_ENROLLMENT_PATH') ?? '/v1/voice-clones',
+    synthesisPath: optional('AI_TTS_SYNTHESIS_PATH') ?? '/v1/audio/speech',
+    deletePath: optional('AI_TTS_DELETE_PATH') ?? '/v1/voice-clones',
+  } as const
+}
+
+export function getPronunciationEnv() {
+  const providerRoute = route('AI_PRONUNCIATION_ROUTE', 'v1')
+  const providerPrefix = providerRoute === 'local' ? 'AI_LOCAL' : 'AI_V1'
+  const configuredTimeout = optional('AI_PRONUNCIATION_TIMEOUT_MS')
+  const timeoutMs = configuredTimeout ? Number(configuredTimeout) : 30_000
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 120_000) {
+    throw new Error('AI_PRONUNCIATION_TIMEOUT_MS must be an integer between 1000 and 120000')
+  }
+  return {
+    route: providerRoute,
+    baseUrl: optional(`${providerPrefix}_BASE_URL`),
+    apiKey: optional(`${providerPrefix}_API_KEY`),
+    modelId: optional('AI_PRONUNCIATION_MODEL_ID'),
+    path: optional('AI_PRONUNCIATION_PATH'),
+    timeoutMs,
+  } as const
+}
+
 export function getAiEnv() {
   const sttRoute = route('AI_STT_ROUTE', 'v1')
-  const ttsRoute = route('AI_TTS_ROUTE', 'local')
   const llmRoute = route('AI_LLM_ROUTE', 'v1')
+  const tts = getTtsEnv()
 
   return {
     ai: {
@@ -105,15 +137,7 @@ export function getAiEnv() {
         apiKey: apiKeyFor(sttRoute),
         modelId: required('AI_STT_MODEL_ID'),
       },
-      tts: {
-        route: ttsRoute,
-        baseUrl: baseUrlFor(ttsRoute),
-        apiKey: apiKeyFor(ttsRoute),
-        modelId: optional('AI_TTS_MODEL_ID'),
-        enrollmentPath: optional('AI_TTS_ENROLLMENT_PATH') ?? '/v1/voice-clones',
-        synthesisPath: optional('AI_TTS_SYNTHESIS_PATH') ?? '/v1/audio/speech',
-        deletePath: optional('AI_TTS_DELETE_PATH') ?? '/v1/voice-clones',
-      },
+      tts,
       llm: {
         route: llmRoute,
         baseUrl: baseUrlFor(llmRoute),

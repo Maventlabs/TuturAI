@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
-import { AuthFlowError, authErrorMessage, firebaseAuthErrorCode, logGoogleAuthFailure, serverAuthErrorCode, serverFirebaseAuthErrorCode } from '@/lib/firebase/auth-errors'
+import { AuthFlowError, authErrorMessage, firebaseAuthErrorCode, logGoogleAuthFailure, serverAuthErrorCode, serverConfigField, serverFirebaseAuthErrorCode, serverRequestId } from '@/lib/firebase/auth-errors'
 import { getFirebaseClientDiagnostics } from '@/lib/firebase/client'
 
 async function establishSession(authenticatedUser?: User) {
@@ -34,7 +34,7 @@ async function establishSession(authenticatedUser?: User) {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
-    throw new AuthFlowError('server-session', response.status, serverAuthErrorCode(payload) ?? `HTTP_${response.status}`, serverFirebaseAuthErrorCode(payload))
+    throw new AuthFlowError('server-session', response.status, serverAuthErrorCode(payload) ?? `HTTP_${response.status}`, serverFirebaseAuthErrorCode(payload), serverRequestId(response), serverConfigField(payload))
   }
 }
 
@@ -90,11 +90,11 @@ export function LoginForm() {
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input id="email" type="email" required autoComplete="email" placeholder="nama@sekolah.id" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">Kata Sandi</Label>
-          <Input id="password" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Input id="password" type="password" required autoComplete="current-password" placeholder="Masukkan kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
       <Button type="submit" className="h-11 w-full" disabled={loading}>

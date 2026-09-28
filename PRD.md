@@ -541,7 +541,8 @@ Semua endpoint server menerima `Authorization: Bearer <Firebase ID Token>` kecua
 
 | Method | Endpoint | Deskripsi | Request Body | Response |
 |---|---|---|---|---|
-| POST | `/api/classes/:id/assignments` | Create/publish assignment | `{ title, instructions, dueAt, maxAttempts, links[] }` | `{ assignment }` |
+| POST | `/api/classrooms/:id/assignments` | Create draft or publish a teacher-owned assignment | `{ title, instructions, dueAt, maxAttempts, status }` | `{ assignment }` |
+| POST | `/api/assignments/:id/publish` | Publish an existing teacher-owned draft after its attachments are confirmed | - | `{ assignment }` |
 | POST | `/api/assignments/:id/submit` | Turn-in/resubmit | `{ files[], note? }` | `{ submission }` |
 | POST | `/api/submissions/:id/approve` | Teacher approve | `{ feedback? }` | `{ submission }` |
 | POST | `/api/submissions/:id/return` | Return ke siswa | `{ feedback }` | `{ submission }` |
@@ -550,10 +551,13 @@ Semua endpoint server menerima `Authorization: Bearer <Firebase ID Token>` kecua
 
 | Method | Endpoint | Deskripsi | Request Body | Response |
 |---|---|---|---|---|
-| GET | `/api/integrations/google-drive/connect` | Mulai OAuth Drive | - | Redirect |
+| GET | `/api/integrations/google-drive/status` | Status koneksi Drive guru | - | `{ connected, scope, updatedAt }` |
+| GET | `/api/integrations/google-drive/start` | Mulai OAuth Drive dengan PKCE dan scope minimum | - | Redirect |
 | GET | `/api/integrations/google-drive/callback` | OAuth callback | query code/state | Redirect dashboard |
-| POST | `/api/integrations/google-drive/upload` | Upload ke Drive guru | multipart | `{ fileId, name, webViewLink }` |
-| DELETE | `/api/integrations/google-drive` | Disconnect | - | `{ disconnected: true }` |
+| POST | `/api/integrations/google-drive/upload` | Upload ke Drive guru dan simpan metadata lampiran | multipart | `{ file, assignment }` |
+| POST | `/api/integrations/google-drive/disconnect` | Revoke refresh token dan disconnect | - | `{ connected: false }` |
+
+Endpoint cleanup production E2E `DELETE /api/integrations/google-drive/test-cleanup` hanya dapat menghapus file yang direferensikan oleh assignment dengan penanda `e2eTestPrefix` yang cocok, dalam classroom milik guru yang terautentikasi. Runner memanggilnya untuk test fixture berawalan `e2e-`; endpoint tidak menerima penghapusan file di luar fixture tersebut.
 
 ### AI & Voice
 

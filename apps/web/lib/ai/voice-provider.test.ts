@@ -90,4 +90,52 @@ describe('HttpVoiceProvider', () => {
     expect(init?.headers).toMatchObject({ Authorization: 'Bearer local-secret' })
     expect(String(init?.body)).not.toContain('local-secret')
   })
+
+  it('polls a configured status endpoint and normalizes ready provider state', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ id: 'voice-1', status: 'ready' }), { status: 200 }))
+    const provider = new HttpVoiceProvider({ baseUrl: 'https://voice.example.test', statusPath: '/api/voice-jobs', fetchImpl })
+
+    await expect(provider.getStatus('voice-1')).resolves.toEqual({ status: 'ready', errorCode: null })
+    expect(fetchImpl).toHaveBeenCalledWith('https://voice.example.test/api/voice-jobs/voice-1', expect.objectContaining({ method: 'GET' }))
+  })
+
+  it('normalizes failed enrollment state without inventing a provider voice id', async () => {
+    const provider = new HttpVoiceProvider({
+      baseUrl: 'https://voice.example.test',
+      fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ status: 'failed', error_code: 'TRAINING_REJECTED' }), { status: 200 })),
+    })
+
+    await expect(provider.enroll({ audio: new Uint8Array([1]), mimeType: 'audio/wav', referenceText: 'Hello' })).resolves.toEqual({
+      providerVoiceId: null,
+      status: 'failed',
+      errorCode: 'TRAINING_REJECTED',
+    })
+  })
+
+  it('retries a transient status poll once and stops at the configured bound', async () => {
+    const fetchImpl = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('unavailable', { status: 503 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'voice-1', status: 'processing' }), { status: 200 }))
+    const sleep = vi.fn(async () => {})
+    const provider = new HttpVoiceProvider({ baseUrl: 'https://voice.example.test', fetchImpl, sleep })
+
+    await expect(provider.getStatus('voice-1')).resolves.toEqual({ status: 'processing', errorCode: null })
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    expect(sleep).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends a stable enrollment idempotency key to the provider adapter', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ id: 'voice-1', status: 'processing' }), { status: 202 }))
+    const provider = new HttpVoiceProvider({ baseUrl: 'https://voice.example.test', fetchImpl })
+
+    await provider.enroll({ audio: new Uint8Array([1]), mimeType: 'audio/wav', referenceText: 'Hello', idempotencyKey: 'stable-enrollment-key' })
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).toMatchObject({ 'Idempotency-Key': 'stable-enrollment-key' })
+  })
+
+  it('treats an already-absent provider voice as an idempotent delete', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response('not found', { status: 404 }))
+    const provider = new HttpVoiceProvider({ baseUrl: 'https://voice.example.test', fetchImpl })
+
+    await expect(provider.delete('voice-already-deleted')).resolves.toBeUndefined()
+  })
 })

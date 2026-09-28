@@ -70,6 +70,12 @@ export default function DevicesPage() {
         })
         const payload = await response.json() as DevicePayload
 
+        if (response.status === 501) {
+          setDevices([])
+          setUnavailable(true)
+          return
+        }
+
         if (!response.ok) {
           throw new Error(payload.error?.message ?? 'Gagal memuat perangkat')
         }

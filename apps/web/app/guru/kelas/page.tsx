@@ -152,15 +152,15 @@ export default function ClassesPage() {
         <form onSubmit={createClassroom} className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm font-medium">
             Nama kelas
-            <input required minLength={2} maxLength={120} value={name} onChange={(event) => setName(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3" />
+            <input required minLength={2} maxLength={120} value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Kelas X IPA 1" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3" />
           </label>
           <label className="text-sm font-medium">
             Sekolah (opsional)
-            <input value={school} onChange={(event) => setSchool(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3" />
+            <input value={school} onChange={(event) => setSchool(event.target.value)} placeholder="Nama sekolah" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3" />
           </label>
           <label className="text-sm font-medium sm:col-span-2">
             Deskripsi (opsional)
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1 min-h-20 w-full rounded-lg border border-border bg-background px-3 py-2" />
+            <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Deskripsi singkat kelas" className="mt-1 min-h-20 w-full rounded-lg border border-border bg-background px-3 py-2" />
           </label>
           <div className="sm:col-span-2">
             <Button type="submit" disabled={saving}>{saving ? 'Menyimpan...' : 'Buat kelas'}</Button>

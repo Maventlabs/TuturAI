@@ -29,6 +29,7 @@ export interface OfflineRecord<T = unknown> {
 }
 
 export const PENDING_MUTATIONS_CHANGED_EVENT = 'tuturai:pending-mutations-changed'
+export const OFFLINE_MUTATION_SYNCED_EVENT = 'tuturai:offline-mutation-synced'
 
 export function openOfflineDb(): Promise<IDBDatabase> {
   if (typeof indexedDB === 'undefined') {
@@ -151,6 +152,7 @@ export async function replayPendingMutations(
     try {
       await executor(mutation)
       await updatePendingMutation(markMutationSynced(mutation))
+      notifyOfflineMutationSynced(mutation)
       synced += 1
     } catch (cause) {
       const isConflict = cause instanceof OfflineMutationError && !cause.retryable
@@ -196,6 +198,14 @@ export async function cleanupAudioQueue(maxBytes: number): Promise<{ removed: nu
 export function notifyPendingMutationsChanged(): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(PENDING_MUTATIONS_CHANGED_EVENT))
+  }
+}
+
+export function notifyOfflineMutationSynced(mutation: Pick<PendingMutation, 'operation' | 'idempotencyKey'>): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(OFFLINE_MUTATION_SYNCED_EVENT, {
+      detail: { operation: mutation.operation, idempotencyKey: mutation.idempotencyKey },
+    }))
   }
 }
 
