@@ -8,6 +8,7 @@ export async function GET(request: Request) {
       status: 'ok',
       service: 'tuturai-web',
       runtime: process.env.NETLIFY ? 'netlify' : 'node',
+      nodeVersion: process.version,
       dependencies: 'not_checked',
       requestId,
       timestamp: new Date().toISOString(),
