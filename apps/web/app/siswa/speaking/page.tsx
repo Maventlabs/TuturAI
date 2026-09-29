@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import * as Icons from 'lucide-react'
+import { Lightbulb, MessageCircle } from 'lucide-react'
 import type { QuestionBankItem } from '@tuturai/domain'
 import { PageHeader } from '@/components/dashboard/page-header'
 import { FadeIn, FadeInStagger, FadeInItem } from '@/components/dashboard/fade-in'
@@ -58,7 +58,7 @@ export default function SpeakingPage() {
           <h2 className="text-sm font-semibold text-foreground">Pilih Topik</h2>
           <FadeInStagger className="grid grid-cols-2 gap-3">
             {topics.map((t) => {
-              const Icon = Icons.MessageCircle
+              const Icon = MessageCircle
               const active = t.word === topic
               const displayLevel = t.level === 'beginner' ? 'Pemula' : t.level === 'intermediate' ? 'Menengah' : 'Lanjutan'
               return (
@@ -95,7 +95,7 @@ export default function SpeakingPage() {
 
           <Card className="border-border bg-muted/40 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Icons.Lightbulb className="h-4 w-4 text-amber-500" /> Tips
+              <Lightbulb className="h-4 w-4 text-amber-500" /> Tips
             </div>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
               Bicara dengan tempo natural dan jangan takut salah. AI Tutor akan memberi

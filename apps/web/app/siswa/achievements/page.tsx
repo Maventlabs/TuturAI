@@ -1,8 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import * as Icons from 'lucide-react'
-import { Lock } from 'lucide-react'
+import { useEffect, useState, type ComponentType } from 'react'
+import { Award, BookOpen, Flame, Footprints, Lock, Target, type LucideProps } from 'lucide-react'
+
+// Explicit map instead of `import * as Icons`: keeps the achievements page from
+// pulling the entire lucide icon catalog into its chunk (PERF-001).
+const ACHIEVEMENT_ICONS: Record<string, ComponentType<LucideProps>> = {
+  Footprints,
+  Target,
+  Flame,
+  BookOpen,
+  Award,
+}
 import { PageHeader } from '@/components/dashboard/page-header'
 import { FadeInStagger, FadeInItem } from '@/components/dashboard/fade-in'
 import { Card } from '@/components/ui/card'
@@ -43,7 +52,7 @@ export default function AchievementsPage() {
           </div>
           <FadeInStagger className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {filtered.map((achievement) => {
-              const Icon = (Icons[achievement.icon as keyof typeof Icons] || Icons.Award) as Icons.LucideIcon
+              const Icon = ACHIEVEMENT_ICONS[achievement.icon] ?? Award
               return <FadeInItem key={achievement.id}><Card className={cn('group relative flex h-full flex-col items-center gap-3 p-5 text-center', achievement.unlocked ? 'border-border' : 'border-dashed border-border bg-muted/30')}>
                 <div className={cn('flex h-16 w-16 items-center justify-center rounded-2xl', achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>{achievement.unlocked ? <Icon className="h-8 w-8" /> : <Lock className="h-7 w-7" />}</div>
                 <div><p className="text-sm font-semibold text-foreground">{achievement.title}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{achievement.desc}</p></div>

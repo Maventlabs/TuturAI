@@ -1,14 +1,27 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import dynamic from 'next/dynamic'
 import { TrendingUp, Target, Flame } from 'lucide-react'
 import { PageHeader } from '@/components/dashboard/page-header'
 import { FadeIn, FadeInStagger, FadeInItem } from '@/components/dashboard/fade-in'
 import { KpiCard } from '@/components/dashboard/kpi-card'
 import { ChartCard } from '@/components/dashboard/chart-card'
 import { Card } from '@/components/ui/card'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+
+// recharts (~336 KB) is only needed once trend data exists; keep it out of the
+// page bundle and show a real loading state while its chunk downloads (PERF-001).
+const ScoreTrendChart = dynamic(
+  () => import('@/components/dashboard/score-trend-chart').then((module) => module.ScoreTrendChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[280px] w-full items-center justify-center text-xs text-muted-foreground">
+        Memuat grafik tren…
+      </div>
+    ),
+  },
+)
 
 type Stats = {
   profile: { level: number; streak: number }
@@ -49,15 +62,7 @@ export default function ProgressPage() {
           ) : (
             <div className="grid gap-6 lg:grid-cols-2">
               <ChartCard title="Tren Skor Latihan" description="Berdasarkan attempt yang tersimpan">
-                <ChartContainer config={{ skor: { label: 'Skor', color: 'var(--chart-1)' } }} className="h-[280px] w-full">
-                  <AreaChart data={stats.trend} margin={{ left: -16, right: 8, top: 8 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis dataKey="week" tickLine={false} axisLine={false} />
-                    <YAxis domain={[0, 100]} tickLine={false} axisLine={false} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Area type="monotone" dataKey="skor" stroke="var(--color-skor)" fill="var(--color-skor)" fillOpacity={0.15} strokeWidth={2.5} />
-                  </AreaChart>
-                </ChartContainer>
+                <ScoreTrendChart trend={stats.trend} />
               </ChartCard>
               <ChartCard title="Kemampuan" description="Akurasi per skill dari jawaban tersimpan">
                 <div className="space-y-4">

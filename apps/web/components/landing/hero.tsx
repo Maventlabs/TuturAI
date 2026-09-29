@@ -73,7 +73,7 @@ export function Hero() {
         >
           <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-xl">
             <Image
-              src="/hero-student.png"
+              src="/hero-student.webp"
               alt="Siswa SMA berlatih speaking Bahasa Inggris menggunakan TuturAI"
               width={720}
               height={720}

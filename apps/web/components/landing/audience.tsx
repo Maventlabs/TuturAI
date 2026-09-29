@@ -68,7 +68,7 @@ export function Audience() {
             className="overflow-hidden rounded-3xl border border-border bg-card shadow-lg"
           >
             <Image
-              src="/hero-student.png"
+              src="/hero-student.webp"
               alt="Siswa berlatih speaking dengan TuturAI"
               width={640}
               height={520}
@@ -87,7 +87,7 @@ export function Audience() {
             className="order-2 overflow-hidden rounded-3xl border border-border bg-card shadow-lg lg:order-1"
           >
             <Image
-              src="/teacher-dashboard.png"
+              src="/teacher-dashboard.webp"
               alt="Guru memantau analitik kelas di TuturAI"
               width={640}
               height={520}
