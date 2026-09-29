@@ -9,21 +9,12 @@ import { getAiEnv } from '@/lib/config/env'
 import { getAdminDb } from '@/lib/firebase/admin'
 import { consumeApiRateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { getRequestId, logApiFailure } from '@/lib/api/observability'
+import { saveAssessment } from '@/lib/scoring-persistence'
 
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
 function isAudioFile(value: FormDataEntryValue | null): value is File {
   return value instanceof File && value.size > 0 && value.size <= MAX_AUDIO_BYTES && value.type.startsWith('audio/')
-}
-
-async function saveAssessment(assessment: Assessment) {
-  const reference = getAdminDb().collection('assessments').doc(assessment.id)
-  return getAdminDb().runTransaction(async (transaction) => {
-    const existing = await transaction.get(reference)
-    if (existing.exists) return existing.data() as Assessment
-    transaction.create(reference, assessment)
-    return assessment
-  })
 }
 
 export async function GET(request: NextRequest) {

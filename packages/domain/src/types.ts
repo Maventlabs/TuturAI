@@ -104,4 +104,43 @@ export interface Assessment extends NormalizedAssessment {
   questionId?: string
   error: AssessmentErrorMetadata | null
   createdAt: string
+  /**
+   * Canonical scoring block computed by the domain scoring engine
+   * (SCORING_SPEC.md §14–§16). Optional for historical documents created before
+   * the scoring engine existed; new canonical assessments always carry it.
+   * `overall` above stays the engine-computed canonical final score.
+   */
+  scoring?: CanonicalScoringMetadata
+}
+
+export type CanonicalScoringMode = 'OFFLINE_EDGE' | 'ONLINE_FULL'
+
+/** Raw structured evidence preserved for future recomputation (spec §15–§16). */
+export interface CanonicalRawMetrics {
+  wpm?: number
+  pauseRatio?: number
+  phonemeErrorRate?: number
+  typeTokenRatio?: number
+  [key: string]: number | string | boolean | null | undefined
+}
+
+export interface CanonicalScoringMetadata {
+  scoringVersion: string
+  mode: CanonicalScoringMode
+  scores: {
+    pronunciation: number
+    fluency: number
+    intonation: number
+    grammar: number
+    vocabulary: number
+    final: number
+  }
+  rawMetrics?: CanonicalRawMetrics
+}
+
+/** Per-dimension provenance: engine-computed vs provider estimate (spec §13). */
+export type DimensionScoreSource = 'CANONICAL_ENGINE' | 'PROVIDER_ESTIMATE' | 'PROVIDER_ESTIMATE_FALLBACK'
+
+export interface AssessmentWithScoreSources extends Assessment {
+  scoreSources?: Record<string, DimensionScoreSource>
 }
