@@ -5,6 +5,10 @@ packages:
 overrides:
   hono: 4.12.25
   uuid: 11.1.1
+  # jwks-rsa (via firebase-admin) require()s jose, which is ESM-only since v6.
+  # Pin the last CJS-compatible release so Netlify Functions can load it on any
+  # Node runtime. jose@6 exports importJWK/exportSPKI signatures unchanged in v5.
+  jose: 5.9.6
 
 onlyBuiltDependencies:
   - esbuild
