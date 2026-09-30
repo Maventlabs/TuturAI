@@ -712,27 +712,30 @@ SCORING-016  Analytics/adaptive integration regression
 
 # 21. Human Decision Gate
 
-Before claiming the scoring system production-ready, obtain explicit decisions for every unresolved source gap:
+RESOLVED (scoring version `2026.2`). Every item below is decided, implemented in
+the canonical decision module `packages/domain/src/scoring-decisions.ts`
+(provenance labels + inline citations), and covered by deterministic tests
+(`scoring-decisions.test.ts`, `assessment-processing.test.ts`).
 
-```text
-[ ] PER_calibrated exact rule
-[ ] Indonesian accent substitution penalty table/rule
-[ ] authoritative WPM normalization range
-[ ] deterministic intonation score formula
-[ ] grammar length-normalization policy (if any)
-[ ] TTR normalization
-[ ] CEFR vocabulary scoring
-[ ] CEFR final/progression score thresholds
-[ ] missing-metric/confidence policy
-```
+| # | Decision | Resolution | Provenance |
+|---|----------|------------|------------|
+| 1 | PER_calibrated exact rule | `rawPer=(S+D)/N'`; `PER_cal=clamp(Σw/N',0,1)` with accent weights accepted=0 / mild=0.85 / full=1; `Sp=100*(1-PER_cal)`; gates: ≥8 gated phonemes (partial below 20), mean phoneme confidence ≥ 0.6, low-confidence phonemes excluded from N' and Σw | SCORING_MD_RULE (§4) + INTERNATIONAL_RESEARCH |
+| 2 | Indonesian accent substitution penalty table | Context-keyed IPA table (target-side keyed, normalized IPA), 3 classes; deletions and cluster simplification = full error; exact-match = correct production, not an accent variant; accent ≠ automatic error | SCORING_MD_RULE (§4.2) + INDONESIA/ASEAN_RESEARCH |
+| 3 | Authoritative WPM normalization range | Normalization stays `40..120` (the explicit MD formula; per §5.2 the conflict is resolved in favor of the formula, documented — not silently); `70–110` documented as the pedagogical target band only; minimum speech duration 1.5 s | SCORING_MD_RULE (§5.1–5.2) |
+| 4 | Deterministic intonation score formula | `Si = [0.6*clamp((st_p90−st_p10−1)/9,0,1) + 0.4*clamp(median\|Δst\|/1.5,0,1)]*100` with `st = 12*log2(F0/55)`; insufficient below 5 valid points or 1 s voiced; F0 validity window 50–500 Hz; no absolute Hz thresholds; implemented only on an optional pitch-evidence channel | ENGINEERING_DECISION (§6 leaves no transformation; the architecture provides no absolute-F0 channel today) |
+| 5 | Grammar length-normalization policy | Flat penalty `Sg=max(0,100−Σ)` retained — this is the explicit approval §7.3 requires; token/clause counts persisted in raw metrics; < 8 tokens downgrades the metric STATUS to `partial`, never the score | SCORING_MD_RULE (§7.1–7.3) + INTERNATIONAL_RESEARCH |
+| 6 | TTR normalization | MATTR window 50 (Covington & McFall 2010); raw TTR fallback ≤ 50 tokens; ≥ 30 tokens required (30–50 → `partial`); `TTRnorm = clamp(MATTR/0.5, 0, 1)`; numbers excluded from tokenization | INTERNATIONAL_RESEARCH |
+| 7 | CEFR vocabulary scoring | High-frequency lookup over an embedded curated NGSL-core + closed function-word set with light deterministic lemmatization (-s/-es/-ies/-ed/-ing, documented approximation); unknown words neutral (excluded from coverage numerator, never errors); mid-sentence capitalized tokens treated as proper nouns and neutral-excluded; full NGSL not redistributed; Oxford 3000/5000 rejected on licensing | ENGINEERING_DECISION (NGSL as INTERNATIONAL_RESEARCH reference) |
+| 8 | CEFR final/progression score thresholds | ESTIMATED bands only, always labeled "ENGINEERING_DECISION — estimated band, not an official CEFR certification": `A1–A2 < 70`, `B1 ≥ 70`, `B2 ≥ 85` overall; anchored to the MD progression rules (eligibility ≥ 80 ×3, intervention < 55) | ENGINEERING_DECISION (§2.2 defines no numeric thresholds) |
+| 9 | Missing-metric / confidence policy | `MetricStatus = complete \| partial \| pending \| insufficient_evidence \| failed` (`pending` owned by the session pipeline); provider estimate stands in only when confidence ≥ 0.6 and stays labeled `PROVIDER_ESTIMATE_FALLBACK`; corrupt evidence fails the whole assessment explicitly; a missing metric is never silently zeroed or fabricated | SCORING_MD_RULE (§10, §13) + ENGINEERING_DECISION |
 
-Until resolved, related tasks remain:
+Machine-readable provenance: `SCORING_DECISION_LEDGER` in
+`packages/domain/src/scoring-decisions.ts`. External citations: SOURCES section
+below. The engine emits per-dimension `metricStatuses` with every canonical
+scoring block (§14).
 
-```text
-AWAITING_SCORING_DECISION
-```
-
-Do not invent these values.
+Do not weaken these rules without a new scoring version and a new explicit
+decision (§15).
 
 ---
 
@@ -762,3 +765,103 @@ SCORING_PRODUCTION_READY=true
 ```
 
 Only set this after all mandatory evidence and human decisions above are complete.
+
+---
+
+# 23. SOURCES — Decision Evidence Register
+
+Citations supporting the §21 resolutions. Provenance classes: `SCORING_MD_RULE`
+(the TuturAI scoring MD itself), `INDONESIA_RESEARCH`, `ASEAN_RESEARCH`,
+`INTERNATIONAL_RESEARCH`, `ENGINEERING_DECISION`. Engineering judgment is
+labeled as such and is never presented as empirical fact.
+
+## Pronunciation (D1, D2)
+
+- **SCORING_MD_RULE** — `SCORING_SPEC.md` §4.1–4.2 (source:
+  `Spesifikasi_Sistem_Penilaian_TuturAI.pdf` TUTURAI-SPECS-2026-V2.4): PER =
+  (S+D+I)/N, Sp = 100*(1−PER_calibrated), intelligible Indonesian-accent
+  substitutions receive a ~10–15% lighter penalty.
+- **INTERNATIONAL_RESEARCH** — El Kheir, Ezzini & Qandali (2023),
+  "Automatic Pronunciation Assessment: A Systematic Review", arXiv:2310.13974.
+  <https://arxiv.org/abs/2310.13974> — PER=(S+D+I)/N as the standard
+  forced-alignment pronunciation-scoring error metric; confidence/alignment
+  quality as a primary validity concern.
+- **INTERNATIONAL_RESEARCH** — Kadambi (2024), forced-alignment error analysis
+  of automatic pronunciation scoring — alignment errors propagate into scores,
+  motivating per-phoneme confidence gating and explicit insufficient-evidence
+  states.
+- **INDONESIA_RESEARCH** — Syam (2024), MDPI *Languages* 9(6):222.
+  <https://www.mdpi.com/2226-471X/9/6/222> — Indonesian learners realize the
+  voiceless labiodental fricative /f/ ~100% consistently; IAE segmental
+  deviations are largely predictable and frequently intelligible.
+- **INDONESIA_RESEARCH** — "An Analysis of English Consonants and Vowels
+  Produced by Indonesian EFL Learners", *Language Literacy* (UISU) 5(1) 2021 —
+  substitution frequencies: /ʤ/→[d] ≈ 2%, /e/→[ɪ]-type ≈ 12%, /v/→[f] ≈ 2%.
+- **INDONESIA_RESEARCH** — IJSSH paper 409-CH346 — final-consonant-cluster
+  simplification in Indonesian-accented English materially affects
+  intelligibility (→ classified FULL_ERROR, never discounted).
+- **ASEAN_RESEARCH** — Deterding & Kirkpatrick (2006), "Emerging South-East
+  Asian English", *Journal of Pragmatics* / English varieties research — shared
+  ASEAN features (dental-fricative stops /θ/→[t], /ð/→[d]; lax-vowel mergers)
+  rarely cause communication breakdown among ASEAN interlocutors.
+- **INTERNATIONAL_RESEARCH** — Derwing & Munro (1997), *Studies in Second
+  Language Acquisition* — accentedness, intelligibility, and comprehensibility
+  are distinct constructs; accent itself is not an error.
+
+## Fluency (D3)
+
+- **SCORING_MD_RULE** — §5.1–5.2: explicit normalization bounds 40..120 WPM;
+  the 70–110 learner band is the pedagogical target; the documented conflict
+  rule forbids silent reconciliation (resolved in favor of the explicit
+  formula, documented here).
+- **INTERNATIONAL_RESEARCH** — Birmingham speech-rate corpus (2017): B2 ≈
+  118±22 WPM, C1 ≈ 142±20 WPM, native ≈ 174±34 WPM — learner rates sit far
+  below native rates, supporting a low normalization floor.
+- **INDONESIA_RESEARCH** — Dogar et al. (2025): ESL learners average ≈ 84 WPM;
+  ≈ 98 WPM identified as optimal for junior-high listening comprehension.
+
+## Intonation (D4)
+
+- **SCORING_MD_RULE** — §6.1–6.2: inputs (F0, contour, stress), tolerance for
+  flatter regional intonation, and an explicit prohibition on inventing a
+  transformation — hence the normalized, evidence-gated ENGINEERING_DECISION.
+- **INTERNATIONAL_RESEARCH** — Derwing & Munro (1997/2015), pronunciation
+  instruction research — global prosody/intonation training measurably improves
+  comprehensibility, supporting variation-based (not absolute-F0) measures.
+
+## Grammar (D5)
+
+- **SCORING_MD_RULE** — §7.1–7.3: flat weighted penalty table retained (this
+  section records the explicit approval §7.3 requires for keeping raw weighted
+  penalties); token/clause counts persisted for future recomputation.
+- **INTERNATIONAL_RESEARCH** — Foster & Wigglesworth (2016), "Measuring
+  accuracy in learner speech", IRAL — weighted-clause accuracy measures and
+  their length sensitivity; why accuracy and amount-of-speech are kept separate.
+- **INTERNATIONAL_RESEARCH** — Hunt (1965), T-unit; Bardovi-Harlig (1992) —
+  T-unit/clause-based complexity measures; accuracy and complexity are distinct
+  constructs.
+
+## Vocabulary (D6, D7)
+
+- **INTERNATIONAL_RESEARCH** — Covington & McFall (2010), "Cutting the Gordian
+  Knot: The Moving-Average Type–Token Ratio", *Journal of Quantitative
+  Linguistics* 17(2). <https://doi.org/10.1080/09296171003643098> — MATTR
+  (window ≈ 50) is robust to sample length where raw TTR is not.
+- **INTERNATIONAL_RESEARCH** — Browne, Culligan & Phillips (2013), New General
+  Service List (NGSL 1.01), <http://www.newgeneralservicelist.com> (CC BY-SA)
+  — authoritative 2,801-word high-frequency reference; the full list is NOT
+  redistributed in-repo; the engine embeds a curated headword core plus a
+  closed function-word set with an explicit neutral-unknown fallback policy.
+- **ENGINEERING_DECISION** — Oxford 3000/5000 by CEFR
+  (oxfordlearnersdictionaries.com) evaluated and REJECTED: redistribution
+  licensing is restricted; embedding it would violate the license.
+
+## CEFR (D8)
+
+- **SCORING_MD_RULE** — §2.2, §12: no numeric thresholds exist in the source;
+  progression anchors that DO exist: eligibility ≥ 80 for 3 consecutive
+  sessions, intervention < 55.
+- **ENGINEERING_DECISION** — estimated vocabulary bands: A1–A2 < 70, B1 ≥ 70,
+  B2 ≥ 85 overall — anchored to the MD progression anchors, always labeled as
+  an estimate and never as official CEFR certification (Council of Europe,
+  *CEFR* 2001, as qualitative anchor only).

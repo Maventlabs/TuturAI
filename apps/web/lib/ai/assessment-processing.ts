@@ -3,6 +3,10 @@ import {
   calculateGrammarScore,
   calculateOverallScore,
   calculateWordsPerMinute,
+  resolveGrammarMetricStatus,
+  scoreIntonationFromPitch,
+  scorePronunciationFromAlignment,
+  scoreVocabularyFromTranscript,
   SCORING_VERSION,
   type Assessment,
   type AssessmentMode,
@@ -10,7 +14,9 @@ import {
   type CanonicalScoringMetadata,
   type CanonicalScoringMode,
   type DimensionScoreSource,
+  type MetricStatus,
   type NormalizedAssessment,
+  type PronunciationAlignmentEvidence,
 } from '@tuturai/domain'
 import type { AssessmentProviderRequest } from './assessment-provider'
 
@@ -28,10 +34,19 @@ export interface FluencyAudioEvidence {
   totalRecordingDurationMs: number
 }
 
-/** Structured evidence contract (SCORING_SPEC.md §7, §5, §13). */
+/** Structured evidence contract (SCORING_SPEC §5, §6, §7, §8, §13). */
 export interface AssessmentStructuredEvidence {
   fluency?: FluencyAudioEvidence
   grammar?: unknown[]
+  /** Word-level forced alignment evidence (expected/actual/confidence per phoneme). */
+  pronunciation?: PronunciationAlignmentEvidence
+  /** Student transcript for vocabulary/diversity analysis (never the LLM's own text). */
+  vocabularyTranscript?: string
+  /** Optional acoustic pitch evidence for the intonation formula. */
+  intonation?: {
+    voicedDurationMs?: number | null
+    pitchPoints: Array<{ timeMs: number; f0Hz: number }>
+  }
 }
 
 export interface ProcessAssessmentInput {
@@ -51,17 +66,30 @@ export interface ProcessAssessmentInput {
   structuredEvidence?: AssessmentStructuredEvidence
 }
 
+/** Per-dimension canonical resolution (D9 missing-metric/confidence policy). */
 interface CanonicalDimensionOutcome {
   scores: CanonicalScoringMetadata['scores']
   rawMetrics: CanonicalRawMetrics
   sources: Record<string, DimensionScoreSource>
+  metricStatuses: Record<string, MetricStatus>
 }
 
+interface EvidenceChannelFailure {
+  dimension: string
+  message: string
+}
+
+type EvidenceChannelResult =
+  | { ok: true; score: number; status: MetricStatus; rawMetrics: CanonicalRawMetrics }
+  | { ok: false; failure: EvidenceChannelFailure }
+
 /**
- * Canonical dimension resolution (SCORING_SPEC.md §13):
- * fluency and grammar come from the deterministic engine whenever their
- * structured evidence exists; without evidence the provider estimate is kept
- * and explicitly labeled, never silently treated as canonical.
+ * Canonical dimension resolution (SCORING_SPEC §13 + Human Decision Gate D9):
+ * every dimension with structured evidence is recomputed by the deterministic
+ * engine; dimensions without evidence keep the provider estimate labeled
+ * PROVIDER_ESTIMATE. Corrupt evidence fails the whole assessment explicitly
+ * (spec §10) instead of being silently dropped. Missing engine evidence never
+ * becomes a fabricated score.
  */
 function resolveCanonicalScores(
   mode: AssessmentMode,
@@ -84,32 +112,149 @@ function resolveCanonicalScores(
     grammar: 'PROVIDER_ESTIMATE',
     vocabulary: 'PROVIDER_ESTIMATE',
   }
+  const metricStatuses: Record<string, MetricStatus> = {
+    pronunciation: 'insufficient_evidence',
+    fluency: 'insufficient_evidence',
+    intonation: 'insufficient_evidence',
+    grammar: 'insufficient_evidence',
+    vocabulary: 'insufficient_evidence',
+  }
   void mode
 
+  const failures: EvidenceChannelFailure[] = []
+
+  // -- Fluency (existing SCORING-004 channel) --------------------------------
   const fluencyEvidence = input.audioEvidence?.fluency ?? input.structuredEvidence?.fluency
   if (fluencyEvidence) {
-    const wpm = calculateWordsPerMinute(fluencyEvidence.wordCount, fluencyEvidence.spokenDurationMs)
-    const fluency = calculateFluencyScore({
-      wpm,
-      totalPauseDurationMs: fluencyEvidence.totalPauseDurationMs,
-      totalRecordingDurationMs: fluencyEvidence.totalRecordingDurationMs,
-    })
-    scores.fluency = fluency.score
-    sources.fluency = 'CANONICAL_ENGINE'
-    rawMetrics.wpm = wpm
-    rawMetrics.pauseRatio = fluency.rawMetrics.pauseRatio
+    try {
+      const wpm = calculateWordsPerMinute(fluencyEvidence.wordCount, fluencyEvidence.spokenDurationMs)
+      const fluency = calculateFluencyScore({
+        wpm,
+        totalPauseDurationMs: fluencyEvidence.totalPauseDurationMs,
+        totalRecordingDurationMs: fluencyEvidence.totalRecordingDurationMs,
+      })
+      scores.fluency = fluency.score
+      sources.fluency = 'CANONICAL_ENGINE'
+      metricStatuses.fluency = 'complete'
+      rawMetrics.wpm = wpm
+      rawMetrics.pauseRatio = fluency.rawMetrics.pauseRatio
+    } catch (error) {
+      failures.push({ dimension: 'fluency', message: error instanceof Error ? error.message : String(error) })
+    }
+  } else {
+    metricStatuses.fluency = 'insufficient_evidence'
   }
 
+  // -- Grammar (existing SCORING-006 channel + D5 length policy) --------------
   const grammarFindings = input.structuredEvidence?.grammar
   if (Array.isArray(grammarFindings)) {
-    const grammar = calculateGrammarScore(grammarFindings)
-    scores.grammar = grammar.score
-    sources.grammar = 'CANONICAL_ENGINE'
-    rawMetrics.grammarFindingsBySeverity = JSON.stringify(grammar.rawMetrics.findingsBySeverity)
-    rawMetrics.grammarTotalFindings = grammar.rawMetrics.totalFindings
+    try {
+      const grammar = calculateGrammarScore(grammarFindings)
+      const transcriptTokens = tokenizeForCounts(input.structuredEvidence?.vocabularyTranscript ?? result.transcript)
+      scores.grammar = grammar.score
+      sources.grammar = 'CANONICAL_ENGINE'
+      metricStatuses.grammar = resolveGrammarMetricStatus(transcriptTokens)
+      rawMetrics.grammarFindingsBySeverity = JSON.stringify(grammar.rawMetrics.findingsBySeverity)
+      rawMetrics.grammarTotalFindings = grammar.rawMetrics.totalFindings
+      rawMetrics.grammarTokenCount = transcriptTokens
+    } catch (error) {
+      failures.push({ dimension: 'grammar', message: error instanceof Error ? error.message : String(error) })
+    }
+  } else {
+    metricStatuses.grammar = 'insufficient_evidence'
+  }
+
+  // -- Pronunciation (new SCORING-003 channel: D1 + D2) ----------------------
+  const pronunciationEvidence = input.structuredEvidence?.pronunciation
+  if (pronunciationEvidence) {
+    try {
+      const pronunciation = scorePronunciationFromAlignment(pronunciationEvidence)
+      if (pronunciation.score !== null) {
+        scores.pronunciation = pronunciation.score
+        sources.pronunciation = 'CANONICAL_ENGINE'
+        metricStatuses.pronunciation = pronunciation.status
+        rawMetrics.phonemeErrorRate = pronunciation.rawMetrics.calibratedPer ?? undefined
+        rawMetrics.pronunciationTargetPhonemes = pronunciation.rawMetrics.targetPhonemes
+        rawMetrics.pronunciationAcceptedAccentVariants = pronunciation.rawMetrics.acceptedAccentVariants
+        rawMetrics.pronunciationMildPenaltyVariants = pronunciation.rawMetrics.mildPenaltyVariants
+        rawMetrics.pronunciationFullErrors = pronunciation.rawMetrics.fullErrors
+        rawMetrics.pronunciationDeletions = pronunciation.rawMetrics.deletions
+      } else {
+        // D9: engine evidence existed but was insufficient — the provider
+        // estimate stands in, explicitly labeled as a fallback (never canonical).
+        metricStatuses.pronunciation = 'insufficient_evidence'
+        sources.pronunciation = 'PROVIDER_ESTIMATE_FALLBACK'
+        rawMetrics.pronunciationTargetPhonemes = pronunciation.rawMetrics.targetPhonemes
+        rawMetrics.pronunciationMeanConfidence = pronunciation.rawMetrics.meanConfidence
+      }
+    } catch (error) {
+      failures.push({ dimension: 'pronunciation', message: error instanceof Error ? error.message : String(error) })
+    }
+  } else {
+    metricStatuses.pronunciation = 'insufficient_evidence'
+  }
+
+  // -- Vocabulary (new SCORING-007 channel: D6 + D7) -------------------------
+  const vocabularyTranscript = input.structuredEvidence?.vocabularyTranscript ?? null
+  if (vocabularyTranscript !== null && vocabularyTranscript.trim()) {
+    try {
+      const vocabulary = scoreVocabularyFromTranscript(vocabularyTranscript)
+      if (vocabulary.score !== null) {
+        scores.vocabulary = vocabulary.score
+        sources.vocabulary = 'CANONICAL_ENGINE'
+        metricStatuses.vocabulary = vocabulary.status
+        rawMetrics.typeTokenRatio = vocabulary.rawMetrics.ttrNormInput ?? undefined
+        rawMetrics.vocabularyMattr = vocabulary.rawMetrics.mattr
+        rawMetrics.vocabularyRawTtr = vocabulary.rawMetrics.rawTtr
+        rawMetrics.vocabularyCefrScore = vocabulary.rawMetrics.cefrVocabScore
+        rawMetrics.vocabularyTotalTokens = vocabulary.rawMetrics.totalTokens
+        rawMetrics.vocabularyEstimatedCefrBand = vocabulary.rawMetrics.estimatedCefrBand
+        rawMetrics.vocabularyCefrBandingLabel = vocabulary.rawMetrics.cefrBandingLabel
+      } else {
+        // D9: engine evidence existed but was insufficient — labeled fallback.
+        metricStatuses.vocabulary = 'insufficient_evidence'
+        sources.vocabulary = 'PROVIDER_ESTIMATE_FALLBACK'
+        rawMetrics.vocabularyTotalTokens = vocabulary.rawMetrics.totalTokens
+      }
+    } catch (error) {
+      failures.push({ dimension: 'vocabulary', message: error instanceof Error ? error.message : String(error) })
+    }
+  } else {
+    metricStatuses.vocabulary = 'insufficient_evidence'
+  }
+
+  // -- Intonation (new SCORING-005 channel: D4) ------------------------------
+  const intonationEvidence = input.structuredEvidence?.intonation
+  if (intonationEvidence) {
+    try {
+      const intonation = scoreIntonationFromPitch(intonationEvidence)
+      if (intonation.score !== null) {
+        scores.intonation = intonation.score
+        sources.intonation = 'CANONICAL_ENGINE'
+        metricStatuses.intonation = intonation.status
+        rawMetrics.intonationPitchVariationSt = intonation.rawMetrics.pitchVariationSemitones
+        rawMetrics.intonationSlopeVariationSt = intonation.rawMetrics.slopeVariationSemitones
+        rawMetrics.intonationPitchPointCount = intonation.rawMetrics.pitchPointCount
+      } else {
+        // D9: engine evidence existed but was insufficient — labeled fallback.
+        metricStatuses.intonation = 'insufficient_evidence'
+        sources.intonation = 'PROVIDER_ESTIMATE_FALLBACK'
+        rawMetrics.intonationPitchPointCount = intonation.rawMetrics.pitchPointCount
+      }
+    } catch (error) {
+      failures.push({ dimension: 'intonation', message: error instanceof Error ? error.message : String(error) })
+    }
+  } else {
+    metricStatuses.intonation = 'insufficient_evidence'
+  }
+
+  if (failures.length > 0) {
+    const details = failures.map((failure) => `${failure.dimension}: ${failure.message}`).join('; ')
+    throw new Error(`Assessment evidence invalid: ${details}`)
   }
 
   if (result.confidence !== null) rawMetrics.providerConfidence = result.confidence
+  rawMetrics.metricStatuses = JSON.stringify(metricStatuses)
 
   scores.final = calculateOverallScore(mode, {
     ...result,
@@ -117,11 +262,17 @@ function resolveCanonicalScores(
     grammar: scores.grammar,
   })
 
-  return { scores, rawMetrics, sources }
+  return { scores, rawMetrics, sources, metricStatuses }
+}
+
+/** Approximate token count for thin-sample status checks (documented D5 policy). */
+function tokenizeForCounts(transcript: string): number {
+  const matches = transcript.toLowerCase().match(/[a-z][a-z'-]*/g) ?? []
+  return matches.length
 }
 
 /**
- * Canonical scoring metadata for an online full assessment (SCORING_SPEC.md
+ * Canonical scoring metadata for an online full assessment (SCORING_SPEC
  * §14–§16). The engine-owned final score equals the persisted `overall`, so the
  * aggregate consumers keep their contract while provenance and raw evidence are
  * preserved for versioned recomputation.
@@ -153,7 +304,13 @@ function buildCanonicalScoringMetadata(
 export async function processAssessment(input: ProcessAssessmentInput): Promise<Assessment> {
   const result = await input.provider.assess(input.request)
   const mode = input.mode ?? input.request.mode ?? 'speaking'
-  const hasStructuredEvidence = Boolean(input.audioEvidence?.fluency || input.structuredEvidence?.grammar)
+  const hasStructuredEvidence = Boolean(
+    input.audioEvidence?.fluency
+    || input.structuredEvidence?.grammar
+    || input.structuredEvidence?.pronunciation
+    || input.structuredEvidence?.vocabularyTranscript
+    || input.structuredEvidence?.intonation,
+  )
   const overall = calculateOverallScore(mode, result)
   const canonical = hasStructuredEvidence ? resolveCanonicalScores(mode, result, input) : null
 
@@ -175,8 +332,11 @@ export async function processAssessment(input: ProcessAssessmentInput): Promise<
     ...result,
     ...(canonical
       ? {
+          pronunciation: canonical.scores.pronunciation,
           fluency: canonical.scores.fluency,
+          intonation: canonical.scores.intonation,
           grammar: canonical.scores.grammar,
+          vocabulary: canonical.scores.vocabulary,
           overall: finalOverall,
         }
       : {}),
@@ -188,6 +348,7 @@ export async function processAssessment(input: ProcessAssessmentInput): Promise<
     ...(canonical
       ? {
           scoreSources: canonical.sources,
+          metricStatuses: canonical.metricStatuses,
         }
       : {}),
   }

@@ -29,8 +29,16 @@ export function calculateWordsPerMinute(wordCount: number, spokenDurationMs: num
 /**
  * Canonical scoring version. Bump whenever a formula change can alter a student
  * result; never reinterpret historical scores with a new formula (spec §15).
+ *
+ * 2026.2 — Human Decision Gate finalization (SCORING_SPEC §21, decisions ledger
+ * in `scoring-decisions.ts`): PER calibration + accent substitution table
+ * (SCORING-003), MATTR vocabulary normalization + CEFR vocab lookup + CEFR
+ * estimate banding (SCORING-007/010), intonation formula (SCORING-005),
+ * missing-metric/confidence status model (D9). Fluency WPM normalization stays
+ * 40..120 (D3); grammar keeps the flat penalty table (D5) — no behavior change
+ * for those dimensions, so assessments scored under 2026.1 keep their version.
  */
-export const SCORING_VERSION = '2026.1'
+export const SCORING_VERSION = '2026.2'
 
 /** Canonical five-dimension weights for the full online assessment (spec §3). */
 export const SPEAKING_DIMENSION_WEIGHTS = {

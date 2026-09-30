@@ -138,9 +138,19 @@ export interface CanonicalScoringMetadata {
   rawMetrics?: CanonicalRawMetrics
 }
 
+/**
+ * Evidence lifecycle for one canonical metric (Human Decision Gate D9,
+ * SCORING_SPEC §10). Missing/corrupt evidence is reported explicitly — never
+ * silently converted to a fabricated score. `pending` is a pre-scoring state
+ * owned by the session pipeline, not by the scoring engine.
+ */
+export type MetricStatus = 'complete' | 'partial' | 'pending' | 'insufficient_evidence' | 'failed'
+
 /** Per-dimension provenance: engine-computed vs provider estimate (spec §13). */
 export type DimensionScoreSource = 'CANONICAL_ENGINE' | 'PROVIDER_ESTIMATE' | 'PROVIDER_ESTIMATE_FALLBACK'
 
 export interface AssessmentWithScoreSources extends Assessment {
   scoreSources?: Record<string, DimensionScoreSource>
+  /** Per-dimension evidence lifecycle (Human Decision Gate D9, spec §10). */
+  metricStatuses?: Record<string, MetricStatus>
 }

@@ -18,7 +18,8 @@ import {
 
 describe('SCORING_VERSION', () => {
   it('is a stable semantic version string persisted with every canonical result', () => {
-    expect(SCORING_VERSION).toBe('2026.1')
+    // 2026.2: Human Decision Gate finalization (see scoring-decisions.ts ledger).
+    expect(SCORING_VERSION).toBe('2026.2')
     expect(SCORING_VERSION).toMatch(/^\d{4}\.\d$/)
   })
 
