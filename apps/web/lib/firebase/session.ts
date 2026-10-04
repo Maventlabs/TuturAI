@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers'
 import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin'
+import { cacheAside } from '@/lib/cache'
+import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
 
 export const SESSION_COOKIE = 'tuturai_session'
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 5
@@ -30,7 +32,7 @@ export interface FirebaseProfile {
   streak?: number
 }
 
-function profileFromDocument(id: string, data: FirebaseFirestore.DocumentData | undefined): FirebaseProfile | null {
+function profileFromDocument(id: string, data: FirebaseFirestore.DocumentData | undefined | null): FirebaseProfile | null {
   if (!data || (data.role !== 'student' && data.role !== 'teacher')) return null
 
   return {
@@ -72,6 +74,28 @@ export async function verifySessionCookie(sessionCookie: string) {
   return getAdminAuth().verifySessionCookie(sessionCookie, true)
 }
 
+/**
+ * Reads the user profile document behind a cache.
+ *
+ * Only the Firestore read is cached. `verifySessionCookie` still runs on every
+ * request above it, so revoking a session or disabling an account takes effect
+ * immediately — the cache never extends a session's lifetime, it only avoids
+ * re-fetching a document for a session that is already known to be valid.
+ */
+export async function readProfileDocument(uid: string) {
+  const { value } = await cacheAside({
+    key: CACHE_NAMESPACES.profile(uid),
+    ttlSeconds: CACHE_TTL.profile,
+    loader: async () => {
+      const snapshot = await getAdminDb().collection('users').doc(uid).get()
+      // A missing document caches as `null` so repeated lookups for an unknown
+      // uid do not each cost a round trip.
+      return snapshot.data() ?? null
+    },
+  })
+  return value as FirebaseFirestore.DocumentData | null
+}
+
 export async function getSessionProfile() {
   const cookieStore = await cookies()
   const token = cookieStore.get(SESSION_COOKIE)?.value
@@ -79,8 +103,8 @@ export async function getSessionProfile() {
 
   try {
     const decoded = await verifySessionCookie(token)
-    const snapshot = await getAdminDb().collection('users').doc(decoded.uid).get()
-    const profile = profileFromDocument(decoded.uid, snapshot.data())
+    const data = await readProfileDocument(decoded.uid)
+    const profile = profileFromDocument(decoded.uid, data)
     return {
       user: {
         uid: decoded.uid,

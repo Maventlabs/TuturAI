@@ -2,6 +2,8 @@ import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase-ad
 import { transitionSubmission, type Assessment, type Assignment, type DriveFileMetadata, type Submission, type SubmissionStatus } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
 import { assignmentFromSnapshot } from '@/lib/assignments'
+import { cacheAside, invalidateNamespaces } from '@/lib/cache'
+import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
 
 const ASSIGNMENTS_COLLECTION = 'assignments'
 const CLASSROOMS_COLLECTION = 'classrooms'
@@ -97,7 +99,19 @@ export async function submitAssignment(assignmentId: string, studentId: string, 
     else transaction.create(reference, submission)
     void assignmentReference
   })
-  return submissionFromSnapshot(await reference.get())
+  const submitted = submissionFromSnapshot(await reference.get())
+  // A submission changes the student's dashboard and every teacher's queue.
+  const assignment = await getAdminDb().collection(ASSIGNMENTS_COLLECTION).doc(assignmentId).get()
+  const classroomId = assignment.data()?.classId
+  if (typeof classroomId === 'string') {
+    const classroom = await getAdminDb().collection(CLASSROOMS_COLLECTION).doc(classroomId).get()
+    const teacherId = classroom.data()?.teacherId
+    await invalidateNamespaces(
+      `analytics:dashboard:${studentId}`,
+      ...(typeof teacherId === 'string' ? [`reviewQueue:${teacherId}`, `analytics:${teacherId}`] : []),
+    )
+  }
+  return submitted
 }
 
 export async function getStudentSubmission(assignmentId: string, studentId: string) {
@@ -121,41 +135,48 @@ export async function appendSubmissionFile(submissionIdValue: string, studentId:
 }
 
 export async function listTeacherReviewQueue(teacherId: string): Promise<TeacherReviewQueueItem[]> {
-  const db = getAdminDb()
-  const classrooms = await db.collection(CLASSROOMS_COLLECTION)
-    .where('teacherId', '==', teacherId)
-    .get()
+  const { value } = await cacheAside({
+    key: CACHE_NAMESPACES.reviewQueue(teacherId),
+    ttlSeconds: CACHE_TTL.reviewQueue,
+    loader: async () => {
+      const db = getAdminDb()
+      const classrooms = await db.collection(CLASSROOMS_COLLECTION)
+        .where('teacherId', '==', teacherId)
+        .get()
 
-  const queue = await Promise.all(classrooms.docs.filter((classroom) => classroom.data()?.status === 'active').flatMap((classroom) => {
-    const classId = classroom.id
-    const className = typeof classroom.data()?.name === 'string' ? classroom.data()?.name : classId
-    return [db.collection(ASSIGNMENTS_COLLECTION).where('classId', '==', classId).get().then(async (assignments) => {
-      const items = await Promise.all(assignments.docs.map(async (assignmentSnapshot) => {
-        const assignment = assignmentFromSnapshot(assignmentSnapshot)
-        const submissions = await db.collection(SUBMISSIONS_COLLECTION)
-          .where('assignmentId', '==', assignment.id)
-          .get()
-        const items = submissions.docs
-          .map((submissionSnapshot) => ({ assignment, className, submission: submissionFromSnapshot(submissionSnapshot) }))
-          .filter((item) => isSubmissionAwaitingReview(item.submission.status))
-        return Promise.all(items.map(async (item) => {
-          const assessments = await db.collection('assessments').where('studentId', '==', item.submission.studentId).limit(100).get()
-          const latest = assessments.docs
-            .map((snapshot) => assessmentFromData(snapshot.data()))
-            .filter((assessment): assessment is Assessment => assessment !== null)
-            .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0] ?? null
-          return { ...item, assessment: latest }
-        }))
+      const queue = await Promise.all(classrooms.docs.filter((classroom) => classroom.data()?.status === 'active').flatMap((classroom) => {
+        const classId = classroom.id
+        const className = typeof classroom.data()?.name === 'string' ? classroom.data()?.name : classId
+        return [db.collection(ASSIGNMENTS_COLLECTION).where('classId', '==', classId).get().then(async (assignments) => {
+          const items = await Promise.all(assignments.docs.map(async (assignmentSnapshot) => {
+            const assignment = assignmentFromSnapshot(assignmentSnapshot)
+            const submissions = await db.collection(SUBMISSIONS_COLLECTION)
+              .where('assignmentId', '==', assignment.id)
+              .get()
+            const items = submissions.docs
+              .map((submissionSnapshot) => ({ assignment, className, submission: submissionFromSnapshot(submissionSnapshot) }))
+              .filter((item) => isSubmissionAwaitingReview(item.submission.status))
+            return Promise.all(items.map(async (item) => {
+              const assessments = await db.collection('assessments').where('studentId', '==', item.submission.studentId).limit(100).get()
+              const latest = assessments.docs
+                .map((snapshot) => assessmentFromData(snapshot.data()))
+                .filter((assessment): assessment is Assessment => assessment !== null)
+                .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0] ?? null
+              return { ...item, assessment: latest }
+            }))
+          }))
+          return items.flat()
+        })]
       }))
-      return items.flat()
-    })]
-  }))
 
-  return queue.flat().sort((left, right) => {
-    const leftTime = left.submission.submittedAt ? Date.parse(left.submission.submittedAt) : 0
-    const rightTime = right.submission.submittedAt ? Date.parse(right.submission.submittedAt) : 0
-    return rightTime - leftTime
+      return queue.flat().sort((left, right) => {
+        const leftTime = left.submission.submittedAt ? Date.parse(left.submission.submittedAt) : 0
+        const rightTime = right.submission.submittedAt ? Date.parse(right.submission.submittedAt) : 0
+        return rightTime - leftTime
+      })
+    },
   })
+  return value
 }
 
 async function assertTeacherOwnsAssignment(assignmentId: string, teacherId: string, transaction: FirebaseFirestore.Transaction) {
@@ -189,5 +210,12 @@ export async function reviewSubmission(submissionIdValue: string, teacherId: str
       updatedAt: Timestamp.now(),
     })
   })
-  return submissionFromSnapshot(await reference.get())
+  const reviewed = submissionFromSnapshot(await reference.get())
+  await invalidateNamespaces(
+    `reviewQueue:${teacherId}`,
+    `assignments:${reviewed.assignmentId}`,
+    `analytics:${teacherId}`,
+    `analytics:dashboard:${reviewed.studentId}`,
+  )
+  return reviewed
 }

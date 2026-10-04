@@ -2,6 +2,8 @@ import { createHash, randomBytes } from 'node:crypto'
 import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase-admin/firestore'
 import type { Classroom, ClassroomInput, RecordStatus } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
+import { cacheAside, invalidateNamespaces } from '@/lib/cache'
+import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
 
 export const CLASSROOMS_COLLECTION = 'classrooms'
 export const MEMBERSHIPS_COLLECTION = 'classMemberships'
@@ -56,7 +58,11 @@ export async function createTeacherClassroom(teacherId: string, input: Classroom
           updatedAt: now,
         })
       })
-      return { classroom: classroomFromSnapshot(await classroomReference.get()), joinKey }
+      const classroom = classroomFromSnapshot(await classroomReference.get())
+      // The teacher's classroom list must include the new classroom on the very
+      // next read, not after the TTL expires.
+      await invalidateNamespaces(`classrooms:teacher:${teacherId}`)
+      return { classroom, joinKey }
     } catch (cause) {
       if (cause instanceof Error && cause.message === 'JOIN_KEY_COLLISION') continue
       throw cause
@@ -88,26 +94,40 @@ function toIsoString(value: unknown) {
   return typeof value === 'string' ? value : new Date(0).toISOString()
 }
 
-export async function listTeacherClassrooms(teacherId: string) {
-  const snapshot = await getAdminDb()
-    .collection(CLASSROOMS_COLLECTION)
-    .where('teacherId', '==', teacherId)
-    .get()
-  return snapshot.docs.map(classroomFromSnapshot)
+export async function listTeacherClassrooms(teacherId: string): Promise<Classroom[]> {
+  const { value } = await cacheAside({
+    key: CACHE_NAMESPACES.teacherClassrooms(teacherId),
+    ttlSeconds: CACHE_TTL.classrooms,
+    loader: async () => {
+      const snapshot = await getAdminDb()
+        .collection(CLASSROOMS_COLLECTION)
+        .where('teacherId', '==', teacherId)
+        .get()
+      return snapshot.docs.map(classroomFromSnapshot)
+    },
+  })
+  return value
 }
 
-export async function listStudentClassrooms(studentId: string) {
-  const memberships = await getAdminDb()
-    .collection(MEMBERSHIPS_COLLECTION)
-    .where('studentId', '==', studentId)
-    .get()
+export async function listStudentClassrooms(studentId: string): Promise<Classroom[]> {
+  const { value } = await cacheAside({
+    key: CACHE_NAMESPACES.studentClassrooms(studentId),
+    ttlSeconds: CACHE_TTL.classrooms,
+    loader: async () => {
+      const memberships = await getAdminDb()
+        .collection(MEMBERSHIPS_COLLECTION)
+        .where('studentId', '==', studentId)
+        .get()
 
-  const references = memberships.docs
-    .filter((membership) => membership.data().status === 'active')
-    .map((membership) => getAdminDb().collection(CLASSROOMS_COLLECTION).doc(membership.data().classId))
-  const snapshots = references.length > 0 ? await getAdminDb().getAll(...references) : []
-  const classrooms = snapshots.map((classroom) => (classroom.exists ? classroomFromSnapshot(classroom) : null))
-  return classrooms.filter((classroom): classroom is Classroom => classroom !== null && classroom.status === 'active')
+      const references = memberships.docs
+        .filter((membership) => membership.data().status === 'active')
+        .map((membership) => getAdminDb().collection(CLASSROOMS_COLLECTION).doc(membership.data().classId))
+      const snapshots = references.length > 0 ? await getAdminDb().getAll(...references) : []
+      const classrooms = snapshots.map((classroom) => (classroom.exists ? classroomFromSnapshot(classroom) : null))
+      return classrooms.filter((classroom): classroom is Classroom => classroom !== null && classroom.status === 'active')
+    },
+  })
+  return value
 }
 
 export async function updateTeacherClassroom(
@@ -124,7 +144,13 @@ export async function updateTeacherClassroom(
     if (!snapshot.exists || snapshot.data()?.teacherId !== teacherId) throw new Error('CLASSROOM_NOT_FOUND')
     transaction.update(reference, { ...input, status, updatedAt: now })
   })
-  return classroomFromSnapshot(await reference.get())
+  const updated = classroomFromSnapshot(await reference.get())
+  await invalidateNamespaces(
+    `classrooms:teacher:${teacherId}`,
+    `members:${classroomId}`,
+    `assignments:${classroomId}`,
+  )
+  return updated
 }
 
 export async function regenerateTeacherJoinKey(classroomId: string, teacherId: string) {
@@ -150,6 +176,8 @@ export async function regenerateTeacherJoinKey(classroomId: string, teacherId: s
         if (!reservation.exists) transaction.create(reservationReference, { classroomId, createdAt: now })
         transaction.update(reference, { joinKeyHash: hashJoinKey(joinKey), joinKeyRevoked: false, updatedAt: now })
       })
+      // A regenerated key only affects the join flow itself, which reads the
+      // classroom document directly rather than through a cached list.
       return joinKey
     } catch (cause) {
       if (cause instanceof Error && cause.message === 'JOIN_KEY_COLLISION') continue
@@ -209,61 +237,79 @@ export type ClassroomLeaderboardRow = {
 }
 
 export async function listClassroomLeaderboard(classroomId: string, studentId: string): Promise<ClassroomLeaderboardRow[]> {
+  // Membership is the authorization gate for this read, so it stays uncached:
+  // a cached entry must never outlive the check that granted access.
   const db = getAdminDb()
   const membershipReference = db.collection(MEMBERSHIPS_COLLECTION).doc(`${classroomId}_${studentId}`)
   const membership = await membershipReference.get()
   if (!membership.exists || membership.data()?.status !== 'active') throw new Error('CLASSROOM_NOT_FOUND')
 
-  const memberships = await db.collection(MEMBERSHIPS_COLLECTION)
-    .where('classId', '==', classroomId)
-    .get()
-  const activeMemberships = memberships.docs.filter((item) => item.data().status === 'active')
-  const userReferences = activeMemberships.map((item) => db.collection(USERS_COLLECTION).doc(item.data().studentId))
-  const users = userReferences.length > 0 ? await db.getAll(...userReferences) : []
-  const rows = users.map((user) => {
-    const data = user.data() ?? {}
-    return {
-      studentId: user.id,
-      name: typeof data.displayName === 'string' ? data.displayName : 'Siswa',
-      xp: typeof data.xp === 'number' && data.xp >= 0 ? data.xp : 0,
-    }
-  }).sort((left, right) => right.xp - left.xp || left.name.localeCompare(right.name))
+  const { value } = await cacheAside({
+    key: CACHE_NAMESPACES.classroomLeaderboard(classroomId),
+    ttlSeconds: CACHE_TTL.members,
+    loader: async () => {
+      const memberships = await db.collection(MEMBERSHIPS_COLLECTION)
+        .where('classId', '==', classroomId)
+        .get()
+      const activeMemberships = memberships.docs.filter((item) => item.data().status === 'active')
+      const userReferences = activeMemberships.map((item) => db.collection(USERS_COLLECTION).doc(item.data().studentId))
+      const users = userReferences.length > 0 ? await db.getAll(...userReferences) : []
+      const rows = users.map((user) => {
+        const data = user.data() ?? {}
+        return {
+          studentId: user.id,
+          name: typeof data.displayName === 'string' ? data.displayName : 'Siswa',
+          xp: typeof data.xp === 'number' && data.xp >= 0 ? data.xp : 0,
+        }
+      }).sort((left, right) => right.xp - left.xp || left.name.localeCompare(right.name))
 
-  return rows.map((row, index) => ({ ...row, rank: index + 1 }))
+      return rows.map((row, index) => ({ ...row, rank: index + 1 }))
+    },
+  })
+  return value
 }
 
 export async function listTeacherClassroomMembers(classroomId: string, teacherId: string) {
   const db = getAdminDb()
+  // Ownership check stays uncached: it is the authorization gate, and a cached
+  // copy could keep serving a teacher after they lose access to the classroom.
   const classroom = await db.collection(CLASSROOMS_COLLECTION).doc(classroomId).get()
   if (!classroom.exists || classroom.data()?.teacherId !== teacherId) throw new Error('CLASSROOM_NOT_FOUND')
 
-  const memberships = await db.collection(MEMBERSHIPS_COLLECTION)
-    .where('classId', '==', classroomId)
-    .where('status', '==', 'active')
-    .get()
-  const userReferences = memberships.docs.map((membership) => db.collection(USERS_COLLECTION).doc(membership.data().studentId))
-  const users = userReferences.length > 0 ? await db.getAll(...userReferences) : []
-  const usersById = new Map(users.map((user) => [user.id, user.data() ?? {}]))
-  const assessmentSnapshots = await Promise.all(
-    memberships.docs.map((membership) => db.collection('assessments').where('studentId', '==', membership.data().studentId).limit(100).get()),
-  )
+  const { value } = await cacheAside({
+    key: CACHE_NAMESPACES.classroomMembers(classroomId),
+    ttlSeconds: CACHE_TTL.members,
+    loader: async () => {
+      const memberships = await db.collection(MEMBERSHIPS_COLLECTION)
+        .where('classId', '==', classroomId)
+        .where('status', '==', 'active')
+        .get()
+      const userReferences = memberships.docs.map((membership) => db.collection(USERS_COLLECTION).doc(membership.data().studentId))
+      const users = userReferences.length > 0 ? await db.getAll(...userReferences) : []
+      const usersById = new Map(users.map((user) => [user.id, user.data() ?? {}]))
+      const assessmentSnapshots = await Promise.all(
+        memberships.docs.map((membership) => db.collection('assessments').where('studentId', '==', membership.data().studentId).limit(100).get()),
+      )
 
-  return memberships.docs.map((membership, index): ClassroomMember => {
-    const data = membership.data()
-    const user = usersById.get(data.studentId) ?? {}
-    const scores = assessmentSnapshots[index].docs
-      .map((assessment) => assessment.data().overall)
-      .filter((score): score is number => typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100)
-    return {
-      studentId: data.studentId,
-      name: typeof user.displayName === 'string' ? user.displayName : typeof user.full_name === 'string' ? user.full_name : 'Siswa',
-      email: typeof user.email === 'string' ? user.email : null,
-      joinedAt: toIsoString(data.joinedAt),
-      level: typeof user.level === 'number' && user.level >= 1 ? user.level : null,
-      streak: typeof user.streak === 'number' && user.streak >= 0 ? user.streak : null,
-      speakingScore: scores.length ? Math.round(scores.reduce((total, score) => total + score, 0) / scores.length) : null,
-    }
+      return memberships.docs.map((membership, index): ClassroomMember => {
+        const data = membership.data()
+        const user = usersById.get(data.studentId) ?? {}
+        const scores = assessmentSnapshots[index].docs
+          .map((assessment) => assessment.data().overall)
+          .filter((score): score is number => typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100)
+        return {
+          studentId: data.studentId,
+          name: typeof user.displayName === 'string' ? user.displayName : typeof user.full_name === 'string' ? user.full_name : 'Siswa',
+          email: typeof user.email === 'string' ? user.email : null,
+          joinedAt: toIsoString(data.joinedAt),
+          level: typeof user.level === 'number' && user.level >= 1 ? user.level : null,
+          streak: typeof user.streak === 'number' && user.streak >= 0 ? user.streak : null,
+          speakingScore: scores.length ? Math.round(scores.reduce((total, score) => total + score, 0) / scores.length) : null,
+        }
+      })
+    },
   })
+  return value
 }
 
 export async function removeTeacherClassroomMember(classroomId: string, teacherId: string, studentId: string) {
@@ -277,4 +323,13 @@ export async function removeTeacherClassroomMember(classroomId: string, teacherI
     if (!membership.exists) throw new Error('MEMBERSHIP_NOT_FOUND')
     transaction.delete(membershipReference)
   })
+
+  await invalidateNamespaces(
+    `members:${classroomId}`,
+    `members:leaderboard:${classroomId}`,
+    `reviewQueue:${teacherId}`,
+    `analytics:${teacherId}`,
+    `analytics:leaderboard:${teacherId}`,
+    `classrooms:student:${studentId}`,
+  )
 }

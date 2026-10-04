@@ -1,6 +1,8 @@
 import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase-admin/firestore'
 import { transitionAssignment, AssignmentRuleError, type Assignment, type AssignmentInput, type AssignmentStatus, type DriveFileMetadata } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
+import { cacheAside, invalidateNamespaces } from '@/lib/cache'
+import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
 
 export const ASSIGNMENTS_COLLECTION = 'assignments'
 const CLASSROOMS_COLLECTION = 'classrooms'
@@ -54,17 +56,29 @@ export async function createTeacherAssignment(classroomId: string, teacherId: st
     createdAt: now,
     updatedAt: now,
   })
+  await invalidateNamespaces(`assignments:${classroomId}`, `reviewQueue:${teacherId}`, `analytics:${teacherId}`)
   return assignmentFromSnapshot(await reference.get())
 }
 
 export async function listClassroomAssignments(classroomId: string, actor: { role: 'teacher' | 'student'; uid: string }) {
+  // The membership/ownership check is the authorization gate for this list and
+  // stays uncached, so it re-runs on every request. Only the list itself — which
+  // is identical for every authorized caller — is cached. The role is part of
+  // the key because students only ever see published work.
   if (actor.role === 'teacher') await assertTeacherOwnsClassroom(classroomId, actor.uid)
   else await assertStudentMember(classroomId, actor.uid)
 
-  const snapshot = await getAdminDb().collection(ASSIGNMENTS_COLLECTION).where('classId', '==', classroomId).get()
-  return snapshot.docs
-    .map(assignmentFromSnapshot)
-    .filter((assignment) => actor.role === 'teacher' || assignment.status === 'published')
+  const { value } = await cacheAside({
+    key: `${CACHE_NAMESPACES.classroomAssignments(classroomId)}:${actor.role}`,
+    ttlSeconds: CACHE_TTL.assignments,
+    loader: async () => {
+      const snapshot = await getAdminDb().collection(ASSIGNMENTS_COLLECTION).where('classId', '==', classroomId).get()
+      return snapshot.docs
+        .map(assignmentFromSnapshot)
+        .filter((assignment) => actor.role === 'teacher' || assignment.status === 'published')
+    },
+  })
+  return value
 }
 
 export async function getTeacherAssignmentDriveContext(assignmentId: string, teacherId: string) {
@@ -92,7 +106,9 @@ export async function appendAssignmentAttachment(assignmentId: string, teacherId
     if (current.some((file) => file.id === attachment.id)) return
     transaction.update(reference, { attachments: [...current, attachment], updatedAt: Timestamp.now() })
   })
-  return assignmentFromSnapshot(await reference.get())
+  const updated = assignmentFromSnapshot(await reference.get())
+  await invalidateNamespaces(`assignments:${updated.classId}`, `reviewQueue:${teacherId}`)
+  return updated
 }
 
 export async function publishTeacherAssignment(assignmentId: string, teacherId: string) {
@@ -111,7 +127,14 @@ export async function publishTeacherAssignment(assignmentId: string, teacherId: 
     if (status !== 'published') throw new AssignmentRuleError('INVALID_TRANSITION', 'Assignment could not be published')
     transaction.update(reference, { status, updatedAt: Timestamp.now() })
   })
-  return assignmentFromSnapshot(await reference.get())
+  const published = assignmentFromSnapshot(await reference.get())
+  // Publishing changes what students may see and what the teacher must review.
+  await invalidateNamespaces(
+    `assignments:${published.classId}`,
+    `reviewQueue:${teacherId}`,
+    `analytics:${teacherId}`,
+  )
+  return published
 }
 
 export async function getStudentAssignmentDriveContext(assignmentId: string, studentId: string) {

@@ -49,3 +49,9 @@ AI_LLM_MODEL_ID=
 # provider endpoint and model are available. The app must remain unavailable.
 AI_LOCAL_BASE_URL=
 AI_LOCAL_API_KEY=
+
+# Upstash Redis cache. Paste both values into Netlify's Functions scope from
+# https://console.upstash.com -> your database -> REST API. With either value
+# blank the app runs normally and skips the cache entirely.
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=

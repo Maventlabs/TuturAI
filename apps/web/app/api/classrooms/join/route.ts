@@ -5,6 +5,7 @@ import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
 import { consumeJoinAttempt, hashJoinKey } from '@/lib/classrooms'
 import { getAdminDb } from '@/lib/firebase/admin'
+import { invalidateNamespaces } from '@/lib/cache'
 import { readJsonBody } from '@/lib/api/request'
 
 export async function POST(request: NextRequest) {
@@ -55,5 +56,18 @@ export async function POST(request: NextRequest) {
     }
     throw cause
   }
+
+  // The new membership changes the student's classroom list, the roster, the
+  // leaderboard, and the teacher's aggregates — drop all of them now rather
+  // than serving pre-join state until a TTL expires.
+  await invalidateNamespaces(
+    `classrooms:student:${auth.user.uid}`,
+    `members:${classroom.id}`,
+    `members:leaderboard:${classroom.id}`,
+    `reviewQueue:${data.teacherId}`,
+    `analytics:${data.teacherId}`,
+    `analytics:leaderboard:${data.teacherId}`,
+  )
+
   return NextResponse.json({ data: { id: classroom.id, name: data.name } }, { status: 201 })
 }

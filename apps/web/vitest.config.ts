@@ -12,6 +12,8 @@ export default defineConfig({
     // `scripts/e2e-prod-*.test.mjs` are node:test suites (run via `node --test`),
     // not vitest suites — vitest would otherwise fail them with
     // "No test suite found" despite them passing under their real runner.
-    exclude: [...configDefaults.exclude, 'scripts/e2e-prod-*.test.mjs'],
+    // `scripts/cache-benchmark.test.ts` performs live production reads and is
+    // run deliberately via `pnpm cache:bench`.
+    exclude: [...configDefaults.exclude, 'scripts/e2e-prod-*.test.mjs', 'scripts/cache-benchmark.test.ts'],
   },
 })

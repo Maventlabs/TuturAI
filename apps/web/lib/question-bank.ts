@@ -1,6 +1,8 @@
 import { FieldValue, Timestamp, type DocumentData } from 'firebase-admin/firestore'
 import { applyLearningActivity, isAnswerableContentType, type LearningContentType, type QuestionBankItem, type QuestionLevel, type QuestionSkill } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
+import { cacheAside, invalidateNamespaces } from '@/lib/cache'
+import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
 
 export const QUESTION_BANK_COLLECTION = 'questionBank'
 export const QUESTION_ATTEMPTS_COLLECTION = 'questionAttempts'
@@ -44,20 +46,32 @@ export async function listPublishedQuestions(filters: {
   contentType?: LearningContentType
   limit: number
 }) {
-  const snapshot = await getAdminDb()
-    .collection(QUESTION_BANK_COLLECTION)
-    .where('status', '==', 'published')
-    // Filter after reading a bounded bank window; a small pre-filter limit can
-    // hide later content types as the published bank grows.
-    .limit(1000)
-    .get()
+  const { value } = await cacheAside({
+    key: CACHE_NAMESPACES.publishedQuestions(
+      filters.skill ?? 'any',
+      filters.level ?? 'any',
+      filters.contentType ?? 'any',
+      filters.limit,
+    ),
+    ttlSeconds: CACHE_TTL.questionBank,
+    loader: async () => {
+      const snapshot = await getAdminDb()
+        .collection(QUESTION_BANK_COLLECTION)
+        .where('status', '==', 'published')
+        // Filter after reading a bounded bank window; a small pre-filter limit can
+        // hide later content types as the published bank grows.
+        .limit(1000)
+        .get()
 
-  return snapshot.docs
-    .map((doc) => questionFromData(doc.id, doc.data()))
-    .filter((question) => (!filters.skill || question.skill === filters.skill)
-      && (!filters.level || question.level === filters.level)
-      && (!filters.contentType || question.contentType === filters.contentType))
-    .slice(0, filters.limit)
+      return snapshot.docs
+        .map((doc) => questionFromData(doc.id, doc.data()))
+        .filter((question) => (!filters.skill || question.skill === filters.skill)
+          && (!filters.level || question.level === filters.level)
+          && (!filters.contentType || question.contentType === filters.contentType))
+        .slice(0, filters.limit)
+    },
+  })
+  return value
 }
 
 export async function listStudentMasteredQuestionIds(studentId: string, questionIds: string[]) {
@@ -77,6 +91,8 @@ export async function answerQuestion(input: {
   questionId: string
   selectedOption: number
   attemptId: string
+  /** Optional classroom scope so leaderboard caches for it can be dropped. */
+  classroomId?: string
 }) {
   const db = getAdminDb()
   const attemptReference = db.collection(QUESTION_ATTEMPTS_COLLECTION).doc(`${input.studentId}_${input.attemptId}`)
@@ -131,6 +147,20 @@ export async function answerQuestion(input: {
       achievementIds: learningProgress.achievementIds,
       updatedAt: Timestamp.now(),
     })
+    return result
+  }).then(async (result) => {
+    // Answering changes XP, streak, level, and the attempt history that every
+    // dashboard view derives from, so drop the student's aggregates plus the
+    // cached profile document that now holds stale XP.
+    await invalidateNamespaces(
+      `profile:${input.studentId}`,
+      `analytics:dashboard:${input.studentId}`,
+      `analytics:learningStats:${input.studentId}`,
+      // Only when the caller told us which classroom this answers for.
+      // Interpolating an empty id here would broaden the scan to every
+      // leaderboard in the keyspace.
+      ...(input.classroomId ? [`members:leaderboard:${input.classroomId}`] : []),
+    )
     return result
   })
 }

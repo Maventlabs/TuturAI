@@ -1,6 +1,7 @@
 import { FieldValue } from 'firebase-admin/firestore'
 import type { OnboardingInput } from '@tuturai/validation'
 import { getAdminDb } from '@/lib/firebase/admin'
+import { invalidateNamespaces } from '@/lib/cache'
 
 export async function createOrReadProfile(
   uid: string,
@@ -40,5 +41,10 @@ export async function createOrReadProfile(
     }
     transaction.create(ref, profile)
     return profile
+  }).then(async (created) => {
+    // A brand-new user's profile was previously cached as "missing"; drop that
+    // entry or the first post-onboarding read would keep returning no profile.
+    await invalidateNamespaces(`profile:${uid}`)
+    return created
   })
 }
