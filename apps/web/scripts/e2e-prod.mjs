@@ -74,6 +74,61 @@ async function gotoSettled(page, url) {
   }
 }
 
+// A form field that is populated from the server does not hold its value in
+// the same tick as a reload: the client must refetch first. Poll the rendered
+// value so the assertion proves durability rather than hydration timing.
+async function waitForInputValue(locator, expected, label, timeout = 30_000) {
+  const deadline = Date.now() + timeout
+  let observed = ''
+  while (Date.now() < deadline) {
+    observed = await locator.inputValue().catch(() => '')
+    if (observed === expected) return observed
+    await page_wait(250)
+  }
+  throw new Error(`${label} did not render the persisted value within ${timeout}ms (expected ${JSON.stringify(expected)}, saw ${JSON.stringify(observed)}).`)
+}
+
+async function waitForInnerText(locator, expected, label, timeout = 30_000) {
+  const deadline = Date.now() + timeout
+  let observed = ''
+  while (Date.now() < deadline) {
+    observed = (await locator.innerText().catch(() => '')).trim()
+    if (observed === expected) return observed
+    await page_wait(250)
+  }
+  throw new Error(`${label} did not render the persisted value within ${timeout}ms (expected ${JSON.stringify(expected)}, saw ${JSON.stringify(observed)}).`)
+}
+
+// Same hydration concern as `waitForInputValue`: a server-backed control only
+// reflects persisted state after the client refetches it.
+async function waitForAttribute(locator, attribute, expected, label, timeout = 30_000) {
+  const deadline = Date.now() + timeout
+  let observed = null
+  while (Date.now() < deadline) {
+    observed = await locator.getAttribute(attribute).catch(() => null)
+    if (observed === expected) return observed
+    await page_wait(250)
+  }
+  throw new Error(`${label} did not render the persisted value within ${timeout}ms (expected ${JSON.stringify(expected)}, saw ${JSON.stringify(observed)}).`)
+}
+
+function page_wait(ms) {
+  return new Promise((resolveWait) => setTimeout(resolveWait, ms))
+}
+
+// Read-only page snapshot attached to a FAIL report so a locator timeout says
+// what was actually rendered instead of only what was expected.
+async function captureFailureContext(page, cause) {
+  const mainText = await page.locator('main').innerText().catch(() => null)
+  const buttons = await page.getByRole('button').evaluateAll((nodes) => nodes.map((n) => `${n.textContent?.trim()}|disabled=${n.disabled}`)).catch(() => null)
+  globalThis.__prodE2EFailureContext = {
+    url: page.url(),
+    mainText: mainText?.replace(/\n+/g, ' | ').slice(0, 800) ?? null,
+    buttons,
+  }
+  throw cause
+}
+
 async function ensureDriveConnected(page, config) {
   const current = await requestJson(page, config.baseUrl, '/api/integrations/google-drive/status', {}, 'google-drive')
   assert(current.response.status() === 200 && typeof current.body?.data?.connected === 'boolean', 'Google Drive status is unavailable.')
@@ -534,7 +589,8 @@ async function runTeacher(config) {
     assert(preferences.body?.data?.submissions === (priorChecked !== 'true'), 'Saved teacher setting did not match the UI action.')
     await page.reload()
     await page.getByRole('heading', { name: 'Pengaturan', exact: true }).waitFor()
-    assert(await page.getByRole('switch').first().getAttribute('aria-checked') === String(preferences.body.data.submissions), 'Teacher setting did not restore after reload.')
+    const restoredSetting = await waitForAttribute(page.getByRole('switch').first(), 'aria-checked', String(preferences.body.data.submissions), 'Teacher notification switch')
+    assert(restoredSetting === String(preferences.body.data.submissions), 'Teacher setting did not restore after reload.')
 
     const persistedPreferences = (await teacherRef.get()).data()?.teacherPreferences
     assert(persistedPreferences?.submissions === preferences.body.data.submissions, 'Teacher settings were not persisted in Firestore.')
@@ -565,12 +621,18 @@ async function runTeacher(config) {
     assert(lastFixture && lastFixture.rank > firstPlace.rank && lastFixture.xp === 1, 'Teacher leaderboard did not order lower persisted XP after the leader.')
     await gotoSettled(page, new URL('/guru/leaderboard', config.baseUrl))
     await page.getByRole('heading', { name: 'Papan Peringkat', exact: true }).waitFor()
-    const renderedLastRow = page.getByText(leaderboardFixtures[1].name, { exact: true }).locator('xpath=../..')
+    // The top three render as a podium with medal icons and no numeric rank, so
+    // the server-provided rank is asserted on the ranked list, where the page
+    // actually displays it, against the same `lastFixture` row the API ranked.
+    const renderedLastRow = page.getByText(lastFixture.name, { exact: true }).locator('xpath=../..')
     await renderedLastRow.waitFor()
     assert(Number(await renderedLastRow.locator('span').first().innerText()) === lastFixture.rank, 'Teacher leaderboard UI rank did not match the server result.')
     await page.reload()
     await page.getByRole('heading', { name: 'Papan Peringkat', exact: true }).waitFor()
-    assert(Number(await page.getByText(leaderboardFixtures[1].name, { exact: true }).locator('xpath=../..').locator('span').first().innerText()) === lastFixture.rank, 'Teacher leaderboard rank did not persist after reload.')
+    const reloadedRankRow = page.getByText(lastFixture.name, { exact: true }).locator('xpath=../..')
+    await reloadedRankRow.waitFor()
+    const reloadedRank = await waitForInnerText(reloadedRankRow.locator('span').first(), String(lastFixture.rank), 'Teacher leaderboard rank after reload')
+    assert(Number(reloadedRank) === lastFixture.rank, 'Teacher leaderboard rank did not persist after reload.')
 
     const deviceId = `e2e-${config.testPrefix}-${randomUUID().replaceAll('-', '').slice(0, 12)}`
     const deviceRef = trackCleanupRef(cleanup, admin.db.collection('devices').doc(deviceId))
@@ -616,7 +678,9 @@ async function runTeacher(config) {
     await page.reload()
     await page.getByRole('heading', { name: 'Perangkat TuturAI', exact: true }).waitFor()
     await page.getByText(deviceId, { exact: true }).waitFor()
-    await page.getByText('Online', { exact: true }).waitFor()
+    // The layout also renders a connection badge in the banner, so scope the
+    // device status assertion to the page content.
+    await page.locator('main').getByText('Online', { exact: true }).waitFor()
     await page.getByText('78%', { exact: true }).waitFor()
     await page.getByText('Firmware 1.2.3', { exact: true }).waitFor()
     const revokedDevice = await requestJson(page, config.baseUrl, `/api/teacher/devices?deviceId=${encodeURIComponent(deviceId)}`, { method: 'DELETE' })
@@ -878,18 +942,16 @@ async function runStudent(config) {
       while (answered < 20) {
         const prompt = page.locator('main h2').last()
         await prompt.waitFor()
-        await prompt.locator('xpath=..').getByRole('button').first().click({ timeout: 15_000 }).catch(async (cause) => {
-          const mainText = await page.locator('main').innerText().catch(() => null)
-          const buttons = await page.getByRole('button').evaluateAll((nodes) => nodes.map((n) => `${n.textContent?.trim()}|disabled=${n.disabled}`)).catch(() => null)
-          globalThis.__prodE2EFailureContext = { url: page.url(), mainText: mainText?.replace(/\n+/g, ' | ').slice(0, 800) ?? null, buttons }
-          throw cause
-        })
+        await prompt.locator('xpath=..').getByRole('button').first().click({ timeout: 15_000 })
+            .catch((cause) => captureFailureContext(page, cause))
         answered += 1
         const finish = page.getByRole('button', { name: 'Lihat Hasil', exact: true })
         if (await finish.count()) {
           await finish.click()
-          await page.getByRole('dialog').getByText('Aktivitas selesai').waitFor()
-          await page.getByRole('dialog').getByText('100/100', { exact: true }).waitFor()
+          await page.getByRole('dialog').getByText('Aktivitas selesai').waitFor({ timeout: 30_000 })
+            .catch((cause) => captureFailureContext(page, cause))
+          await page.getByRole('dialog').getByText('100/100', { exact: true }).waitFor({ timeout: 30_000 })
+            .catch((cause) => captureFailureContext(page, cause))
           return answered
         }
         await page.getByRole('button', { name: 'Soal Berikutnya', exact: true }).click()
@@ -995,7 +1057,10 @@ async function runStudent(config) {
     const storedProfile = await userRef.get()
     assert(storedProfile.data()?.displayName === updatedDisplayName && storedProfile.data()?.school === updatedSchool && storedProfile.data()?.role === 'student', 'Student profile fields did not persist without changing the permanent role.')
     await page.reload()
-    assert(await page.getByLabel('Nama lengkap').inputValue() === updatedDisplayName, 'Student profile name did not restore after reload.')
+    await page.getByRole('heading', { name: 'Profil & Pengaturan', exact: true }).waitFor()
+    const restoredName = await waitForInputValue(page.getByLabel('Nama lengkap'), updatedDisplayName, 'Student profile name')
+    const restoredSchool = await waitForInputValue(page.getByLabel('Sekolah'), updatedSchool, 'Student school')
+    assert(restoredName === updatedDisplayName && restoredSchool === updatedSchool, 'Student profile name did not restore after reload.')
     assert(await page.getByLabel('Sekolah').inputValue() === updatedSchool, 'Student profile school did not restore after reload.')
 
     console.log(JSON.stringify({ suite: 'student', status: 'PASS', adaptiveNoRepeat: true, quizAttempts: quizCount, listeningCards: listeningCount, testAttempts: testCount, vocabularyCards: vocabCount, conversationReadback: true, achievementActionReadback: true, profileMutationReadback: true, progressReload: true, leaderboardApiAndUiRank: ownRank.rank, leaderboardReload: true, firestoreAttempts: e2eAttempts.length }))

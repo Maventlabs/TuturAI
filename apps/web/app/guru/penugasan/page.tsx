@@ -5,6 +5,7 @@ import type { Assignment, Classroom } from '@tuturai/domain'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/dashboard/page-header'
+import { toDeadlineIso } from '@/lib/assignment-deadline'
 
 export default function TeacherAssignmentsPage() {
   const [classrooms, setClassrooms] = useState<Classroom[]>([])
@@ -75,7 +76,7 @@ export default function TeacherAssignmentsPage() {
         const deferPublish = Boolean(attachment) && status === 'published'
         const response = await fetch(`/api/classrooms/${classroomId}/assignments`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, instructions, dueAt: dueAt || null, maxAttempts: Number(maxAttempts), status: deferPublish ? 'draft' : status }),
+          body: JSON.stringify({ title, instructions, dueAt: toDeadlineIso(dueAt), maxAttempts: Number(maxAttempts), status: deferPublish ? 'draft' : status }),
         })
         const payload = await response.json()
         if (!response.ok) throw new Error(payload.error?.message ?? 'Gagal membuat penugasan')

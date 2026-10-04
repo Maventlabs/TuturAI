@@ -164,6 +164,43 @@ describe.skipIf(!configured)('real Upstash cache integration', () => {
     await invalidateNamespaces(`itest:${RUN}:isolation:profile`, `itest:${RUN}:isolation:members`)
   })
 
+  it('keeps teacher-scoped reads isolated so one teacher never sees another teacher data', async () => {
+    // These mirror the real teacher namespaces, which are keyed by teacher uid:
+    // classrooms:teacher, reviewQueue, analytics and analytics:leaderboard.
+    const teacherAClassrooms = makeOrigin('teacher-a-classrooms')
+    const teacherBClassrooms = makeOrigin('teacher-b-classrooms')
+    const teacherAQueue = makeOrigin('teacher-a-review-queue')
+    const teacherBQueue = makeOrigin('teacher-b-review-queue')
+
+    await cacheAside({ key: keyFor('teachers', 'classrooms', 'teacher-a'), ttlSeconds: 30, loader: teacherAClassrooms.loader })
+    await cacheAside({ key: keyFor('teachers', 'classrooms', 'teacher-b'), ttlSeconds: 30, loader: teacherBClassrooms.loader })
+    await cacheAside({ key: keyFor('teachers', 'reviewQueue', 'teacher-a'), ttlSeconds: 30, loader: teacherAQueue.loader })
+    await cacheAside({ key: keyFor('teachers', 'reviewQueue', 'teacher-b'), ttlSeconds: 30, loader: teacherBQueue.loader })
+
+    expect((await cacheAside({ key: keyFor('teachers', 'classrooms', 'teacher-a'), ttlSeconds: 30, loader: teacherAClassrooms.loader })).value).toBe('teacher-a-classrooms')
+    expect((await cacheAside({ key: keyFor('teachers', 'classrooms', 'teacher-b'), ttlSeconds: 30, loader: teacherBClassrooms.loader })).value).toBe('teacher-b-classrooms')
+    expect((await cacheAside({ key: keyFor('teachers', 'reviewQueue', 'teacher-a'), ttlSeconds: 30, loader: teacherAQueue.loader })).value).toBe('teacher-a-review-queue')
+    expect((await cacheAside({ key: keyFor('teachers', 'reviewQueue', 'teacher-b'), ttlSeconds: 30, loader: teacherBQueue.loader })).value).toBe('teacher-b-review-queue')
+
+    teacherAClassrooms.set('teacher-a-classrooms-updated')
+    teacherAQueue.set('teacher-a-review-queue-updated')
+    await invalidateNamespaces(`itest:${RUN}:teachers:classrooms:teacher-a`, `itest:${RUN}:teachers:reviewQueue:teacher-a`)
+
+    // Teacher A is refreshed after its own writes; teacher B is untouched.
+    expect((await cacheAside({ key: keyFor('teachers', 'classrooms', 'teacher-a'), ttlSeconds: 30, loader: teacherAClassrooms.loader })).value).toBe('teacher-a-classrooms-updated')
+    expect((await cacheAside({ key: keyFor('teachers', 'reviewQueue', 'teacher-a'), ttlSeconds: 30, loader: teacherAQueue.loader })).value).toBe('teacher-a-review-queue-updated')
+    expect(teacherAClassrooms.state.calls).toBe(2)
+    expect(teacherAQueue.state.calls).toBe(2)
+
+    // Teacher B never re-ran its origin: it stayed served from cache.
+    expect((await cacheAside({ key: keyFor('teachers', 'classrooms', 'teacher-b'), ttlSeconds: 30, loader: teacherBClassrooms.loader })).value).toBe('teacher-b-classrooms')
+    expect((await cacheAside({ key: keyFor('teachers', 'reviewQueue', 'teacher-b'), ttlSeconds: 30, loader: teacherBQueue.loader })).value).toBe('teacher-b-review-queue')
+    expect(teacherBClassrooms.state.calls).toBe(1)
+    expect(teacherBQueue.state.calls).toBe(1)
+
+    await invalidateNamespaces(`itest:${RUN}:teachers`)
+  })
+
   it('returns to the origin once the entry expires', async () => {
     const origin = makeOrigin('version-A')
     const namespace = `itest:${RUN}:expiry`

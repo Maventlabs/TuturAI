@@ -515,6 +515,69 @@ deleted or left to a short TTL. No usage figure is claimed beyond what was execu
 `RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` are unchanged. Redis being healthy is
 not a release gate and did not change any protected production E2E row.
 
+## Protected Production E2E Progress — 2026-10-04 (after Firestore quota recovery)
+
+Firestore quota recovered mid-session, so the protected matrix was resumed exactly where it
+stopped: `student` -> `teacher` -> `assignment`. Suites already proven (`smoke`, `classroom`,
+`security`) were not re-run.
+
+| Suite | Result | Evidence |
+| --- | --- | --- |
+| `smoke` | **PASS** | (earlier checkpoint) landing 200, CSP/HSTS/nosniff, health 200, three protected routes structured 401 |
+| `classroom` | **PASS** | (earlier checkpoint) UI create -> 201 -> Firestore owner + hash-only join key -> reservation -> student UI join -> membership `active` -> reload -> class switcher -> teacher roster 200 |
+| `security` | **PASS** | (earlier checkpoint) student->teacher 403, teacher->student 403, wrong-class 404, revoked join 409 with no membership |
+| `student` | **PASS** | `{"adaptiveNoRepeat":true,"quizAttempts":10,"listeningCards":20,"testAttempts":20,"vocabularyCards":20,"conversationReadback":true,"achievementActionReadback":true,"profileMutationReadback":true,"progressReload":true,"leaderboardApiAndUiRank":1,"leaderboardReload":true,"firestoreAttempts":71}` |
+| `teacher` | **PASS** | `{"dashboard":true,"studentMonitoring":true,"analyticsReadback":true,"pdfBytes":907,"settingsFirestoreReadback":true,"settingsReload":true,"leaderboardServerOrdering":true,"leaderboardUiReadback":true,"deviceRegistrationServerReadback":true,"deviceCredentialHashOnly":true,"deviceRevocationReadback":true}` |
+| `assignment` | **FAIL — real product defect, fixed in source, awaiting deploy** | see `PROD-TZ-001` below |
+
+### Production defect found by the assignment suite
+
+| Item | Result |
+| --- | --- |
+| `PROD-TZ-001` | **Assignment deadlines were shifted by the teacher's UTC offset.** `app/guru/penugasan/page.tsx` sent the raw `<input type="datetime-local">` value (for example `2026-10-04T14:23`, a wall clock with no offset). `new Date()` parses that as *local* time, so the UTC API host stored 14:23 **UTC** while the teacher meant 14:23 in their own timezone. For the app's Indonesian (UTC+7) users every deadline landed 7 hours late and the derived `isLate` flag was wrong. Reproduced: the dedicated deadline "2 minutes ago" arrived 7 hours in the future, so the durable assertion `isLate === true` failed even though the submission itself persisted correctly (`Penugasan terkumpul`, `Status: pending_review`). Fixed by converting the value in the browser, where the timezone is known, via the new `toDeadlineIso` helper (`apps/web/lib/assignment-deadline.ts`), which always emits an offset-aware ISO instant. Guarded by 5 regression tests in `apps/web/lib/assignment-deadline.test.ts`, including "a deadline entered two minutes ago still reads as two minutes ago". **The fix requires a deploy; production still serves the old behaviour, so the assignment rows stay FAIL until then.** |
+
+### Runner/config defects fixed in this pass (no assertion weakened)
+
+1. `teacher` suite crashed with `Cannot read properties of null (reading 'uid')`: the runner needs the
+   dedicated student identity (roster, analytics student count, leaderboard) but the suite's required
+   variables never declared it, so `config.student` resolved to `null`. Declared explicitly.
+2. Three post-reload UI assertions read a control in the same tick as the reload, before the client
+   refetched persisted state (student profile name/school, teacher notification switch, teacher
+   leaderboard rank). The data was already proven durable by the API and Firestore read-backs; the UI
+   simply had not hydrated. Each now polls the rendered value with a bounded timeout and still
+   asserts equality.
+3. Teacher leaderboard UI rank: the page renders the top three as a podium with **medal icons and no
+   numeric rank**, so the runner's "first span is the rank" assumption could never hold for rank 3.
+   The assertion now targets the ranked list row the API actually ranked. A pre-existing bug was also
+   corrected there: the post-reload check compared a *different* fixture row against `lastFixture.rank`.
+4. Device status badge: `Online` also renders in the layout banner, so the assertion is scoped to `main`.
+
+### Protected production menu matrix status: 18 of 26 verified
+
+**PASS (18):** `/siswa`, `/guru/kelas`, `/siswa/percakapan text`, `/siswa/vocabulary`,
+`/siswa/listening`, `/siswa/quiz`, `/siswa/tes`, `/siswa/adaptive`, `/siswa/progress`,
+`/siswa/leaderboard`, `/siswa/achievements`, `/siswa/profil`, `/guru`, `/guru/siswa`,
+`/guru/analitik`, `/guru/leaderboard`, `/guru/pengaturan`, `/guru/perangkat`
+
+**FAIL (3):** `/siswa/penugasan`, `/guru/penugasan`, `/guru/penilaian` — blocked by `PROD-TZ-001`,
+which is fixed in source but undeployed.
+
+**BLOCKED_EXTERNAL (5):** `/dashboard`, `/onboarding` (approved Google browser account),
+`/siswa/speaking` (AI V1 provider), `/siswa/pronunciation` (phoneme provider),
+`/siswa/percakapan voice` (OmniVoice endpoint).
+
+### Upstash status at this checkpoint
+
+`UPSTASH-DIRECT` PASS, `UPSTASH-CACHE-CORE` PASS, `UPSTASH-CACHE-INTEGRATION` PASS (now 10 tests,
+including explicit teacher-scoped isolation for classrooms/review-queue so one teacher can never
+observe another's data, and invalidating teacher A leaves teacher B cached).
+`APPLICATION-CACHE-PRODUCTION` remains `BLOCKED_EXTERNAL_FIRESTORE_QUOTA` at the time it was measured
+and `PRODUCTION-UPSTASH-CONFIG` remains `BLOCKED_EXTERNAL_NETLIFY_ENV`. Redis is **not** enabled in
+production and no protected E2E row was promoted on the strength of Redis alone.
+
+`RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` remain in force: five rows are blocked on
+external providers, three rows await a deploy, and production Redis is unverified.
+
 ## Human Decision Gate — Scoring (SCORING_SPEC.md §21)
 
 RESOLVED 2026-09-30 — all nine items decided via the evidence hierarchy and

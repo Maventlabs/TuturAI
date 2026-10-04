@@ -31,7 +31,11 @@ const requirements = {
   smoke: [],
   auth: [...AUTH, ...TEACHER, ...ADMIN, ...DATA, ...APPROVAL, 'E2E_GOOGLE_AUTH_EMAIL', 'E2E_GOOGLE_AUTH_ROLE', 'E2E_GOOGLE_AUTH_TEST_ACCOUNT_APPROVED'],
   student: [...AUTH, ...TEACHER, ...ADMIN, ...DATA, ...APPROVAL, 'E2E_CLASSROOM_ID'],
-  teacher: [...TEACHER, ...ADMIN, ...DATA, ...APPROVAL, 'E2E_CLASSROOM_ID'],
+  // The teacher runner asserts the roster, analytics student count and the
+  // leaderboard all contain the dedicated student, so it genuinely needs both
+  // identities; declaring the student requirement keeps `config.student` from
+  // resolving to null mid-suite.
+  teacher: [...AUTH, ...TEACHER, ...ADMIN, ...DATA, ...APPROVAL, 'E2E_CLASSROOM_ID'],
   classroom: [...AUTH, ...TEACHER, ...ADMIN, ...DATA, ...APPROVAL],
   assignment: [...AUTH, ...TEACHER, ...ADMIN, ...DATA, ...APPROVAL, 'E2E_CLASSROOM_ID'],
   drive: [...AUTH, ...TEACHER, ...ADMIN, ...DATA, ...APPROVAL, ...DRIVE_ACCOUNT, 'E2E_CLASSROOM_ID', 'E2E_DRIVE_TEST_FILE'],
