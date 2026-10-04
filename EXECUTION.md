@@ -478,6 +478,43 @@ E2E checkpoint.
 `RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` remain in force: mandatory gates are open
 and `PROD-INFRA-001` is an active production outage.
 
+## Upstash Redis Validation Checkpoint — 2026-10-04
+
+Operator supplied Upstash credentials in `apps/web/.env.local`. Values were never printed;
+only presence, host, and reachability are recorded. Instance host: `beloved-starfish-194377.upstash.io`
+(Upstash Free tier — validation was deliberately kept to a handful of commands).
+
+| Status | Result | Evidence |
+| --- | --- | --- |
+| `UPSTASH-DIRECT` | **PASS** | Isolated probe key `tuturai:v1:e2e-cache-probe:<uuid>`, 6 commands. PING -> `PONG` (183ms warm, 917ms cold TLS handshake); SET with `EX 120` -> `OK` (90ms); GET -> byte-exact match (27ms); TTL -> `120` (26ms); DEL -> `1` (25ms); GET after DEL -> `null` (25ms). A safety-net DEL guarantees removal even on failure. No application key was read, scanned, or deleted; no SCAN/FLUSHDB/wildcard delete was issued. |
+| `UPSTASH-CACHE-CORE` | **PASS** | Real `lib/cache` against real Upstash with an isolated in-memory origin loader (no Firestore): miss calls the origin exactly once and every later read is a `hit`; 5 concurrent identical misses collapse to **1** origin load (1 `miss` + 4 `hit`); a mutated origin is served stale until `invalidateNamespaces` and fresh afterwards; invalidation **physically deletes the real Redis key** (verified with a direct `GET` returning `null`); per-user and per-classroom keys never observe each other's payloads and invalidating one tenant leaves the other cached; a 1s TTL entry returns to the origin after expiry; an injected always-rejecting client falls back to the origin with correct data and a failing `invalidateNamespaces` resolves rather than throwing into a write path. |
+| `UPSTASH-CACHE-INTEGRATION` | **PASS** | New suite `apps/web/lib/cache/upstash-integration.test.ts` (9 tests) runs real Upstash + real cache core with a deterministic fake origin. Suite self-skips when credentials are absent, so a developer machine without Redis still runs the mocked unit tests. Cache totals: **44/44 PASS, exit 0**. |
+| `UPSTASH-CACHE-ORIGIN-FAILURE-SAFETY` | **PASS** | A failing origin (modelling Firestore `RESOURCE_EXHAUSTED`) propagates its error, writes **nothing** to Redis, and a later read re-runs the origin instead of resurrecting a fabricated profile. This is the guarantee that the cache can never turn an outage into a fake user. |
+| `APPLICATION-CACHE-PRODUCTION` | **BLOCKED_EXTERNAL_FIRESTORE_QUOTA** | Every cached route calls `requireRole`/`requireAuth` before any cache access, and `readProfileDocument` still needs Firestore on a cold key. Production Firestore returns `RESOURCE_EXHAUSTED` for every operation, so no production route can be exercised. No fake production PASS was created. |
+| `PRODUCTION-UPSTASH-CONFIG` | **BLOCKED_EXTERNAL_NETLIFY_ENV** | Credentials exist only in `apps/web/.env.local`, which is a local runtime file. This shell has no Netlify CLI, no `NETLIFY_AUTH_TOKEN`/`NETLIFY_SITE_ID`/`NETLIFY_API_TOKEN`, and no `.netlify/state.json`, so production environment presence cannot be inspected or verified. **Production Redis is NOT enabled and is NOT claimed to be enabled.** No new public endpoint was added. |
+| `FIRESTORE-QUOTA` | **INCIDENT** | Still `RESOURCE_EXHAUSTED` on a single-document read. Unchanged from the earlier checkpoint; the authenticated product remains down at `/api/me`. |
+
+### Cache does not remedy the Firestore outage
+
+Verified by construction, not assumed. `/api/me` resolves through
+`verifySessionCookie` (Firebase Auth) plus `readProfileDocument` (cached). A warm cache
+entry would let that route answer without Firestore, but an entry can only exist after a
+successful Firestore read, and any cold key, miss, or invalidation still requires the
+origin. Redis therefore reduces Firestore reads on hits only — it cannot supply the first
+read, and it cannot manufacture data when the origin fails (`UPSTASH-CACHE-ORIGIN-FAILURE-SAFETY`).
+Resume condition for production E2E stays **"Firestore production quota restored / billing
+capacity available"**.
+
+### Free-tier discipline
+
+Validation used a small fixed command count (6 for the direct probe, a few dozen GET/SET/DEL/SCAN
+calls across the integration suite). No load test, no stress test, no large scan, no wildcard
+delete, no `FLUSHDB`, and no repeated production requests for benchmarking. All probe keys were
+deleted or left to a short TTL. No usage figure is claimed beyond what was executed.
+
+`RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` are unchanged. Redis being healthy is
+not a release gate and did not change any protected production E2E row.
+
 ## Human Decision Gate — Scoring (SCORING_SPEC.md §21)
 
 RESOLVED 2026-09-30 — all nine items decided via the evidence hierarchy and
