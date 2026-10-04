@@ -578,6 +578,71 @@ production and no protected E2E row was promoted on the strength of Redis alone.
 `RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` remain in force: five rows are blocked on
 external providers, three rows await a deploy, and production Redis is unverified.
 
+## Deployment Handoff — 2026-10-04
+
+Five commits are verified locally and ready to ship. Nothing has been pushed yet; pushing and
+deploying is an operator action.
+
+| Commit | Purpose |
+| --- | --- |
+| `bd5bea7` | production E2E runner fixes (hydration settling, adaptive/vocabulary/leaderboard selector drift, cleanup no longer masks a verdict) |
+| `6a537bb` | fail-open Upstash read-through cache for hot read paths |
+| `15e289a` | real-Upstash integration suite for the cache layer |
+| `3696e8b` | keep the live Upstash suite out of the default hermetic test run |
+| `65dc6a1` | `PROD-TZ-001` assignment deadline timezone fix + teacher suite unblock |
+
+### Deploying is safe for live traffic
+
+The bundle will ship the cache layer, but production has no `UPSTASH_REDIS_REST_URL` /
+`UPSTASH_REDIS_REST_TOKEN` in its environment, so `getRedisEnv()` reports `enabled: false` and
+every read falls through to the origin loader. Deploying therefore changes no production
+behaviour until Redis is deliberately configured. `CACHE_ENABLED=false` remains an instant kill
+switch if that changes.
+
+### Deploy commands (operator)
+
+```
+cd /e/Fullstack-Development/Full-stack-development/TuturAI-Fullstack
+git status                      # expect only pre-existing untracked session artifacts
+git push origin main
+```
+
+### Verifying the deployment is actually live
+
+`/api/health` does not expose a commit SHA, so freshness cannot be proven from the health
+endpoint alone. The assignment suite is the deterministic probe for this particular release,
+because `PROD-TZ-001` is a **client-side** fix: only the deployed JavaScript bundle decides
+whether the browser sends an offset-aware deadline.
+
+```
+cd apps/web
+node scripts/e2e-prod.mjs assignment
+```
+
+Interpretation:
+
+- `{"suite":"assignment","status":"PASS", ...}` — the new bundle is live and the three
+  `/siswa/penugasan`, `/guru/penugasan`, `/guru/penilaian` rows move from FAIL to PASS, taking
+  the protected matrix from **18/26 to 21/26**.
+- The previous failure `First submission did not persist attempt and derived late state` —
+  the old bundle is still deployed; the fix has not shipped.
+
+Do not treat a successful `git push` as proof of deployment. Netlify must finish the build,
+and the assignment suite must be re-run afterwards.
+
+### After the deploy
+
+1. Re-run `node apps/web/scripts/e2e-prod.mjs assignment` and record the result here.
+2. Consider adding the Upstash credentials to the Netlify production environment to enable the
+   cache for real. Until that is done and re-verified, `PRODUCTION-UPSTASH-CONFIG` stays
+   `BLOCKED_EXTERNAL_NETLIFY_ENV` and the cache rows must not be promoted to PASS.
+3. If the `questionBank` cache namespace is ever enabled, flush `tuturai:v1:questionBank*` after
+   E2E fixtures are written (see `apps/web/lib/cache/README.md`); the 120s TTL is the only bound
+   there because no runtime write invalidates that namespace.
+
+`RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` remain in force until the deploy
+lands and the five externally blocked rows are resolved.
+
 ## Human Decision Gate — Scoring (SCORING_SPEC.md §21)
 
 RESOLVED 2026-09-30 — all nine items decided via the evidence hierarchy and
