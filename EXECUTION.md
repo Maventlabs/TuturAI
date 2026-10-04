@@ -695,12 +695,15 @@ did not become a security boundary and did not alter any response shape.
 
 **BLOCKED_EXTERNAL (5):**
 
-| Row | Missing dependency | Resume condition |
+| Blocked row | Missing dependency | Resume condition |
 | --- | --- | --- |
-| `/dashboard`, `/onboarding` | approved real Google browser account; runner refuses to skip the gate | set `E2E_GOOGLE_AUTH_ENABLED=true` with an approved account, then run `node scripts/e2e-prod.mjs auth` |
-| `/siswa/speaking` | AI V1 STT/LLM provider (previously probed HTTP 530) | provider returns success, then run `node scripts/e2e-prod.mjs speaking` |
-| `/siswa/pronunciation` | phoneme/forced-alignment provider | provider contract reachable, then run `node scripts/e2e-prod.mjs pronunciation` |
-| `/siswa/percakapan voice` | OmniVoice TTS endpoint/model | `AI_LOCAL_BASE_URL` configured, then run `node scripts/e2e-prod.mjs voice` |
+| BLOCKED | `/dashboard`, `/onboarding` | approved real Google browser account; runner refuses to skip the gate |
+| BLOCKED | `/siswa/speaking` | AI V1 STT/LLM provider (previously probed HTTP 530) |
+| BLOCKED | `/siswa/pronunciation` | phoneme / forced-alignment provider contract and model |
+| BLOCKED | `/siswa/percakapan voice` | OmniVoice TTS endpoint and model (`AI_LOCAL_BASE_URL` empty) |
+
+Resume commands once the dependency is available: `auth` (with `E2E_GOOGLE_AUTH_ENABLED=true`),
+then `speaking`, `pronunciation`, and `voice` respectively.
 
 No row was promoted on the strength of a passing suite alone: every PASS above is backed by a
 durable Firestore or server read-back in the suite output.
