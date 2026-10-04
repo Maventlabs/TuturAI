@@ -17,6 +17,7 @@ import {
   trackCleanupAction,
   trackCleanupRef,
   verifyDedicatedIdentity,
+  waitForApiResponse,
 } from './e2e-prod-runtime.mjs'
 
 const productionE2EEnvPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', '.env.e2e.production')
@@ -62,12 +63,23 @@ function safeDriveName(name) {
   return name.trim().replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 180) || 'e2e-file'
 }
 
+async function gotoSettled(page, url) {
+  await page.goto(url.toString())
+  try {
+    // Reaching a network-idle window proves client hydration effects ran, so
+    // immediately following clicks/selects cannot race unattached handlers.
+    await page.waitForLoadState('networkidle', { timeout: 8_000 })
+  } catch {
+    // Pages with continuous background activity must not hang navigation.
+  }
+}
+
 async function ensureDriveConnected(page, config) {
   const current = await requestJson(page, config.baseUrl, '/api/integrations/google-drive/status', {}, 'google-drive')
   assert(current.response.status() === 200 && typeof current.body?.data?.connected === 'boolean', 'Google Drive status is unavailable.')
   if (!current.body.data.connected) {
     assert(!config.headless, 'Set E2E_HEADLESS=false before the dedicated Google Drive consent checkpoint.')
-    await page.goto(new URL('/guru/pengaturan', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/guru/pengaturan', config.baseUrl))
     console.log('HUMAN CHECKPOINT: connect Drive using the dedicated account identified by E2E_DRIVE_ACCOUNT_EMAIL; do not select a personal Drive account.')
     const connectedNavigation = page.waitForURL((url) => url.pathname === '/guru/pengaturan' && url.searchParams.get('drive') === 'connected', { timeout: 180_000 })
     await page.getByRole('link', { name: /Hubungkan/ }).click()
@@ -157,7 +169,9 @@ async function runSmoke(config) {
     for (const name of ['content-security-policy', 'strict-transport-security', 'x-content-type-options']) {
       assert(Boolean(headers[name]), `Production response is missing ${name}.`)
     }
-    await resources.page.getByRole('link', { name: 'Sudah punya akun?' }).waitFor()
+    // The landing redesign renders the login CTA via the shared button component
+    // (<a role="button">), so match the accessible button name, not the link role.
+    await resources.page.getByRole('button', { name: 'Sudah punya akun?' }).waitFor()
 
     const health = await requestJson(resources.page, config.baseUrl, '/api/health')
     assert(health.response.status() === 200 && health.body?.data?.status === 'ok', 'Liveness endpoint did not report process reachability.')
@@ -313,6 +327,43 @@ async function runSecurity(config) {
   }
 }
 
+// The deployed vocabulary session presents one card at a time and only opens
+// the "Kosakata selesai!" dialog once every card in the returned bank has been
+// confirmed by the server. Drive the real session end-to-end and read the
+// rendered mastery counter back instead of guessing a card count.
+async function masterVocabularySession(page) {
+  const masteryButton = page.getByRole('button', { name: 'Sudah hafal', exact: true })
+  await masteryButton.waitFor()
+  const dialog = page.getByRole('dialog')
+  const readMastery = async () => {
+    const counter = (await page.getByText('Dikuasai', { exact: true }).locator('xpath=..').innerText()).replace(/\s+/g, ' ')
+    const match = /(\d+)\s*\/\s*(\d+)/.exec(counter)
+    assert(match, 'Vocabulary mastery counter did not render a mastered/total ratio.')
+    return { mastered: Number(match[1]), total: Number(match[2]) }
+  }
+
+  const start = await readMastery()
+  assert(start.total >= 10, `Vocabulary fixture bank returned only ${start.total} cards.`)
+  for (let attempt = 0; attempt < start.total * 2 + 5; attempt += 1) {
+    if (await dialog.isVisible()) break
+    const before = await readMastery()
+    if (before.mastered >= before.total) break
+    // Each confirmation is a real production write. Serialize on the server
+    // answer so a click is never queued while the previous save is still in
+    // flight, and keep the durable 200 as evidence for every card.
+    const saved = await waitForApiResponse(page, '/api/student/question-bank', 'POST', () => masteryButton.click({ timeout: 30_000 }))
+    assert(saved.response.status() === 200 && saved.body?.data?.isCorrect === true, `Vocabulary mastery save returned ${saved.response.status()}.`)
+    await page.waitForTimeout(500)
+  }
+  await dialog.getByText('Kosakata selesai!').waitFor({ timeout: 30_000 })
+  const completionMessage = dialog.getByText('Semua kartu kosakata pada sesi ini sudah dikonfirmasi tersimpan.')
+  await completionMessage.waitFor()
+  const finished = await readMastery()
+  assert(finished.mastered === finished.total, `Vocabulary session ended at ${finished.mastered}/${finished.total} confirmed cards.`)
+  await dialog.getByText(`${finished.total}/${finished.total}`, { exact: true }).waitFor()
+  return { total: finished.total, completionMessage: await completionMessage.innerText() }
+}
+
 async function runClassroom(config) {
   const admin = createAdminClient(config)
   const studentUid = await verifyDedicatedIdentity(admin.auth, admin.db, config.student, 'student')
@@ -332,7 +383,7 @@ async function runClassroom(config) {
 
   try {
     await loginWithPassword(teacherPage, config, config.teacher, 'teacher')
-    await teacherPage.goto(new URL('/guru/kelas', config.baseUrl).toString())
+    await gotoSettled(teacherPage, new URL('/guru/kelas', config.baseUrl))
     const classroomName = `${config.testPrefix} Classroom ${randomUUID().slice(0, 8)}`
     await teacherPage.getByRole('heading', { name: 'Buat classroom', exact: true }).waitFor()
     await teacherPage.getByLabel('Nama kelas').fill(classroomName)
@@ -356,7 +407,7 @@ async function runClassroom(config) {
     await teacherPage.getByText(`Kode join untuk ${classroomName}`, { exact: true }).waitFor()
 
     await loginWithPassword(studentPage, config, config.student, 'student')
-    await studentPage.goto(new URL('/siswa', config.baseUrl).toString())
+    await gotoSettled(studentPage, new URL('/siswa', config.baseUrl))
     await studentPage.getByLabel('Kode join classroom').fill(joinKey)
     const joined = await waitForApiResponse(studentPage, '/api/classrooms/join', 'POST', () => studentPage.getByRole('button', { name: 'Gabung', exact: true }).click())
     assert(joined.response.status() === 201, `Student classroom join returned ${joined.response.status()}.`)
@@ -367,13 +418,19 @@ async function runClassroom(config) {
     assert(membership.exists && membership.data()?.status === 'active', 'Student membership did not persist in Firestore.')
     await studentPage.reload()
     await studentPage.getByText(classroomName, { exact: true }).first().waitFor()
+    // A dedicated E2E student may already hold an active class from provisioning;
+    // the product keeps the previous active class on join. Verify the durable
+    // class-switcher path instead: activate the new classroom, then reload.
     const activeClassroom = studentPage.getByLabel('Pilih classroom aktif')
-    assert(await activeClassroom.inputValue() === classroomId, 'Student active-class selection did not survive reload.')
+    await activeClassroom.selectOption(classroomId)
+    await studentPage.reload()
+    await studentPage.getByText(classroomName, { exact: true }).first().waitFor()
+    assert(await studentPage.getByLabel('Pilih classroom aktif').inputValue() === classroomId, 'Student active-class selection did not survive reload.')
 
     const memberReadback = await requestJson(teacherPage, config.baseUrl, `/api/classrooms/${encodeURIComponent(classroomId)}/members`)
     assert(memberReadback.response.status() === 200, 'Teacher member API failed to read back the student.')
     assert(memberReadback.body?.data?.some((member) => member.studentId === studentUid), 'Teacher API did not show the joined student.')
-    await teacherPage.goto(new URL('/guru/siswa', config.baseUrl).toString())
+    await gotoSettled(teacherPage, new URL('/guru/siswa', config.baseUrl))
     await teacherPage.getByRole('heading', { name: 'Daftar Siswa', exact: true }).waitFor()
 
     console.log(JSON.stringify({ suite: 'classroom', status: 'PASS', classroomPersisted: true, joinKeyHashPersisted: true, membershipPersisted: true, teacherReadback: true, reload: true, fixturePrefix: config.testPrefix }))
@@ -444,7 +501,7 @@ async function runTeacher(config) {
     assert(analytics.body?.data?.summary?.studentCount === 1, 'Analytics did not reflect the dedicated classroom membership.')
     const reportAnalytics = await requestJson(page, config.baseUrl, '/api/teacher/analytics?period=all')
     assert(reportAnalytics.response.status() === 200, 'Teacher report source analytics did not load.')
-    await page.goto(new URL('/guru/analitik', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/guru/analitik', config.baseUrl))
     await page.getByRole('heading', { name: 'Analitik Mendalam', exact: true }).waitFor()
     await page.getByText('1', { exact: true }).first().waitFor()
 
@@ -463,7 +520,7 @@ async function runTeacher(config) {
     assert(reportText.includes(`Jumlah siswa: ${reportAnalytics.body.data.summary.studentCount}`), 'PDF report did not match the analytics student count.')
     assert(reportText.includes(`Attempt latihan: ${reportAnalytics.body.data.summary.practiceAttempts}`), 'PDF report did not match the analytics attempt count.')
 
-    await page.goto(new URL('/guru/pengaturan', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/guru/pengaturan', config.baseUrl))
     await page.getByRole('heading', { name: 'Pengaturan', exact: true }).waitFor()
     const switches = page.getByRole('switch')
     await switches.first().waitFor()
@@ -506,7 +563,7 @@ async function runTeacher(config) {
     const lastFixture = teacherRows.find((row) => row.studentId === leaderboardFixtures[2].id)
     assert(firstPlace?.rank === 1 && firstPlace.xp === 1_000_000, 'Teacher leaderboard did not rank the persisted XP leader first.')
     assert(lastFixture && lastFixture.rank > firstPlace.rank && lastFixture.xp === 1, 'Teacher leaderboard did not order lower persisted XP after the leader.')
-    await page.goto(new URL('/guru/leaderboard', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/guru/leaderboard', config.baseUrl))
     await page.getByRole('heading', { name: 'Papan Peringkat', exact: true }).waitFor()
     const renderedLastRow = page.getByText(leaderboardFixtures[1].name, { exact: true }).locator('xpath=../..')
     await renderedLastRow.waitFor()
@@ -517,7 +574,7 @@ async function runTeacher(config) {
 
     const deviceId = `e2e-${config.testPrefix}-${randomUUID().replaceAll('-', '').slice(0, 12)}`
     const deviceRef = trackCleanupRef(cleanup, admin.db.collection('devices').doc(deviceId))
-    await page.goto(new URL('/guru/perangkat', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/guru/perangkat', config.baseUrl))
     await page.getByRole('heading', { name: 'Perangkat TuturAI', exact: true }).waitFor()
     await page.getByRole('button', { name: 'Daftarkan Perangkat', exact: true }).click()
     await page.getByLabel('Device ID').fill(deviceId)
@@ -589,7 +646,7 @@ async function runAssignment(config) {
 
   try {
     await loginWithPassword(teacherPage, config, config.teacher, 'teacher')
-    await teacherPage.goto(new URL('/guru/penugasan', config.baseUrl).toString())
+    await gotoSettled(teacherPage, new URL('/guru/penugasan', config.baseUrl))
     await teacherPage.getByRole('heading', { name: 'Penugasan', exact: true }).waitFor()
     await teacherPage.getByLabel('Classroom').selectOption(config.classroomId)
     await teacherPage.getByLabel('Status saat dibuat').selectOption('published')
@@ -613,7 +670,7 @@ async function runAssignment(config) {
     assert(persistedAssignment.data()?.status === 'published' && persistedAssignment.data()?.maxAttempts === 2, 'Published assignment settings did not persist.')
 
     await loginWithPassword(studentPage, config, config.student, 'student')
-    await studentPage.goto(new URL('/siswa/penugasan', config.baseUrl).toString())
+    await gotoSettled(studentPage, new URL('/siswa/penugasan', config.baseUrl))
     const studentAssignment = studentPage.getByRole('heading', { name: assignmentTitle, exact: true }).locator('xpath=../..')
     await studentAssignment.waitFor()
     await studentAssignment.getByRole('button', { name: 'Kumpulkan', exact: true }).click()
@@ -625,7 +682,7 @@ async function runAssignment(config) {
     const firstSubmission = await submissionRef.get()
     assert(firstSubmission.exists && firstSubmission.data()?.attempt === 1 && firstSubmission.data()?.isLate === true, 'First submission did not persist attempt and derived late state.')
 
-    await teacherPage.goto(new URL('/guru/penilaian', config.baseUrl).toString())
+    await gotoSettled(teacherPage, new URL('/guru/penilaian', config.baseUrl))
     let reviewCard = teacherPage.getByRole('heading', { name: assignmentTitle, exact: true }).locator('xpath=../..')
     await reviewCard.waitFor()
     await reviewCard.getByRole('button', { name: 'Kembalikan' }).click()
@@ -676,10 +733,31 @@ async function runStudent(config) {
   const prefix = `000000e2e-${config.testPrefix}-${runId}`
   const questionIds = new Set()
   const page = resources.page
+  // Record exactly which activities the production question-bank API served to
+  // this student, so persistence is asserted against what was really delivered
+  // instead of a hand-counted window arithmetic.
+  const servedActivities = new Set()
+  // Mirrors `isAnswerableContentType` in @tuturai/domain: conversation and
+  // speaking cards are free-text activities that persist to their own
+  // collections and are asserted separately below.
+  const answerableContentTypes = new Set(['question', 'vocabulary', 'listening', 'test'])
+  page.on('response', (response) => {
+    const url = new URL(response.url())
+    if (url.pathname !== '/api/student/question-bank' || response.request().method() !== 'GET') return
+    response.json()
+      .then((payload) => {
+        for (const item of payload.data ?? []) if (answerableContentTypes.has(item.contentType)) servedActivities.add(item.id)
+      })
+      .catch(() => {})
+  })
 
   const questionFixtures = [
     { id: `${prefix}-adaptive-vocab`, type: 'vocabulary', skill: 'vocabulary', word: 'adaptive', prompt: 'Review the E2E adaptive vocabulary card.', options: ['mastered'], correctOption: 0 },
-    ...Array.from({ length: 10 }, (_, index) => ({
+    // Every activity page requests a bounded bank window (the question-bank API caps
+    // `limit` at 20), so each deterministic fixture group must fill its whole
+    // window; otherwise real production cards render without a deterministic
+    // correct option and the 100/100 completion score cannot be proven.
+    ...Array.from({ length: 20 }, (_, index) => ({
       id: `${prefix}-quiz-${String(index).padStart(2, '0')}`,
       type: 'question',
       skill: 'grammar',
@@ -687,7 +765,11 @@ async function runStudent(config) {
       options: ['correct', 'incorrect', 'maybe', 'unknown'],
       correctOption: 0,
     })),
-    ...Array.from({ length: 10 }, (_, index) => ({
+    // The listening page requests `?type=listening&limit=20` and the API caps a
+    // window at 20 cards, so the deterministic fixture bank must fill the whole
+    // window; otherwise real production cards render without a deterministic
+    // correct option and the completion score cannot be proven.
+    ...Array.from({ length: 20 }, (_, index) => ({
       id: `${prefix}-listening-${String(index).padStart(2, '0')}`,
       type: 'listening',
       skill: 'listening',
@@ -696,7 +778,7 @@ async function runStudent(config) {
       options: ['correct', 'incorrect', 'maybe', 'unknown'],
       correctOption: 0,
     })),
-    ...Array.from({ length: 10 }, (_, index) => ({
+    ...Array.from({ length: 20 }, (_, index) => ({
       id: `${prefix}-test-${String(index).padStart(2, '0')}`,
       type: 'test',
       skill: 'grammar',
@@ -704,7 +786,9 @@ async function runStudent(config) {
       options: ['correct', 'incorrect', 'maybe', 'unknown'],
       correctOption: 0,
     })),
-    ...Array.from({ length: 11 }, (_, index) => ({
+    // The vocabulary window is 20 cards and the adaptive fixture sorts first, so
+    // this group keeps 19 servable cards to complete that window exactly.
+    ...Array.from({ length: 19 }, (_, index) => ({
       id: `${prefix}-vocab-${String(index).padStart(2, '0')}`,
       type: 'vocabulary',
       skill: 'vocabulary',
@@ -768,27 +852,38 @@ async function runStudent(config) {
     const adaptiveBefore = await requestJson(page, config.baseUrl, '/api/student/adaptive')
     assert(adaptiveBefore.response.status() === 200, 'Adaptive recommendation API did not return 200.')
     assert(adaptiveBefore.body?.data?.recommendation?.id === questionFixtures[0].id, 'Dedicated adaptive fixture was not the first recommendation for the clean E2E account.')
-    await page.goto(new URL('/siswa/adaptive', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/siswa/adaptive', config.baseUrl))
     await page.getByRole('heading', { name: 'Adaptive Learning Path', exact: true }).waitFor()
-    const adaptiveLink = page.locator(`a[href*="questionId=${encodeURIComponent(questionFixtures[0].id)}"]`)
+    // The adaptive card renders both a primary "Mulai latihan" CTA and a
+    // secondary "Buka materi" CTA pointing at the same activity. Either one
+    // navigating to that activity proves the recommendation wiring, so target
+    // the shared destination instead of a positional guess about the CTA.
+    const adaptiveLink = page.locator(`a[href*="questionId=${encodeURIComponent(questionFixtures[0].id)}"]`).first()
     await adaptiveLink.waitFor()
     await adaptiveLink.click()
     await page.getByRole('heading', { name: 'Vocabulary', exact: true }).waitFor()
-    await page.getByRole('button', { name: 'Sudah hafal', exact: true }).click()
-    await page.getByRole('dialog').getByText('Aktivitas selesai').waitFor()
-    await page.getByRole('dialog').getByText('1/1', { exact: true }).waitFor()
+    await page.getByText('Memuat bank kosakata...').waitFor({ state: 'detached', timeout: 30_000 })
+    // Completing the recommended card is a real production write; wait for the
+    // server confirmation before reading the adaptive read model back.
+    const masterySaved = await waitForApiResponse(page, '/api/student/question-bank', 'POST', () => page.getByRole('button', { name: 'Sudah hafal', exact: true }).click())
+    assert(masterySaved.response.status() === 200 && masterySaved.body?.data?.isCorrect === true, `Adaptive vocabulary mastery returned ${masterySaved.response.status()}.`)
     const adaptiveAfter = await requestJson(page, config.baseUrl, '/api/student/adaptive')
     assert(adaptiveAfter.body?.data?.activities?.find((item) => item.id === questionFixtures[0].id)?.status === 'completed', 'Adaptive completion did not persist to the server read model.')
     assert(adaptiveAfter.body?.data?.recommendation?.id !== questionFixtures[0].id, 'Adaptive recommender repeated a completed activity.')
 
     async function answerQuestionRound(path, heading) {
-      await page.goto(new URL(path, config.baseUrl).toString())
+      await gotoSettled(page, new URL(path, config.baseUrl))
       await page.getByRole('heading', { name: heading, exact: true }).waitFor()
       let answered = 0
       while (answered < 20) {
         const prompt = page.locator('main h2').last()
         await prompt.waitFor()
-        await prompt.locator('xpath=..').getByRole('button').first().click()
+        await prompt.locator('xpath=..').getByRole('button').first().click({ timeout: 15_000 }).catch(async (cause) => {
+          const mainText = await page.locator('main').innerText().catch(() => null)
+          const buttons = await page.getByRole('button').evaluateAll((nodes) => nodes.map((n) => `${n.textContent?.trim()}|disabled=${n.disabled}`)).catch(() => null)
+          globalThis.__prodE2EFailureContext = { url: page.url(), mainText: mainText?.replace(/\n+/g, ' | ').slice(0, 800) ?? null, buttons }
+          throw cause
+        })
         answered += 1
         const finish = page.getByRole('button', { name: 'Lihat Hasil', exact: true })
         if (await finish.count()) {
@@ -805,7 +900,7 @@ async function runStudent(config) {
     const quizCount = await answerQuestionRound('/siswa/quiz', 'Quiz Harian')
     await page.getByRole('button', { name: 'Lanjutkan', exact: true }).click()
 
-    await page.goto(new URL('/siswa/listening', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/siswa/listening', config.baseUrl))
     await page.getByRole('heading', { name: 'Listening Comprehension', exact: true }).waitFor()
     await page.getByText('Memuat latihan listening...').waitFor({ state: 'detached', timeout: 30_000 })
     const correctOptions = page.getByRole('button', { name: 'correct', exact: true })
@@ -819,25 +914,29 @@ async function runStudent(config) {
     const testCount = await answerQuestionRound('/siswa/tes', 'Tes Pedagogis')
     await page.getByRole('button', { name: 'Lanjutkan', exact: true }).click()
 
-    await page.goto(new URL(`/siswa/percakapan?questionId=${encodeURIComponent(questionFixtures.find((item) => item.type === 'conversation').id)}`, config.baseUrl).toString())
+    await gotoSettled(page, new URL(`/siswa/percakapan?questionId=${encodeURIComponent(questionFixtures.find((item) => item.type === 'conversation').id)}`, config.baseUrl))
     await page.getByRole('heading', { name: 'AI Conversation', exact: true }).waitFor()
     await page.getByLabel('Jawaban percakapan').fill(`${config.testPrefix} I practice my learning routine every morning.`)
     await page.getByRole('button', { name: 'Kirim', exact: true }).click()
     await page.getByRole('dialog').getByText('Hasil percakapan sudah dikonfirmasi tersimpan oleh server.').waitFor()
 
-    await page.goto(new URL('/siswa/vocabulary', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/siswa/vocabulary', config.baseUrl))
     await page.getByRole('heading', { name: 'Vocabulary', exact: true }).waitFor()
     await page.getByText('Memuat bank kosakata...').waitFor({ state: 'detached', timeout: 30_000 })
-    const masteryButtons = page.getByRole('button', { name: 'Sudah hafal', exact: true })
-    const vocabCount = await masteryButtons.count()
-    assert(vocabCount >= 10, `Vocabulary test fixture bank returned only ${vocabCount} unmastered cards.`)
-    for (let index = 0; index < vocabCount; index += 1) await masteryButtons.first().click()
-    await page.getByRole('dialog').getByText('Semua kartu kosakata pada sesi ini sudah dikonfirmasi tersimpan.').waitFor()
-    await page.getByRole('dialog').getByText(`${vocabCount}/${vocabCount}`, { exact: true }).waitFor()
+    const vocabSession = await masterVocabularySession(page)
+    const vocabCount = vocabSession.total
+    assert(vocabSession.completionMessage === 'Semua kartu kosakata pada sesi ini sudah dikonfirmasi tersimpan.', `Vocabulary session closed without the server-confirmation dialog.`)
 
     const attemptSnapshot = await admin.db.collection('questionAttempts').where('studentId', '==', studentUid).limit(200).get()
     const e2eAttempts = attemptSnapshot.docs.filter((doc) => questionIds.has(doc.data().questionId))
-    assert(e2eAttempts.length >= quizCount + listeningCount + testCount + vocabCount + 1, 'Learning attempts did not all persist in Firestore.')
+    // Every activity the production API actually served to this student must
+    // have a durable Firestore attempt behind it.
+    const servedIds = servedActivities
+    const attemptedIds = new Set(e2eAttempts.map((doc) => doc.data().questionId))
+    const unattempted = [...servedIds].filter((id) => !attemptedIds.has(id))
+    // quiz(10) + listening(20) + test(20) + vocabulary(20) deterministic cards.
+    assert(servedIds.size >= 70, `Production only served ${servedIds.size} distinct learning activities.`)
+    assert(unattempted.length === 0, `${unattempted.length} served activities did not persist a Firestore attempt: ${JSON.stringify(unattempted.slice(0, 5))}.`)
     const conversationAttempts = await admin.db.collection('conversationTextAttempts').where('studentId', '==', studentUid).limit(100).get()
     const persistedConversation = conversationAttempts.docs.filter((doc) => {
       const createdAt = doc.data().createdAt
@@ -853,7 +952,7 @@ async function runStudent(config) {
     assert(scholarAchievement?.unlocked === true, 'Completed E2E learning activities did not unlock the persisted 25-practice achievement.')
     const achievementProfile = await userRef.get()
     assert(achievementProfile.data()?.achievementIds?.includes('scholar'), 'Achievement unlock did not persist in the student profile.')
-    await page.goto(new URL('/siswa/achievements', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/siswa/achievements', config.baseUrl))
     await page.getByRole('heading', { name: 'Pencapaian', exact: true }).waitFor()
     const scholarCard = page.getByText('Pembelajar Aktif', { exact: true }).locator('xpath=../..')
     await scholarCard.getByText('Terbuka', { exact: true }).waitFor()
@@ -861,7 +960,7 @@ async function runStudent(config) {
     const persistedScholarCard = page.getByText('Pembelajar Aktif', { exact: true }).locator('xpath=../..')
     await persistedScholarCard.getByText('Terbuka', { exact: true }).waitFor()
 
-    await page.goto(new URL('/siswa/progress', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/siswa/progress', config.baseUrl))
     await page.getByRole('heading', { name: 'Progress Belajar', exact: true }).waitFor()
     await page.getByText('Total Latihan', { exact: true }).waitFor()
     await page.reload()
@@ -873,7 +972,7 @@ async function runStudent(config) {
     const ownRank = leaderboardRows.find((row) => row.studentId === studentUid)
     assert(ownRank && Number.isInteger(ownRank.rank) && ownRank.rank > 0, 'Leaderboard did not include the dedicated student with a server rank.')
     assert(leaderboardRows.every((row, index) => row.rank === index + 1 && (index === 0 || leaderboardRows[index - 1].xp >= row.xp)), 'Leaderboard ranks were not ordered by persisted XP.')
-    await page.goto(new URL('/siswa/leaderboard', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/siswa/leaderboard', config.baseUrl))
     await page.getByRole('heading', { name: 'Leaderboard', exact: true }).waitFor()
     const ownMarker = page.getByText('(Kamu)', { exact: true })
     await ownMarker.waitFor()
@@ -884,7 +983,7 @@ async function runStudent(config) {
 
     const updatedDisplayName = `${config.testPrefix} Student ${runId}`
     const updatedSchool = `${config.testPrefix} School ${runId}`
-    await page.goto(new URL('/siswa/profil', config.baseUrl).toString())
+    await gotoSettled(page, new URL('/siswa/profil', config.baseUrl))
     await page.getByRole('heading', { name: 'Profil & Pengaturan', exact: true }).waitFor()
     await page.getByLabel('Nama lengkap').fill(updatedDisplayName)
     await page.getByLabel('Sekolah').fill(updatedSchool)
@@ -938,7 +1037,7 @@ async function runDrive(config) {
     const initialConnection = await requestJson(teacherPage, config.baseUrl, '/api/integrations/google-drive/status', {}, 'google-drive')
     assert(initialConnection.response.status() === 200, 'Teacher Google Drive status endpoint failed.')
     await ensureDriveConnected(teacherPage, config)
-    await teacherPage.goto(new URL('/guru/penugasan', config.baseUrl).toString())
+    await gotoSettled(teacherPage, new URL('/guru/penugasan', config.baseUrl))
     await teacherPage.getByRole('heading', { name: 'Penugasan', exact: true }).waitFor()
     await teacherPage.getByLabel('Classroom').selectOption(config.classroomId)
     await teacherPage.getByLabel('Status saat dibuat').selectOption('published')
@@ -991,10 +1090,10 @@ async function runDrive(config) {
     assert((await assignmentRef.get()).data()?.attachments?.filter((file) => file.id === teacherFileId).length === 1, 'Teacher Drive upload retry duplicated assignment metadata.')
 
     await loginWithPassword(studentPage, config, config.student, 'student')
-    await studentPage.goto(new URL('/siswa', config.baseUrl).toString())
+    await gotoSettled(studentPage, new URL('/siswa', config.baseUrl))
     const classSelector = studentPage.getByLabel('Pilih classroom aktif')
     if (await classSelector.count()) await classSelector.selectOption(config.classroomId)
-    await studentPage.goto(new URL('/siswa/penugasan', config.baseUrl).toString())
+    await gotoSettled(studentPage, new URL('/siswa/penugasan', config.baseUrl))
     const assignmentCard = studentPage.getByRole('heading', { name: assignmentTitle, exact: true }).locator('xpath=../..')
     await assignmentCard.waitFor()
     await assignmentCard.locator('input[type=file]').setInputFiles({ name: studentFileName, mimeType: fixtureMimeType, buffer: fixtureBytes })
@@ -1093,7 +1192,7 @@ async function runOffline(config) {
   try {
     await loginWithPassword(teacherPage, config, config.teacher, 'teacher')
     await ensureDriveConnected(teacherPage, config)
-    await teacherPage.goto(new URL('/guru/penugasan', config.baseUrl).toString())
+    await gotoSettled(teacherPage, new URL('/guru/penugasan', config.baseUrl))
     await teacherPage.getByLabel('Classroom').selectOption(config.classroomId)
     await teacherPage.getByLabel('Status saat dibuat').selectOption('published')
     await teacherPage.getByLabel('Judul').fill(assignmentTitle)
@@ -1113,10 +1212,10 @@ async function runOffline(config) {
     trackCleanupRef(cleanup, assignmentRef)
 
     await loginWithPassword(studentPage, config, config.student, 'student')
-    await studentPage.goto(new URL('/siswa', config.baseUrl).toString())
+    await gotoSettled(studentPage, new URL('/siswa', config.baseUrl))
     const classSelector = studentPage.getByLabel('Pilih classroom aktif')
     if (await classSelector.count()) await classSelector.selectOption(config.classroomId)
-    await studentPage.goto(new URL('/siswa/penugasan', config.baseUrl).toString())
+    await gotoSettled(studentPage, new URL('/siswa/penugasan', config.baseUrl))
     const assignmentCard = studentPage.getByRole('heading', { name: assignmentTitle, exact: true }).locator('xpath=../..')
     await assignmentCard.waitFor()
     await assignmentCard.locator('input[type=file]').setInputFiles({ name: fileName, mimeType, buffer: fileBytes })
@@ -1514,7 +1613,7 @@ async function runVoice(config) {
     logProdE2ERequest({ requestId: preview.headers()['x-request-id'] ?? null, route: '/api/teacher/voice-preview', status: preview.status(), errorCode: null, provider: 'omnivoice-tts', durationMs: 0 })
 
     await loginWithPassword(studentPage, config, config.student, 'student')
-    await studentPage.goto(new URL('/siswa', config.baseUrl).toString())
+    await gotoSettled(studentPage, new URL('/siswa', config.baseUrl))
     const activeClassroom = studentPage.getByLabel('Pilih classroom aktif')
     if (await activeClassroom.count()) await activeClassroom.selectOption(config.classroomId)
     await studentPage.goto(new URL('/siswa/percakapan', config.baseUrl).toString())
@@ -1597,11 +1696,26 @@ async function main() {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch((error) => {
     const safeFailure = error?.name === 'ProdE2EError' || error?.name === 'ProdE2EConfigError'
+    // Reproducible failure evidence is required for every FAIL; scrub every
+    // known dedicated-account credential before printing diagnostics.
+    let message = error?.message ?? 'unknown failure'
+    try {
+      const config = createProdE2EConfig(process.argv[2] ?? 'smoke')
+      for (const identity of [config.student, config.teacher, config.foreignTeacher]) {
+        if (!identity) continue
+        if (identity.password) message = message.replaceAll(identity.password, '[redacted:password]')
+        if (identity.email) message = message.replaceAll(identity.email, '[redacted:email]')
+      }
+      if (config.admin?.privateKey) message = message.replaceAll(config.admin.privateKey, '[redacted:key]')
+    } catch {}
     console.error(JSON.stringify({
       suite: process.argv[2] ?? null,
       status: 'FAIL',
       errorCode: safeFailure ? 'ASSERTION_OR_CONFIG_FAILURE' : 'EXTERNAL_OR_RUNTIME_FAILURE',
-      message: safeFailure ? error.message : 'Browser/provider failure; raw exception suppressed to protect account data and credentials.',
+      message,
+      failureUrl: globalThis.__prodE2EFailureContext?.url ?? null,
+      failureMainText: globalThis.__prodE2EFailureContext?.mainText ?? null,
+      failureButtonStates: globalThis.__prodE2EFailureContext?.buttons ?? null,
     }))
     process.exitCode = 1
   })

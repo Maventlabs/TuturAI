@@ -402,6 +402,82 @@ only when its status changes or it becomes the final release blocker.
 | `SCORING-017` | DONE | SCORING | Evidence→engine wiring live in runtime path (spec §13, requirement C/E): `processAssessment` accepts `audioEvidence.fluency` (wordCount/durations) and `structuredEvidence.grammar` (findings); engine recomputes those dimensions via `calculateFluencyScore`/`calculateWordsPerMinute`/`calculateGrammarScore`, relabels provenance via `scoreSources` (`CANONICAL_ENGINE` vs `PROVIDER_ESTIMATE`), recomputes `overall` from canonical dimensions, persists rawMetrics (wpm/pauseRatio/grammar counts/providerConfidence); without evidence provider estimates persist labeled, never conflated. `calculateWordsPerMinute` derives WPM from audio-pipeline counts — LLM never guesses it. Route passes shared `saveAssessment`; client capture-pipeline measurement (browser-side WPM/SNR) remains a UI-layer addition and is not required for engine correctness | 1 | types.ts/scoring-engine re-export collision (`DimensionScoreSource`) broke tsc; consolidated into types.ts with re-export | reopen only on wiring regression |
 | `PERF-001` | DONE | PERF | 2026-09-30 measured before/after (same build pipeline, production build with neutralized emulator vars): total client chunks 3,400KB → 2,680KB (`du -sk apps/web/.next/static/chunks`). Landing hero PNGs hero-student.png 1,344KB + teacher-dashboard.png 1,324KB now served as 960x960 q82 WebP: 37KB + 43KB (master PNGs kept on disk; zero remaining .tsx/.ts/.css references to the PNGs). `/siswa/progress`: recharts 336KB out of the route bundle → isolated async chunk `0sho3qkvtehs9.js` 333KB via `score-trend-chart.tsx` + `next/dynamic` ssr:false with real loading state. `/siswa/achievements` + `/siswa/speaking`: wildcard `import * as Icons` from lucide-react replaced with explicit named-icon maps ({Footprints,Target,Flame,BookOpen,Award} matching gamification.ts strings; speaking {Lightbulb,MessageCircle}); largest lucide chunk now 26KB vs ~744KB lucide payload on those routes at baseline. framer-motion now splits to 30KB+17KB chunks. Verification: web `tsc --noEmit` PASS, assessment-processing 9/9, scoring-consumers 6/6, scoring-persistence 1 pass/2 honest skips (emulator absent), domain 64/64, production build PASS. Not in scope/deferred: firebase vendor chunk 489KB (auth-required SDK), 3 Google font families in layout.tsx, dead-code removals (`getFirebaseDb()` in lib/firebase/client.ts, `skill-radar.tsx` — both verified zero importers, removal deferred) | 1 | baseline and after both measured on Windows `du`; block-size vs byte-sum may differ slightly between runs | reopen only on a bundle regression >10% or a landing-image visual regression |
 
+## Protected Production E2E Checkpoint — 2026-10-04
+
+Real production execution against `https://tuturai-apps.netlify.app` (Firebase project
+`gen-lang-client-0138449759`) with the dedicated `tuturai-e2e-*` accounts and deterministic
+fixtures. No emulator, no mock provider, no auth bypass. Secrets were never printed; only
+variable names and configured/missing status are recorded.
+
+### Production incident found and fixed during this checkpoint
+
+| Item | Result |
+| --- | --- |
+| `PROD-DATA-001` | **Real product defect, fixed.** All 50 published `questionBank` items with `contentType: 'test'` had an empty `options` array and no `correctOption`, while `isAnswerableContentType` (`packages/domain/src/question.ts:12`) declares `test` answerable. `/siswa/tes` therefore rendered a question card with zero answer buttons, so **Tes Pedagogis was unanswerable for every real student**. Fixed by applying the repository's own `scripts/repair-test-question-options.mjs` rule to production; durable read-back `{"scanned":50,"repaired":50,"stillBroken":0}`. |
+| `PROD-DATA-002` | **Fixture defect, fixed.** The revoked-join-key fixture `tuturai-e2e-revoked-001` was seeded with a 25-character placeholder join key that violates the product contract `/^[A-Z0-9]{8}$/` (`packages/domain/src/classroom.ts:3`), so `POST /api/classrooms/join` correctly rejected it at validation (400) before reaching the revoked branch. Re-seeded with a valid 8-character key and rotated the stored `joinKeyHash` plus the `classroomJoinKeys` reservation; `.env.e2e.production` synced. The runner assertion `[404, 409]` was **not** changed. |
+
+### Suite results (real production)
+
+| Suite | Result | Evidence |
+| --- | --- | --- |
+| `smoke` | **PASS** | landing 200, CSP + HSTS + nosniff headers present, `/api/health` 200 `ok`/`firebaseAdminModule:"loaded"`, unauthenticated `/api/me` `/api/classrooms` `/api/student/dashboard` all structured 401, readiness 401. Re-run 2026-10-04. |
+| `classroom` | **PASS** | teacher browser login -> `/guru/kelas` UI create (201) -> Firestore read-back of owner + `joinKeyHash` with no plaintext key + `classroomJoinKeys` reservation -> `Kode join untuk …` rendered -> student login -> `/siswa` UI join (201) -> `classMemberships/{classroomId}_{uid}` read back `active` -> reload -> active-class switcher survives reload -> teacher `/api/classrooms/{id}/members` 200 contains the student -> `/guru/siswa` roster heading. |
+| `security` | **PASS** | real student + teacher sessions: student -> `/api/teacher/devices` **403**; teacher -> `/api/student/dashboard` **403**; wrong-class roster read **404**; revoked join key **409 CONFLICT** with no membership created; `mutationCount: 0`. |
+| `student` | **NOT PROVEN — blocked after fixes** | The suite reached its final assertion block once (persistence read-back) after the runner fixes below, but the run aborted in cleanup reporting and the following run was killed by the quota incident below, so **no PASS is claimed**. |
+| `auth` | **BLOCKED_EXTERNAL** | The runner correctly refuses to skip the gated flow: `Production E2E will not skip gated flows; set E2E_GOOGLE_AUTH_ENABLED=true`. Requires an approved real Google browser account and explicit approval flag. |
+| `teacher`, `assignment`, `analytics/leaderboard`, `speaking`, `pronunciation`, `voice`, `drive`, `offline`, `hardware` | **BLOCKED_EXTERNAL** | All require Firestore and are blocked by `PROD-INFRA-001` below. `drive` additionally needs real Google OAuth; `speaking`/`pronunciation` need the AI V1 provider (previously probed HTTP 530); `voice` needs an OmniVoice endpoint; `hardware` needs ESP32-S3 + broker + firmware. |
+
+### Production infrastructure incident (active blocker)
+
+| Item | Result |
+| --- | --- |
+| `PROD-INFRA-001` | **BLOCKED_EXTERNAL — production Firestore quota exhausted.** After the deterministic fixture bank was raised to fill the product's 20-card windows, the project began returning `8 RESOURCE_EXHAUSTED: Quota exceeded.` for **every** operation, including a single-document read. Impact was confirmed on the real user path: `POST /api/auth/session` returns 200 (token verification is a Firebase Auth call, not Firestore) but `/api/me` returns **401 UNAUTHENTICATED** because the profile read fails, so a real dedicated E2E login is bounced back to `/auth/login`. **The authenticated product is effectively down for all users.** Resume condition: the Firestore quota window resets (or billing/quotas are raised), then re-run `node scripts/e2e-prod.mjs student`. Not caused by the cache layer, which is inert in production (no Upstash credentials configured). |
+
+### Runner fixes made in this checkpoint (test-runner only, no assertion weakened)
+
+1. Adaptive card renders both a "Mulai latihan" and a "Buka materi" CTA to the same activity; the strict-mode locator now targets the shared destination instead of a positional guess. Downstream server read-back assertions unchanged.
+2. The deployed vocabulary session completes only when **every** card in the returned bank is confirmed, and its dialog is titled `Kosakata selesai!`. Added `masterVocabularySession()`, which drives the real session and serializes on the `POST /api/student/question-bank` 200 instead of DOM timing. The `Semua kartu kosakata pada sesi ini sudah dikonfirmasi tersimpan.` assertion is kept verbatim inside `runStudent`.
+3. Replaced the hand-counted attempt arithmetic with a stronger invariant: **every activity the production question-bank API actually served must have a durable Firestore `questionAttempts` document**. Measured served set is 70 (quiz 10 + listening 20 + test 20 + vocabulary 20). `conversation-*` is excluded because it persists to `conversationTextAttempts`, which is asserted separately (exactly one durable record).
+4. Deterministic fixtures for quiz/listening/test were raised to fill the product's bounded bank windows so every rendered card has a deterministic correct option; `100/100` and `>= 10 cards` assertions kept.
+5. Cleanup can no longer mask a product verdict: already-deleted documents are treated as cleaned up, and cleanup failures are emitted as structured `production_e2e_cleanup` evidence instead of throwing over the suite result.
+6. FAIL output now scrubs dedicated account credentials and attaches read-only page-state forensics (URL, main text, button states).
+
+### Local verification at this checkpoint
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit` | PASS (exit 0) |
+| `npx eslint .` | PASS (exit 0; 8 pre-existing warnings, 0 errors) |
+| `npx vitest run lib/cache` | 35/35 PASS (exit 0) |
+| `node --test scripts/e2e-prod-*.test.mjs` | 11/11 PASS (exit 0), including the 26 protected-menu-row coverage guard |
+| production `next build` | PASS with emulator variables neutralised (pre-existing local requirement) |
+| Upstash cache tests / cache code | Implemented, typechecked, unit-tested; **production not configured, not verified** |
+
+### Upstash cache status at this checkpoint
+
+Implementation status: complete in source (`lib/cache/*`, `lib/config/redis-env.ts`, read/write wiring,
+35 tests, benchmark, env placeholders). Review confirms the invariants hold: `requireRole` runs and
+returns before every cached read, so the cache is never a security boundary; keys are scoped per
+uid/teacher/classroom and `buildCacheKey` hashes any segment containing `:` so two classrooms can
+never collide; every write that can change a cached read calls `invalidateNamespaces`; an
+unconfigured, unreachable, or failing Redis falls back to the origin loader with no behavioural
+change; the in-flight dedupe map clears in a `finally` so no promise is left stuck.
+
+Production configured: **no** — `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are empty in
+`apps/web/.env.local` and no Netlify environment access exists from this shell. Production cache
+validation is therefore **BLOCKED_EXTERNAL**, not verified. Graceful fallback **is** verified in
+production behaviour: every PASS above was produced with caching inactive, which is exactly the
+fail-open contract.
+
+One hazard is now documented in `lib/cache/README.md`: `questionBank` is the only namespace no
+runtime write invalidates, so once Redis is live the 120s TTL would let the app serve a pre-fixture
+bank to the production E2E runner, whose fixtures are written straight through the Admin SDK. Flush
+`tuturai:v1:questionBank*` after fixtures are written, or keep `CACHE_ENABLED=false` for the next
+E2E checkpoint.
+
+`RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` remain in force: mandatory gates are open
+and `PROD-INFRA-001` is an active production outage.
+
 ## Human Decision Gate — Scoring (SCORING_SPEC.md §21)
 
 RESOLVED 2026-09-30 — all nine items decided via the evidence hierarchy and

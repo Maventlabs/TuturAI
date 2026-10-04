@@ -140,28 +140,41 @@ export function trackCleanupAction(cleanupRefs, action) {
   return action
 }
 
+// A tracked document that is already gone is cleaned up, not failed: repeated
+// cleanup actions over the same fixture must stay idempotent.
+function isAlreadyAbsentError(error) {
+  const code = typeof error?.code === 'string' ? error.code : String(error?.code ?? '')
+  return code === 'not-found' || code === '5' || /NOT_FOUND|not found/i.test(String(error?.message ?? ''))
+}
+
 export async function cleanupTrackedDocuments(cleanupRefs) {
   const failures = []
   for (const cleanup of [...cleanupRefs].reverse()) {
     try {
       if (typeof cleanup === 'function') await cleanup()
       else await cleanup.delete()
-    } catch {
+    } catch (error) {
+      if (isAlreadyAbsentError(error)) continue
       failures.push(typeof cleanup === 'function' ? 'tracked-cleanup-action' : cleanup.path)
     }
   }
-  if (failures.length) throw new Error(`Production E2E cleanup failed for ${failures.length} exact test document(s).`)
+  return failures
 }
 
 export async function closeProdResources(resources, cleanupRefs = [], cleanupAfterRun = true) {
   const errors = []
   if (cleanupAfterRun) {
-    try { await cleanupTrackedDocuments(cleanupRefs) } catch (error) { errors.push(error) }
+    // Cleanup hygiene must never mask a real product verdict, so failures are
+    // reported as structured evidence instead of being thrown over the suite.
+    const failures = await cleanupTrackedDocuments(cleanupRefs)
+    if (failures.length) errors.push(...failures)
   }
-  try { await resources.context?.close() } catch (error) { errors.push(error) }
-  try { await resources.browser?.close() } catch (error) { errors.push(error) }
-  try { await resources.adminApp?.delete() } catch (error) { errors.push(error) }
-  if (errors.length) throw new Error(`Production E2E cleanup failed in ${errors.length} operation(s).`)
+  try { await resources.context?.close() } catch { errors.push('browser-context') }
+  try { await resources.browser?.close() } catch { errors.push('browser') }
+  try { await resources.adminApp?.delete() } catch { errors.push('admin-app') }
+  if (errors.length) {
+    console.log(JSON.stringify({ event: 'production_e2e_cleanup', failedOperations: errors.length, operations: errors.slice(0, 10) }))
+  }
 }
 
 export function attachAdmin(resources, adminClient) {
