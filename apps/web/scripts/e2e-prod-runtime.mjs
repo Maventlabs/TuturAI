@@ -58,6 +58,55 @@ export async function launchProdBrowser(config, options = {}) {
   return { browser, context, page: await context.newPage() }
 }
 
+/** Third-party AI providers fail over with these; they are never a product defect. */
+export function retryableProviderStatus(status) {
+  return status === 429 || status === 502 || status === 503 || status === 504
+}
+
+function statusOf(result) {
+  if (typeof result === 'number') return result
+  if (typeof result?.status === 'number') return result.status
+  if (typeof result?.response?.status === 'function') return result.response.status()
+  return null
+}
+
+/**
+ * The configured AI tunnel returns Cloudflare HTTP 530 for multi-minute stretches,
+ * which the application correctly surfaces as a retryable 503. Re-run the whole
+ * record-and-submit step while the status stays retryable so a provider outage is not
+ * reported as a regression.
+ *
+ * This never converts a failure into a pass: `attempt` performs the complete provider
+ * call and the caller still asserts the provider-confirmed payload afterwards. Only
+ * statuses the product itself declares retryable are replayed; anything else — including
+ * a 200 with a wrong payload — returns immediately and is asserted as-is.
+ */
+export async function withProviderRetry(attempt, options = {}) {
+  const attempts = options.attempts ?? 8
+  const baseDelayMs = options.baseDelayMs ?? 5_000
+  const maxDelayMs = options.maxDelayMs ?? 45_000
+  const wait = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
+  let delay = baseDelayMs
+  let result
+  let replayed = 0
+  for (let index = 1; index <= attempts; index += 1) {
+    result = await attempt(index)
+    const status = statusOf(result)
+    if (!retryableProviderStatus(status) || index === attempts) break
+    replayed = index
+    console.log(JSON.stringify({
+      event: 'production_e2e_provider_retry',
+      attempt: index,
+      status,
+      retryInMs: delay,
+      attempts,
+    }))
+    await wait(delay)
+    delay = Math.min(maxDelayMs, Math.round(delay * 1.6))
+  }
+  return { result, status: statusOf(result), replays: replayed }
+}
+
 export async function waitForApiResponse(page, pathname, method, action, provider = null) {
   const startedAt = performance.now()
   const responsePromise = page.waitForResponse((response) => {

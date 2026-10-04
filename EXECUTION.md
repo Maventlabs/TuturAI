@@ -760,7 +760,7 @@ than a clear instruction, unlike the Drive flow which asserts it explicitly.
 
 | Blocked row | Missing dependency | Resume condition |
 | --- | --- | --- |
-| BLOCKED | `/siswa/speaking` | third-party AI V1 tunnel uptime only; the full app path is production-proven (see Speaking Suite below) but the tunnel origin returns HTTP 530 again |
+| BLOCKED | `/siswa/speaking` | third-party AI V1 tunnel uptime only; the full app path is production-proven and the runner now replays transient 503s, but the tunnel origin returns HTTP 530 across multi-minute windows |
 | BLOCKED | `/siswa/pronunciation` | phoneme / forced-alignment provider honouring the word+phoneme contract in `apps/web/lib/ai/pronunciation-provider.ts`; the configured tunnel is Groq Whisper and returns segment timings only |
 | BLOCKED | `/siswa/percakapan voice` | OmniVoice TTS endpoint and model (`AI_LOCAL_BASE_URL` empty) |
 
@@ -809,6 +809,31 @@ So every application-side defect is resolved — configuration, fixture, fake ca
 STT, normalized scoring, Firestore read-back, and student UI — and the only remaining
 blocker is third-party provider availability, the same origin outage already recorded
 under `OFFLINE-004`.
+
+### Provider-replay harness for the flapping tunnel
+
+Because the tunnel 530s for multi-minute stretches, the runner now replays the whole
+record-and-submit step while the status stays retryable (`withProviderRetry` in
+`apps/web/scripts/e2e-prod-runtime.mjs`, used by the `speaking` and `pronunciation`
+suites). This is not an assertion weakening: the replay only covers statuses the product
+itself declares retryable (429/502/503/504), the caller still asserts the full
+provider-confirmed payload afterwards, and an exhausted outage still fails the suite.
+Unit coverage in `apps/web/scripts/e2e-prod-runtime.test.mjs` pins that a 400 is never
+replayed, that a first-attempt 200 returns immediately without waiting, that the last
+provider status always reaches the caller, and that backoff is capped.
+
+Verified against production while the tunnel was down — eight real
+`POST /api/student/assessment` calls, progressive backoff, and an honest failure:
+
+```
+{"event":"production_e2e_provider_retry","attempt":1,"status":503,"retryInMs":5000,"attempts":8}
+... {"attempt":7,"status":503,"retryInMs":45000,"attempts":8}
+{"suite":"speaking","status":"FAIL","errorCode":"ASSERTION_OR_CONFIG_FAILURE",
+ "message":"Speaking provider returned 503 after 7 provider replays."}
+```
+
+So a transient outage that clears inside ~3 minutes now recovers to PASS, while a
+persistent one still reports FAIL rather than being absorbed.
 
 ### Pronunciation remains structurally blocked
 

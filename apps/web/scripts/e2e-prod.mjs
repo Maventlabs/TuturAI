@@ -18,6 +18,7 @@ import {
   trackCleanupRef,
   verifyDedicatedIdentity,
   waitForApiResponse,
+  withProviderRetry,
 } from './e2e-prod-runtime.mjs'
 
 const productionE2EEnvPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', '.env.e2e.production')
@@ -1460,21 +1461,25 @@ async function runSpeaking(config) {
   const page = resources.page
   try {
     await loginWithPassword(page, config, config.student, 'student')
-    await page.goto(new URL(`/siswa/speaking?questionId=${encodeURIComponent(questionId)}`, config.baseUrl).toString())
-    await page.getByRole('heading', { name: 'Speaking Practice', exact: true }).waitFor()
-    await page.getByText(topic, { exact: true }).first().waitFor()
-    await page.getByRole('button', { name: 'Mulai rekaman' }).click()
-    await page.getByText('Sedang merekam… tekan untuk berhenti', { exact: true }).waitFor({ timeout: 15_000 })
-    await page.getByText('00:02', { exact: true }).waitFor({ timeout: 15_000 })
-    const assessmentResponsePromise = waitForApiResponse(
-      page,
-      '/api/student/assessment',
-      'POST',
-      () => page.getByRole('button', { name: 'Hentikan rekaman' }).click(),
-      'stt+assessment',
-    )
-    const { response, body } = await assessmentResponsePromise
-    assert(response.status() === 200, `Speaking provider returned ${response.status()}.`)
+    const speakingUrl = new URL(`/siswa/speaking?questionId=${encodeURIComponent(questionId)}`, config.baseUrl).toString()
+    const recordAndSubmit = async () => {
+      await page.goto(speakingUrl)
+      await page.getByRole('heading', { name: 'Speaking Practice', exact: true }).waitFor()
+      await page.getByText(topic, { exact: true }).first().waitFor()
+      await page.getByRole('button', { name: 'Mulai rekaman' }).click()
+      await page.getByText('Sedang merekam… tekan untuk berhenti', { exact: true }).waitFor({ timeout: 15_000 })
+      await page.getByText('00:02', { exact: true }).waitFor({ timeout: 15_000 })
+      return waitForApiResponse(
+        page,
+        '/api/student/assessment',
+        'POST',
+        () => page.getByRole('button', { name: 'Hentikan rekaman' }).click(),
+        'stt+assessment',
+      )
+    }
+    const { result: assessmentCall, replays } = await withProviderRetry(recordAndSubmit)
+    const { response, body } = assessmentCall
+    assert(response.status() === 200, `Speaking provider returned ${response.status()} after ${replays} provider replays.`)
     const assessment = body?.data
     assert(assessment?.questionId === questionId && assessment?.studentId === studentUid, 'Speaking response does not match the E2E student/topic.')
     for (const key of ['pronunciation', 'fluency', 'intonation', 'grammar', 'vocabulary', 'overall']) {
@@ -1487,7 +1492,7 @@ async function runSpeaking(config) {
     assert(stored.exists && stored.data()?.questionId === questionId && stored.data()?.transcript === assessment.transcript, 'Speaking assessment did not persist and read back from Firestore.')
     await page.getByRole('heading', { name: 'Kerja bagus!', exact: true }).waitFor()
     await page.getByText(assessment.transcript, { exact: true }).waitFor()
-    console.log(JSON.stringify({ suite: 'speaking', status: 'PASS', providerConfirmed: true, normalizedDimensions: true, transcriptReadback: true, studentUi: true }))
+    console.log(JSON.stringify({ suite: 'speaking', status: 'PASS', providerConfirmed: true, normalizedDimensions: true, transcriptReadback: true, studentUi: true, providerReplays: replays }))
   } finally {
     await closeProdResources(resources, cleanup, config.cleanupAfterRun)
   }
@@ -1539,17 +1544,21 @@ async function runPronunciation(config) {
   const page = resources.page
   try {
     await loginWithPassword(page, config, config.student, 'student')
-    await page.goto(new URL(`/siswa/pronunciation?questionId=${encodeURIComponent(questionId)}`, config.baseUrl).toString())
-    await page.getByRole('heading', { name: 'Pronunciation Lab', exact: true }).waitFor()
-    await page.getByRole('heading', { name: config.expectedText, exact: true }).waitFor()
-    await page.getByRole('button', { name: 'Rekam pelafalan' }).click()
-    await page.getByText('Sedang mendengarkan… tekan untuk berhenti', { exact: true }).waitFor({ timeout: 15_000 })
-    await page.getByText('00:02', { exact: true }).waitFor({ timeout: 15_000 })
-    const resultPromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/student/pronunciation' && response.request().method() === 'POST')
-    await page.getByRole('button', { name: 'Hentikan rekaman' }).click()
-    const uiResponse = await resultPromise
+    const pronunciationUrl = new URL(`/siswa/pronunciation?questionId=${encodeURIComponent(questionId)}`, config.baseUrl).toString()
+    const recordPronunciation = async () => {
+      await page.goto(pronunciationUrl)
+      await page.getByRole('heading', { name: 'Pronunciation Lab', exact: true }).waitFor()
+      await page.getByRole('heading', { name: config.expectedText, exact: true }).waitFor()
+      await page.getByRole('button', { name: 'Rekam pelafalan' }).click()
+      await page.getByText('Sedang mendengarkan… tekan untuk berhenti', { exact: true }).waitFor({ timeout: 15_000 })
+      await page.getByText('00:02', { exact: true }).waitFor({ timeout: 15_000 })
+      const resultPromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/student/pronunciation' && response.request().method() === 'POST')
+      await page.getByRole('button', { name: 'Hentikan rekaman' }).click()
+      return resultPromise
+    }
+    const { result: uiResponse, replays } = await withProviderRetry(recordPronunciation)
     const uiPayload = await uiResponse.json()
-    assert(uiResponse.status() === 200 && uiPayload.data, `Pronunciation provider returned ${uiResponse.status()}.`)
+    assert(uiResponse.status() === 200 && uiPayload.data, `Pronunciation provider returned ${uiResponse.status()} after ${replays} provider replays.`)
     assert(typeof uiPayload.data.score === 'number' && Array.isArray(uiPayload.data.words) && uiPayload.data.words.length > 0, 'Pronunciation result has no word-level scores.')
     assert(uiPayload.data.words.every((word) => Array.isArray(word.phonemes) && word.phonemes.length > 0), 'Pronunciation result has no phoneme-level details.')
     await page.getByText('Hasil provider tersimpan', { exact: true }).waitFor()
@@ -1582,7 +1591,7 @@ async function runPronunciation(config) {
 
     const assessmentStatus = await admin.db.collection('practiceAttempts').doc(`practice-${Buffer.from(`${studentUid}:${retryKey}`).toString('base64url')}`).get()
     assert(assessmentStatus.exists && assessmentStatus.data()?.assessmentStatus === 'completed' && assessmentStatus.data()?.score === replayResult.data.score, 'Pronunciation practice attempt did not persist a completed provider score.')
-    console.log(JSON.stringify({ suite: 'pronunciation', status: 'PASS', providerConfirmed: true, wordPhonemeDetails: true, firestoreReadback: true, reload: true, idempotentReplay: true, confidence: uiPayload.data.confidence === null ? 'not-returned' : 'returned' }))
+    console.log(JSON.stringify({ suite: 'pronunciation', status: 'PASS', providerConfirmed: true, wordPhonemeDetails: true, firestoreReadback: true, reload: true, idempotentReplay: true, confidence: uiPayload.data.confidence === null ? 'not-returned' : 'returned', providerReplays: replays }))
   } finally {
     await closeProdResources(resources, cleanup, config.cleanupAfterRun)
   }
