@@ -747,7 +747,10 @@ async function runAssignment(config) {
     assert(firstSubmission.exists && firstSubmission.data()?.attempt === 1 && firstSubmission.data()?.isLate === true, 'First submission did not persist attempt and derived late state.')
 
     await gotoSettled(teacherPage, new URL('/guru/penilaian', config.baseUrl))
-    let reviewCard = teacherPage.getByRole('heading', { name: assignmentTitle, exact: true }).locator('xpath=../..')
+    // The review card wraps its title in a header row (`div` inside a flex `div`
+    // inside the card), so the action buttons sit three levels above the heading
+    // rather than two.
+    let reviewCard = teacherPage.getByRole('heading', { name: assignmentTitle, exact: true }).locator('xpath=../../..')
     await reviewCard.waitFor()
     await reviewCard.getByRole('button', { name: 'Kembalikan' }).click()
     await teacherPage.getByRole('alert').filter({ hasText: 'Feedback wajib' }).waitFor()
@@ -761,7 +764,7 @@ async function runAssignment(config) {
     await studentPage.getByText('Status: pending_review').waitFor()
 
     await teacherPage.reload()
-    reviewCard = teacherPage.getByRole('heading', { name: assignmentTitle, exact: true }).locator('xpath=../..')
+    reviewCard = teacherPage.getByRole('heading', { name: assignmentTitle, exact: true }).locator('xpath=../../..')
     await reviewCard.waitFor()
     await reviewCard.getByRole('button', { name: 'Setujui' }).click()
     await teacherPage.getByText('Tidak ada submission menunggu').waitFor()

@@ -643,6 +643,72 @@ and the assignment suite must be re-run afterwards.
 `RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` remain in force until the deploy
 lands and the five externally blocked rows are resolved.
 
+## Post-Deploy Verification — 2026-10-04 (production running `18b24ae`)
+
+The operator pushed all six commits. `origin/main` is confirmed equal to local HEAD (`18b24ae`),
+and the fix is verified live in production.
+
+### `PROD-TZ-001` is closed
+
+`assignment` now passes against the deployed bundle:
+
+```
+{"suite":"assignment","status":"PASS","dueDateLateDerived":true,"returnResubmitApprove":true,"attempt":2,"overLimitStatus":409}
+```
+
+`dueDateLateDerived: true` is the direct proof: a deadline entered as two minutes in the past now
+produces a genuinely late submission, which was impossible before because the server reinterpreted
+the teacher's wall clock in UTC. The same run also proves the full teacher lifecycle — publish,
+submit, return, resubmit as attempt 2, approve — and that exceeding the attempt limit is rejected
+with **409**.
+
+One runner-only fix was needed to reach that evidence: the teacher review card wraps its title in a
+header row (`div` inside a flex `div` inside the card), so the `Kembalikan`/`Setujui` buttons sit
+three levels above the heading, not two.
+
+### Every protected suite re-run against the new deployment
+
+The deploy also shipped the cache layer to production for the first time, so the suites that
+previously passed were re-run rather than assumed unaffected. Production has no Upstash
+credentials, so the cache must be a transparent pass-through — and it is:
+
+| Suite | Result | Evidence |
+| --- | --- | --- |
+| `smoke` | **PASS** | landing 200, CSP, health 200, three protected routes structured 401, readiness 401 |
+| `classroom` | **PASS** | `{"classroomPersisted":true,"joinKeyHashPersisted":true,"membershipPersisted":true,"teacherReadback":true,"reload":true}` |
+| `security` | **PASS** | `{"studentToTeacher":403,"teacherToStudent":403,"wrongClass":404,"revokedJoin":409,"mutationCount":0}` |
+| `student` | **PASS** | identical payload to the earlier run, `firestoreAttempts:71` |
+| `teacher` | **PASS** | analytics read-back, 907-byte PDF report, settings Firestore read-back + reload, leaderboard server ordering + UI, device registration/hash-only credential/revocation |
+| `assignment` | **PASS** | see above |
+
+This is the first real evidence for `APPLICATION-CACHE-PRODUCTION` graceful fallback in a deployed
+environment: with the cache code live in production and Redis unconfigured, RBAC boundaries still
+reject (403/404/409), every durable read-back still matches, and no behaviour changed. The cache
+did not become a security boundary and did not alter any response shape.
+
+### Protected production menu matrix status: 21 of 26 verified
+
+**PASS (21):** `/siswa`, `/guru/kelas`, `/siswa/penugasan`, `/guru/penugasan`, `/guru/penilaian`,
+`/siswa/percakapan text`, `/siswa/vocabulary`, `/siswa/listening`, `/siswa/quiz`, `/siswa/tes`,
+`/siswa/adaptive`, `/siswa/progress`, `/siswa/leaderboard`, `/siswa/achievements`, `/siswa/profil`,
+`/guru`, `/guru/siswa`, `/guru/analitik`, `/guru/leaderboard`, `/guru/pengaturan`, `/guru/perangkat`
+
+**BLOCKED_EXTERNAL (5):**
+
+| Row | Missing dependency | Resume condition |
+| --- | --- | --- |
+| `/dashboard`, `/onboarding` | approved real Google browser account; runner refuses to skip the gate | set `E2E_GOOGLE_AUTH_ENABLED=true` with an approved account, then run `node scripts/e2e-prod.mjs auth` |
+| `/siswa/speaking` | AI V1 STT/LLM provider (previously probed HTTP 530) | provider returns success, then run `node scripts/e2e-prod.mjs speaking` |
+| `/siswa/pronunciation` | phoneme/forced-alignment provider | provider contract reachable, then run `node scripts/e2e-prod.mjs pronunciation` |
+| `/siswa/percakapan voice` | OmniVoice TTS endpoint/model | `AI_LOCAL_BASE_URL` configured, then run `node scripts/e2e-prod.mjs voice` |
+
+No row was promoted on the strength of a passing suite alone: every PASS above is backed by a
+durable Firestore or server read-back in the suite output.
+
+`RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` remain in force. The five remaining rows
+are all external-dependency blocks; `PROD-INFRA-001` (the exhausted Firestore quota) is resolved
+and `PROD-TZ-001` is closed.
+
 ## Human Decision Gate — Scoring (SCORING_SPEC.md §21)
 
 RESOLVED 2026-09-30 — all nine items decided via the evidence hierarchy and
