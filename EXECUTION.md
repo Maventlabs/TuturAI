@@ -712,6 +712,61 @@ durable Firestore or server read-back in the suite output.
 are all external-dependency blocks; `PROD-INFRA-001` (the exhausted Firestore quota) is resolved
 and `PROD-TZ-001` is closed.
 
+## Google Authentication Suite — 2026-10-04 (`WEB-AUTH-002` closed)
+
+```
+{"suite":"auth","status":"PASS","flows":[
+  {"role":"student","passwordLogin":true,"serverSession":true,"restore":true,"logout401":true},
+  {"role":"teacher","passwordLogin":true,"serverSession":true,"restore":true,"logout401":true},
+  {"googleLogin":true,"onboarding":false,"session":true,"restore":true,"logout401":true}
+]}
+```
+
+All three flows executed against real production with the dedicated E2E accounts:
+
+- **Student password login** — `/api/auth/session` 200, `/api/me` 200, returned uid matches the
+  Firebase Auth identity, reload restores the session, logout revokes it (`/api/me` 401).
+- **Teacher password login** — identical assertions for the teacher identity.
+- **Google OAuth** — completed through the real browser popup on the approved dedicated account
+  (no bypass, no mocked provider). The runner then asserted the URL resolves to the role path,
+  `/api/me` returns 200, the role equals the configured `E2E_GOOGLE_AUTH_ROLE`, the session email
+  equals `E2E_GOOGLE_AUTH_EMAIL`, the profile uid matches Firebase Auth, the role persists in
+  Firestore, reload keeps the session, and logout revokes it. `onboarding: false` means the Google
+  account already existed in Firebase Auth before this run, so the runner deliberately did **not**
+  delete it during cleanup.
+
+`WEB-AUTH-002` moves from `BLOCKED_EXTERNAL` to verified in production. The remaining gate for it
+was exactly this: a real authorized Google browser login, since the production runtime itself was
+already proven healthy on 2026-09-30.
+
+### Operational note that cost time
+
+The Google E2E variables were first written into `apps/web/.env.local`, which the production E2E
+runner never reads — it loads only `apps/web/.env.e2e.production` via `process.loadEnvFile`. The
+runner therefore kept rejecting the suite with `Production E2E will not skip gated flows` even
+though the values "were already set". Values were moved to the correct file and all config gates
+were validated before launching. Anyone reusing these env vars must edit `.env.e2e.production`,
+not `.env.local`. Both files are gitignored.
+
+Also worth knowing: `runAuth` has no headless assertion, so `E2E_HEADLESS=false` is required in
+practice but not enforced by code. Forgetting it produces an opaque 180-second popup timeout rather
+than a clear instruction, unlike the Drive flow which asserts it explicitly.
+
+### Protected production menu matrix status: 23 of 26 verified
+
+**PASS (23):** every previously passing row, plus `/dashboard` and `/onboarding`.
+
+**BLOCKED_EXTERNAL (3):**
+
+| Blocked row | Missing dependency | Resume condition |
+| --- | --- | --- |
+| BLOCKED | `/siswa/speaking` | AI V1 STT/LLM provider (previously probed HTTP 530) |
+| BLOCKED | `/siswa/pronunciation` | phoneme / forced-alignment provider honouring the word+phoneme contract in `apps/web/lib/ai/pronunciation-provider.ts` |
+| BLOCKED | `/siswa/percakapan voice` | OmniVoice TTS endpoint and model (`AI_LOCAL_BASE_URL` empty) |
+
+`RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` remain in force with three
+external-dependency rows outstanding.
+
 ## Human Decision Gate — Scoring (SCORING_SPEC.md §21)
 
 RESOLVED 2026-09-30 — all nine items decided via the evidence hierarchy and
