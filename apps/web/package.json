@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-firestore.mjs",
     "cache:bench": "vitest run --config vitest.bench.config.ts",
+    "cache:upstash": "vitest run --config vitest.upstash.config.ts",
     "seed:question-bank": "node scripts/seed-question-bank.mjs",
     "seed:demo-classroom": "node scripts/seed-demo-classroom.mjs",
     "expand:question-bank": "node scripts/expand-question-bank.mjs",

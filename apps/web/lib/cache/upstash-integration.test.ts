@@ -8,6 +8,10 @@
 //
 // The suite skips itself when credentials are absent, so a developer machine
 // without Redis still runs the normal mocked unit tests.
+//
+// It is excluded from the default vitest run and invoked deliberately:
+//   pnpm cache:upstash
+// so an ordinary test run stays hermetic and does not spend Free-tier quota.
 import { randomUUID } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { resolve } from 'node:path'
