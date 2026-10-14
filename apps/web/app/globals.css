@@ -61,102 +61,102 @@
   color-scheme: light;
   --radius: 0.875rem;
 
-  /* Neutrals - cool slate */
-  --background: oklch(0.99 0.004 200);
-  --foreground: oklch(0.23 0.02 240);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.23 0.02 240);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.23 0.02 240);
+  /* precision-blue brand palette (AGENTS.md section 5) */
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
 
-  /* Primary - deep teal */
-  --primary: oklch(0.55 0.1 192);
-  --primary-foreground: oklch(0.99 0.01 190);
+  /* Primary - TuturAI blue */
+  --primary: #2f6df5;
+  --primary-foreground: #ffffff;
 
-  /* Secondary - soft surface */
-  --secondary: oklch(0.96 0.01 215);
-  --secondary-foreground: oklch(0.3 0.03 235);
+  /* Secondary - soft blue-tinted surface */
+  --secondary: #eceff6;
+  --secondary-foreground: #1d1d1f;
 
-  --muted: oklch(0.96 0.008 220);
-  --muted-foreground: oklch(0.52 0.02 240);
+  --muted: #eceff6;
+  --muted-foreground: #6e6e73;
 
-  /* Accent - warm indigo */
-  --accent: oklch(0.5 0.13 268);
-  --accent-foreground: oklch(0.99 0.01 270);
+  /* Accent - TuturAI deep blue */
+  --accent: #0071e3;
+  --accent-foreground: #ffffff;
 
-  /* Brand - amber for gamification */
-  --brand: oklch(0.78 0.15 78);
-  --brand-foreground: oklch(0.3 0.06 70);
+  /* Brand - gamification accent, stays on-brand amber */
+  --brand: #f5a524;
+  --brand-foreground: #1d1d1f;
 
   /* Status */
-  --success: oklch(0.68 0.15 155);
-  --success-foreground: oklch(0.99 0.01 155);
-  --warning: oklch(0.8 0.15 80);
-  --warning-foreground: oklch(0.3 0.06 70);
-  --destructive: oklch(0.62 0.21 18);
+  --success: #218f5a;
+  --success-foreground: #ffffff;
+  --warning: #d98a04;
+  --warning-foreground: #1d1d1f;
+  --destructive: #dc2f34;
 
-  --border: oklch(0.91 0.008 230);
-  --input: oklch(0.91 0.008 230);
-  --ring: oklch(0.55 0.1 192);
+  --border: #d2d2d7;
+  --input: #d2d2d7;
+  --ring: #2f6df5;
 
-  /* Charts: teal, indigo, amber, emerald, rose */
-  --chart-1: oklch(0.55 0.1 192);
-  --chart-2: oklch(0.5 0.13 268);
-  --chart-3: oklch(0.78 0.15 78);
-  --chart-4: oklch(0.68 0.15 155);
-  --chart-5: oklch(0.62 0.18 12);
-  --chart-6: oklch(0.6 0.12 320);
+  /* Charts: brand blues, amber, emerald, rose, violet */
+  --chart-1: #2f6df5;
+  --chart-2: #0071e3;
+  --chart-3: #f5a524;
+  --chart-4: #218f5a;
+  --chart-5: #dc2f34;
+  --chart-6: #6f5bd8;
 
-  --sidebar: oklch(0.99 0.004 200);
-  --sidebar-foreground: oklch(0.23 0.02 240);
-  --sidebar-primary: oklch(0.55 0.1 192);
-  --sidebar-primary-foreground: oklch(0.99 0.01 190);
-  --sidebar-accent: oklch(0.96 0.01 215);
-  --sidebar-accent-foreground: oklch(0.3 0.03 235);
-  --sidebar-border: oklch(0.91 0.008 230);
-  --sidebar-ring: oklch(0.55 0.1 192);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #2f6df5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eceff6;
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: #d2d2d7;
+  --sidebar-ring: #2f6df5;
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.18 0.02 240);
-  --foreground: oklch(0.96 0.008 220);
-  --card: oklch(0.22 0.02 240);
-  --card-foreground: oklch(0.96 0.008 220);
-  --popover: oklch(0.22 0.02 240);
-  --popover-foreground: oklch(0.96 0.008 220);
-  --primary: oklch(0.7 0.11 188);
-  --primary-foreground: oklch(0.18 0.03 220);
-  --secondary: oklch(0.28 0.02 240);
-  --secondary-foreground: oklch(0.96 0.008 220);
-  --muted: oklch(0.28 0.02 240);
-  --muted-foreground: oklch(0.7 0.02 230);
-  --accent: oklch(0.64 0.13 268);
-  --accent-foreground: oklch(0.16 0.02 270);
-  --brand: oklch(0.8 0.15 78);
-  --brand-foreground: oklch(0.25 0.06 70);
-  --success: oklch(0.72 0.15 155);
-  --success-foreground: oklch(0.18 0.03 155);
-  --warning: oklch(0.82 0.15 80);
-  --warning-foreground: oklch(0.25 0.06 70);
-  --destructive: oklch(0.7 0.19 22);
+  --background: #101014;
+  --foreground: #f5f5f7;
+  --card: #1c1c21;
+  --card-foreground: #f5f5f7;
+  --popover: #1c1c21;
+  --popover-foreground: #f5f5f7;
+  --primary: #5b8cff;
+  --primary-foreground: #101014;
+  --secondary: #26262e;
+  --secondary-foreground: #f5f5f7;
+  --muted: #26262e;
+  --muted-foreground: #a1a1a8;
+  --accent: #3b95f0;
+  --accent-foreground: #101014;
+  --brand: #f5b445;
+  --brand-foreground: #101014;
+  --success: #3fbd7f;
+  --success-foreground: #101014;
+  --warning: #f0a52a;
+  --warning-foreground: #101014;
+  --destructive: #f2565c;
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.11 188);
-  --chart-1: oklch(0.7 0.11 188);
-  --chart-2: oklch(0.64 0.13 268);
-  --chart-3: oklch(0.8 0.15 78);
-  --chart-4: oklch(0.72 0.15 155);
-  --chart-5: oklch(0.7 0.18 12);
-  --chart-6: oklch(0.68 0.12 320);
-  --sidebar: oklch(0.2 0.02 240);
-  --sidebar-foreground: oklch(0.96 0.008 220);
-  --sidebar-primary: oklch(0.7 0.11 188);
-  --sidebar-primary-foreground: oklch(0.18 0.03 220);
-  --sidebar-accent: oklch(0.28 0.02 240);
-  --sidebar-accent-foreground: oklch(0.96 0.008 220);
+  --ring: #5b8cff;
+  --chart-1: #5b8cff;
+  --chart-2: #3b95f0;
+  --chart-3: #f5b445;
+  --chart-4: #3fbd7f;
+  --chart-5: #f2565c;
+  --chart-6: #8f7df5;
+  --sidebar: #1c1c21;
+  --sidebar-foreground: #f5f5f7;
+  --sidebar-primary: #5b8cff;
+  --sidebar-primary-foreground: #101014;
+  --sidebar-accent: #26262e;
+  --sidebar-accent-foreground: #f5f5f7;
   --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.7 0.11 188);
+  --sidebar-ring: #5b8cff;
 }
 
 @layer base {
@@ -168,6 +168,8 @@
   }
   html {
     @apply font-sans;
+    /* Stop iOS rubber-banding the PWA shell horizontally. */
+    overflow-x: hidden;
   }
   h1, h2, h3, h4, h5 {
     font-family: var(--font-heading);

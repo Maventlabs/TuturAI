@@ -1,11 +1,10 @@
-const CACHE_NAME = 'tuturai-static-v2'
+const CACHE_NAME = 'tuturai-static-v4'
 const STATIC_ASSETS = [
   '/offline.html',
-  '/icon.svg',
-  '/logo_tuturai.svg',
-  '/placeholder.svg',
-  '/icon-light-32x32.png',
-  '/icon-dark-32x32.png',
+  '/brand/logo-icon.png',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon-maskable-512.png',
 ]
 
 self.addEventListener('install', (event) => {

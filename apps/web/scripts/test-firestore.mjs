@@ -30,7 +30,7 @@ const pnpmArgs = [
     '../../firebase.json',
     '--only',
     'firestore',
-    'pnpm vitest run --passWithNoTests',
+    'pnpm vitest run lib/firebase/firestore.rules.test.ts',
   ]
 
 const execPath = process.env.npm_execpath

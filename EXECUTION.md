@@ -380,6 +380,10 @@ only when its status changes or it becomes the final release blocker.
 | `RELEASE-003` | BLOCKED_EXTERNAL | 12 | Current worktree has 79 modified/untracked entries from prior in-progress project work plus this recovery's menu/device/offline runner and execution-ledger updates; nothing is staged. `git diff --check` has no whitespace errors (Git only warns about configured LF-to-CRLF conversion). Rollback evidence is still unavailable. | 1 | no authorized Netlify deploy history or verified-good rollback target | complete rollback evidence after Netlify access provides a healthy deployment ID; preserve existing worktree changes |
 | `BASELINE-001` | DONE | 13 | 2026-10-01 pre-production blocker-closure audit: repo clean at `4e8223d` = `origin/main` (scoring finalization pushed); production re-smoke PASS with deploy freshness proven via PERF-001 `hero-student.webp` live (deploy >= `19f19dd`); `e2e:offline-payloads` harness re-run end-to-end (queue/retry/conflict intact) with the configured AI tunnel probed HTTP 530 confirming the OFFLINE-004 provider outage; Google OAuth Drive wiring audited (4 vars consumed via `getGoogleOAuthEnv()`); Netlify CLI/token/state.json confirmed absent (DEPLOY-001/003 stay external); production runner guard 11/11 PASS. No blocker status changed: all 12 remain BLOCKED_EXTERNAL with unchanged dependencies | 1 | none | reopen on a production runtime regression or when any external dependency (Netlify access, Google accounts, AI tunnel) changes |
 | `CERT-001` | BLOCKED_EXTERNAL | 13 | no certification issued; local release gates pass, but required provider, deployment, protected-production, offline replay, and rollback gates remain open | 1 | external gates remain unproven and production deployment is not approved | re-evaluate the release table after all external gates are closed or explicitly approved non-blocking |
+| `BRAND-PWA-001` | DONE | DESIGN | 2026-10-14 brand/PWA/security pass: guidelines moved to `docs/brand/`, `scripts/build-brand-assets.ps1` derives all icons/cards, `components/logo.tsx` uses `/brand/logo-icon.png`, 10 unused public images deleted after grep, `app/manifest.ts` + `app/robots.ts` + `app/sitemap.ts` + `lib/site.ts` added, `globals.css` palette corrected to `precision-blue` with a dark variant and iOS `overflow-x: hidden`, `poweredByHeader: false` added, and `scripts/e2e-security-headers.mjs` proves 56/56 header/401/redirect/secret/PWA checks on `next start`. Production redeploy, HSTS on a live edge, PWABuilder packaging, and mobile visual review still pending | 1 | initial secret scan walked all of `.next` and produced 111 false positives from firebase-admin JSDoc and the server-only `FIREBASE_ADMIN_PRIVATE_KEY` validation string; scope corrected to `.next/static/**` rather than weakening the assertion | reopen only on a production header/PWA regression or a brand-source change |
+| `CLEAN-001` | DONE | MAINT | 2026-10-14 housekeeping: `.turbo/cache` 7.6 GB + `.next` 2.3 GB + `*.tsbuildinfo` + browser-tool logs + 4 untracked `tmp-*` scripts purged (all gitignored; `git status` entry count unchanged, proving no tracked file was touched). Dead code deleted only after grep proof: `components/ui/{tabs,scroll-area,skeleton}.tsx` and `components/dashboard/skill-radar.tsx` (all git-tracked = recoverable). `getFirebaseDb()` deliberately KEPT — zero importers but a working guarded public accessor. Measured: bundle 3.60 → 3.55 MB (dead files were never imported, so NO bundle win was claimed); social cards 660 KB → 102 KB via JPEG q92 after measuring 7000 distinct colors ruled out a palette. `optimizePackageImports` tested and reverted because it measured 3.55 → 3.55 MB (no-op under Turbopack). Still open: `MUST.md` deleted-but-tracked (predates this session, needs owner decision), and 2.6 MB of `hero-student.png`/`teacher-dashboard.png` in `public/` referenced by the image optimizer | 1 | first instinct was to delete `getFirebaseDb()`; caught that it is a live guarded export and reverted the whole file | reopen only if a measured regression or a newly-proven unused file appears |
+| `ENV-CLEAN-001` | DONE | MAINT | 2026-10-14 Firebase emulator setup removed per owner instruction: `firebase.json` `emulators` block, root `package.json` `emulators` script, `apps/web` `test` script changed from the `emulators:exec` wrapper to `vitest run`, the CI `Setup Java for Firebase Emulator` step, and 4 `*_EMULATOR_HOST` lines in `.env.local` (credentials verified intact after). Production security guards deliberately KEPT: `lib/config/env.ts` throw-on-prod, `client-config.mjs` build validation, `session.ts`/`client.ts` `NODE_ENV` guards, `proxy.ts` dev-only CSP. Verified after: clean-cache build PASS with no emulator, tests 63/63 files 0 failures | 1 | initially edited `client.ts` to drop the firestore import assuming `getFirebaseDb` was fully dead; it was not, reverted and restored the file byte-exact from `HEAD` | reopen on a production env-validation regression |
+| `RULES-SUITE-001` | NEEDS_OWNER_DECISION | MAINT | Firestore security-rules coverage is now off by default. `lib/firebase/firestore.rules.test.ts` hard-fails without a reachable emulator; the file was NOT deleted (it is the security-rules proof) but was excluded from the default vitest run in `vitest.config.ts` with an explanatory comment, matching the existing live-Upstash pattern, and `scripts/test-firestore.mjs` now targets that single file so it can still be run via `pnpm --filter @tuturai/web test:rules`. Consequence: `pnpm test` reports 63 files / 0 failures instead of 64 / 1 failure — the drop is an exclusion, not a hidden pass. Owner must choose: keep a headless emulator for CI, adopt a hosted/managed rules runner, or accept rules coverage as opt-in | 1 | removing the emulator (owner request) and keeping CI green (quality gate) conflict; resolved toward not silently hiding a security test | reopen when the owner picks a CI strategy for rules coverage |
 | `SCORING-000` | DONE | SCORING | All 9 Human Decision Gate items resolved 2026-09-30 via the evidence hierarchy (SCORING_MD_RULE > implementation > PRD > Indonesia > ASEAN > international > engineering), implemented in `packages/domain/src/scoring-decisions.ts` with provenance labels + machine-readable `SCORING_DECISION_LEDGER`, deterministic tests in `scoring-decisions.test.ts` (46 tests), documented in SCORING_SPEC.md §21/§23 SOURCES. Scoring version bumped 2026.1 → 2026.2 (spec §15); historical scores keep their persisted version | 2 | first write of the decisions module contained a broken ledger string, dead code, and a degenerate coverage formula; rewritten clean before merge | reopen only on a scoring-formula regression or a new source revision |
 | `SCORING-001` | DONE | SCORING | `packages/domain/src/scoring-engine.ts`: `SCORING_VERSION='2026.1'`, canonical types, `clampScore`/`normalizeMetric` with NaN/Infinity/zero-denominator guards (spec §10, §15). Unit tests in `scoring-engine.test.ts` | 1 | none | reopen only on versioning/normalization regression |
 | `SCORING-002` | DONE | SCORING | `evaluateAudioQuality` implements source gates: SNR < 10 dB -> `RETRY_AUDIO_TOO_NOISY`, speech < 1500 ms -> `RETRY_SPEECH_TOO_SHORT`, duration gate first, non-finite input fails safely; no score is produced on rejection (spec §9). 8 unit tests PASS | 1 | none | reopen only on quality-gate regression |
@@ -980,6 +984,215 @@ bound to the gate table above (`RELEASE_READY=false` until every mandatory gate 
 | Hardware/ESP32-S3 | 30% | Server-side registry, heartbeat, one-time credential hash, revocation, tests done; no firmware source, no broker, no physical device (`HW-001`) |
 | Deployment/Netlify | 90% | 2026-09-30: healthy deploy live and smoke-verified; remaining: recorded deploy ID/rollback target (`DEPLOY-003`) and authorized preview access (`DEPLOY-001`) |
 | Weighted deployment readiness (excluding hardware) | ~85% | Local implementation + security + QA essentially complete; remaining mass is production execution evidence, external providers/accounts, and SEO metadata |
+
+## Brand, PWA & Runtime Security Checkpoint — 2026-10-14
+
+Visual + housekeeping pass under the `DESIGN_OVERHAUL.md` contract. No backend behavior,
+API contract, schema, auth, state machine, or business logic changed. New task row:
+`BRAND-PWA-001 | DONE | DESIGN`.
+
+### Assets
+
+| Item | Evidence |
+| --- | --- |
+| Brand source moved | `apps/web/public/Brand-all-guidelines.png` (1.49 MB) moved to `docs/brand/Brand-all-guidelines.png` so the sheet is never served publicly. `docs/brand/logo-icon.png` (1.19 MB full-bleed icon on `#2F6DF5`) is the second master. |
+| Generator | `scripts/build-brand-assets.ps1` crops the guidelines sheet at measured content boxes and derives every icon. Re-measures on each run instead of hard-coding trimmed boxes, so source drift is tolerated. |
+| Generated | `public/brand/{logo-icon,mascot,simplified-logo,wordmark}.png`, `public/icons/{icon-192,icon-512,icon-maskable-512,apple-touch-icon}.png`, `app/{icon,apple-icon,opengraph-image,twitter-image}.png`. |
+| Logo component | `components/logo.tsx` now uses `/brand/logo-icon.png` (`object-cover` inside the existing 36px rounded tile). |
+| Old images removed | grep-verified zero references repo-wide before deleting `logo_tuturai.svg`, `icon.svg`, `icon-light-32x32.png`, `icon-dark-32x32.png`, `placeholder-logo.{png,svg}`, `placeholder-user.jpg`, `placeholder.jpg`, `placeholder.svg`, `apple-icon.png` (public). Content images `hero-student.png` / `teacher-dashboard.png` were **kept** — the code serves the pre-existing `.webp` and `scripts/optimize-landing-images.mjs` consumes the PNGs as inputs. `sw.js` cache list updated to `tuturai-static-v4` with only files that exist. |
+
+### PWA & SEO
+
+- `app/manifest.ts`: `id`, `name`, `short_name`, `start_url`/`scope` `/`, `display: standalone` + `display_override`, `orientation: portrait`, `lang: id`, `dir: ltr`, brand `theme_color`/`background_color`, 192 + 512 + maskable icons, dashboard shortcuts.
+- `app/robots.ts` and `app/sitemap.ts` generated; protected surfaces (`/dashboard`, `/guru`, `/siswa`, `/onboarding`, `/api`) are disallowed by robots and absent from the sitemap.
+- `lib/site.ts` is the single source of truth (`SITE_URL`, `SITE_NAME`, `SITE_TITLE`, `SITE_DESCRIPTION`, `SITE_KEYWORDS`, `BRAND_COLORS`, `PUBLIC_ROUTES`) and is consumed by manifest/robots/sitemap/layout.
+- `app/layout.tsx`: title template, description, keywords, canonical, Open Graph, Twitter summary-large-image, `appleWebApp`, `formatDetection`. Removed `generator: 'v0.app'`.
+
+### CSS / mobile
+
+`app/globals.css` tokens were `oklch` teal/indigo/amber, i.e. not the `precision-blue` preset
+required by `AGENTS.md` §5. Replaced with the mandated hex palette (`#f5f5f7`, `#ffffff`,
+`#1d1d1f`, `#6e6e73`, `#2f6df5`, `#0071e3`, `#d2d2d7`) plus an aligned dark theme, and added
+`overflow-x: hidden` on `html` to stop iOS rubber-banding the PWA shell. Existing mobile
+structure (drawer nav, bottom nav, responsive paddings) was already present and is unchanged.
+
+### Runtime security evidence
+
+New credential-free script `scripts/e2e-security-headers.mjs` (`pnpm e2e:security-headers`).
+Run against `next start` on port 3567, **56/56 PASS** (1 skip):
+
+- CSP present and not a wildcard, `object-src 'none'`, `frame-ancestors 'none'`.
+- `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` with `geolocation=()`.
+- **`x-powered-by` absent** — this was a real finding, fixed with `poweredByHeader: false` in `next.config.mjs`.
+- `/api/me`, `/api/student/dashboard`, `/api/teacher/leaderboard` each return **`401` with `UNAUTHENTICATED` JSON**, never a redirect and never an empty 200.
+- `/dashboard`, `/siswa`, `/guru`, `/onboarding` return **3xx to `/auth/login`**, never a 200 page.
+- Client-bundle scan over `.next/static/**` (63 artifacts): no PEM body, no `sk-` key, no `NEXT_PUBLIC_` alias of `AI_V1_API_KEY`, `AI_LOCAL_API_KEY`, or any `FIREBASE_ADMIN_*` secret. Sanity assertion confirms the intended public Firebase config is present, so the scan cannot pass on an empty directory.
+- Manifest, service worker (install + fetch handlers), and all four icon URLs serve 200 with the brand colors.
+
+Two early "failures" were **script false positives, not product defects**, and were fixed in the
+script rather than by weakening an assertion: the secret scan originally walked all of `.next`
+and flagged firebase-admin's JSDoc examples plus the `FIREBASE_ADMIN_PRIVATE_KEY` validation
+string inside server-only chunks that never reach a browser (111 matches, all outside
+`.next/static`), and it treated the public `NEXT_PUBLIC_FIREBASE_API_KEY` value as a leak.
+
+`HSTS` is skipped on a local target because it is emitted by the Netlify edge from
+`netlify.toml`, not by `next start`; it is asserted when the target is `*.netlify.app` or
+`SECURITY_TARGET=netlify`.
+
+### Local verification
+
+`next build` PASS (Turbopack, all PWA/SEO routes prerendered), `tsc --noEmit` PASS,
+`eslint .` 0 errors / 8 warnings (all pre-existing React-Compiler warnings in untouched
+files), `vitest run` 297 passed / 8 skipped — the single failing suite is
+`lib/firebase/firestore.rules.test.ts`, which requires the Firestore emulator
+(`ECONNREFUSED 127.0.0.1:8080`) and is environmental, not a regression.
+
+### Not verified / next
+
+- Production Netlify redeploy of the new icons, palette, and `poweredByHeader` (no Netlify CLI, token, or `.netlify/state.json` in this shell — `DEPLOY-001`/`DEPLOY-003` still external).
+- `HSTS` and the edge header set still need a live target to be re-asserted.
+- PWABuilder packaging (install/manifest report) requires the deployed HTTPS origin.
+- Mobile visual review at 320/375/768/1440px against the new palette still needs a real browser pass.
+
+## Housekeeping, Performance & Emulator-Removal Checkpoint — 2026-10-14
+
+Housekeeping + performance pass ahead of the OmniVoice pipeline. No backend
+behavior, API contract, schema, auth, state machine, or business logic changed.
+Task ledger rows: `CLEAN-001`, `PERF-001` re-verify, `SEC-001`/`SEC-002` re-verify.
+
+### Cache and artifacts removed (all gitignored; zero tracked files touched)
+
+| Item | Size | Safe because |
+| --- | --- | --- |
+| `.turbo/cache` | 7.6 GB | Turborepo build cache. Last write 2026-09-30. Regenerated on demand. `.turbo/` is in `.gitignore`. |
+| `apps/web/.next` | 2.3 GB | Next.js build output. Deleted and rebuilt from scratch during verification, proving the clean-cache build path works. |
+| `apps/web/tsconfig.tsbuildinfo` | 0.4 MB | TypeScript incremental cache; `*.tsbuildinfo` is gitignored. |
+| `.playwright-mcp/` + `.freebuff/` | 0.9 MB | Browser-tool console logs; both gitignored. |
+| `firestore-debug.log` ×2 | 0 B | Empty debug leftovers; `*.log` gitignored. |
+| `apps/web/scripts/tmp-{e2e-bootstrap,probe-guru,probe-links,probe-smoke}.mjs` | ~4 files | Untracked, self-described one-off bootstrap/probe scripts with zero references outside their own generated header. |
+
+`git status` entry count was unchanged after the purge (39 before/after the cache
+step), confirming no tracked file was affected.
+
+### Dead code removed (each grep-proven before deletion)
+
+| File | Proof |
+| --- | --- |
+| `apps/web/components/ui/tabs.tsx` | No import statement references `@/components/ui/tabs`. |
+| `apps/web/components/ui/scroll-area.tsx` | No import references `@/components/ui/scroll-area`. |
+| `apps/web/components/ui/skeleton.tsx` | No import references `@/components/ui/skeleton`. |
+| `apps/web/components/dashboard/skill-radar.tsx` | No import references `@/components/dashboard/skill-radar`. |
+
+All four were git-tracked, so they are recoverable, and none appear in
+`.next/static` (they were never imported), so **their removal does not change the
+client bundle** — the win is build time and maintainability, not bytes.
+
+**Deliberately NOT removed:** `getFirebaseDb()` in `lib/firebase/client.ts`.
+`EXECUTION.md` (`PERF-001`) had listed it as "verified zero importers, removal
+deferred". It has zero external importers, but it is a working, correctly guarded
+public accessor (`NODE_ENV === 'production'` short-circuits the emulator branch),
+so deleting it is a behavior decision, not a cleanup. It stays.
+
+### Firebase emulator setup removed
+
+Per owner instruction the emulator existed only for feature testing.
+
+Removed:
+- `firebase.json` — the whole `emulators` block (auth 9099, firestore 8080, ui 4000).
+- Root `package.json` — the `emulators` script.
+- `apps/web/package.json` — `test` no longer wraps `emulators:exec`; it is now
+  `vitest run --passWithNoTests`.
+- `.github/workflows/ci.yml` — the `Setup Java for Firebase Emulator` step.
+- `apps/web/.env.local` — the 4 `*_EMULATOR_HOST` lines (gitignored local file).
+  All real credentials were verified intact afterward (API key, Admin key, AI key).
+
+**Production security guards were intentionally KEPT**, because they are
+assertions rather than testing features:
+- `lib/config/env.ts` still throws when an emulator variable is set in production.
+- `lib/firebase/client-config.mjs` still rejects emulator fields at build time.
+- `lib/firebase/session.ts` and `lib/firebase/client.ts` still short-circuit their
+  emulator branches with `NODE_ENV !== 'production'`.
+- `apps/web/proxy.ts` still emits dev-only CSP sources.
+
+Removing these would weaken production checks, so they were left intact and
+reported instead.
+
+### Consequence that needs an owner decision (flagged, not papered over)
+
+`lib/firebase/firestore.rules.test.ts` hard-fails when no emulator is reachable.
+It was **not deleted** — it is the Firestore security-rules proof. Instead it was
+excluded from the default run with an explicit comment in `vitest.config.ts`
+(matching the existing pattern already used for the live-Upstash suite), and
+`scripts/test-firestore.mjs` now targets that single file so the suite can still
+be run on demand.
+
+**Open decision:** security-rules coverage is now off by default. If rules
+coverage must stay in CI, that requires either keeping a headless emulator or a
+managed/hosted rules runner. This is an owner call because the instruction was to
+remove the emulator, and the two cannot both be satisfied.
+
+### Performance — measured, not claimed
+
+Baseline and post-change are from `du`-style measurement of `.next/static`:
+
+| Metric | Before | After |
+| --- | --- | --- |
+| Client bundle `.next/static` | 3.60 MB | 3.55 MB |
+| JS chunks | 2.50 MB | 2.50 MB |
+| Social card images | 660 KB (2×PNG 330 KB) | 102 KB (2×JPEG q92 51 KB) |
+
+Findings, in order of confidence:
+
+1. **The dead-code removal does not shrink the bundle.** Those four components were
+   never imported, so they were already absent from `.next/static`. Claiming a
+   bundle win here would have been false; the real win is build time and
+   maintainability.
+2. **`optimizePackageImports` was tested and reverted.** Added
+   `['framer-motion', '@base-ui/react']`, rebuilt, and measured 3.55 MB → 3.55 MB,
+   i.e. zero change. Per the Next.js docs this option is not required under
+   Turbopack, and `lucide-react`/`recharts` are auto-optimized. The config was
+   removed rather than kept on faith.
+3. **Remaining large chunks are not low-hanging fruit**, verified by signature:
+   firebase SDK 489 KB (auth-required, already noted as deferred in `PERF-001`),
+   recharts 334 KB (already isolated as an async chunk by `score-trend-chart.tsx`),
+   react-dom 224 KB (framework core), framer-motion 117 KB.
+4. **Social-card images are the one real byte win.** PNG was 330 KB each because
+   the wordmark crop was upscaled with bicubic interpolation, producing ~7000
+   distinct colors, so a palette reduction would band the wordmark. JPEG q92
+   measures 49 KB each with no visible artifact on the wordmark (visually checked).
+   The card canvas was also switched from `#f5f5f7` to white because the wordmark
+   crop carries the guidelines panel's white background and a gray canvas showed a
+   visible rectangle seam around the lockup.
+5. **The dominant local slowdown was cache, not code.** `.turbo/cache` alone was
+   7.6 GB with nothing written since 2026-09-30. Purging it and `.next` is the
+   main speed-up available from housekeeping.
+
+### Verified after the changes
+
+| Gate | Result |
+| --- | --- |
+| `next build` (clean cache, no emulator) | PASS, compiles in ~7s, 71/71 static pages |
+| `tsc --noEmit` | PASS (0 errors) |
+| `eslint .` | 0 errors, 8 warnings — all pre-existing React-Compiler warnings in untouched files |
+| `vitest run` | **63/63 files, 297 passed, 2 skipped, 0 failures** |
+| `e2e:security-headers` | **PASS** — all header, 401-JSON, redirect, secret-scan, and PWA-artifact checks |
+| SEO routes | `/opengraph-image.jpg`, `/twitter-image.jpg`, `/icon.png`, `/apple-icon.png`, `/manifest.webmanifest`, `/robots.txt`, `/sitemap.xml` all 200 with correct content types |
+
+Before this pass the default test run reported `64 files / 1 failed` (the rules
+suite). It is now `63 files / 0 failed`, which is the honest consequence of the
+rules suite being excluded — the file count dropped by one because that suite is
+now opt-in, not because a failure was hidden.
+
+### Still open
+
+- `MUST.md` is deleted in the working tree but still tracked in `HEAD`, and
+  `README.md`, `DESIGN_OVERHAUL.md`, `tasks/todo.md`, and
+  `docs/AI_PROVIDER_CONTEXT.md` still reference it. That deletion predates this
+  session and was never confirmed by the owner, so it was not restored or rewritten.
+- `hero-student.png` (1343 KB) and `teacher-dashboard.png` (1322 KB) remain in
+  `public/`. They are not served (pages use the 36 KB / 43 KB WebP) but they are
+  inputs to `scripts/optimize-landing-images.mjs`, so they are referenced. Move
+  the optimizer inputs out of `public/` if those 2.6 MB should leave the deploy.
 
 ## Coordinator Handoff
 

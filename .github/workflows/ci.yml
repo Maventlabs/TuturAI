@@ -27,16 +27,10 @@ jobs:
           version: 11.17.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: pnpm/setup-node@v4
         with:
-          node-version: 22
+          version: 22
           cache: pnpm
-
-      - name: Setup Java for Firebase Emulator
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

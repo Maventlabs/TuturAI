@@ -10,13 +10,13 @@ export function Logo({
 }) {
   return (
     <span className={cn('flex items-center gap-2', className)}>
-      <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl">
         <Image
-          src="/logo_tuturai.svg"
+          src="/brand/logo-icon.png"
           alt="Logo TuturAI"
           width={36}
           height={36}
-          className="h-9 w-9 object-contain"
+          className="h-9 w-9 object-cover"
           priority
         />
       </span>

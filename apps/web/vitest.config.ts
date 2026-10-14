@@ -18,6 +18,10 @@ export default defineConfig({
     // instance and is run deliberately via `pnpm cache:upstash`. Keeping it out
     // of the default run means a Redis outage cannot turn the hermetic unit
     // suite red, and routine runs do not spend Free-tier request quota.
-    exclude: [...configDefaults.exclude, 'scripts/e2e-prod-*.test.mjs', 'scripts/cache-benchmark.test.ts', 'lib/cache/upstash-integration.test.ts'],
+    // `lib/firebase/firestore.rules.test.ts` needs a running Firestore emulator
+    // (`pnpm test:rules`). The emulator was removed from the default flow, so
+    // this suite is excluded from `pnpm test` to keep the default run hermetic.
+    // It is deliberately NOT deleted: it is the Firestore security-rules proof.
+    exclude: [...configDefaults.exclude, 'scripts/e2e-prod-*.test.mjs', 'scripts/cache-benchmark.test.ts', 'lib/cache/upstash-integration.test.ts', 'lib/firebase/firestore.rules.test.ts'],
   },
 })

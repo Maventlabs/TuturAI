@@ -131,6 +131,72 @@ complete, verify:
 - Unauthorized, wrong-role, wrong-class, and revoked-key behavior where relevant.
 - No dead interaction, placeholder success, fabricated score, or leaked secret.
 
+Runtime security and PWA checks (header set, structured `401` JSON, protected
+page redirects, client-bundle secret scan, manifest and service-worker artifacts)
+are credential-free:
+
+```bash
+pnpm --filter @tuturai/web build
+pnpm --filter @tuturai/web start
+pnpm --filter @tuturai/web e2e:security-headers
+# against a deployed target
+SECURITY_BASE_URL=https://tuturai-apps.netlify.app node apps/web/scripts/e2e-security-headers.mjs
+```
+
+`HSTS` is emitted by the Netlify edge layer, so that assertion only runs when
+the target is a `*.netlify.app` host or `SECURITY_TARGET=netlify`.
+
+The default `pnpm test` run is hermetic and needs no emulator or Redis. Suites
+that require a live external service are excluded from it and run deliberately:
+
+```bash
+pnpm --filter @tuturai/web test:rules      # Firestore rules (needs a Firestore emulator)
+pnpm --filter @tuturai/web cache:upstash   # live Upstash integration
+pnpm --filter @tuturai/web cache:bench     # live production reads
+```
+
+`scripts/test-firestore.mjs` boots a Firestore emulator and runs only the rules
+suite; the emulator is not part of the default development or CI flow.
+
+## Brand Assets And PWA
+
+Brand masters live in `docs/brand/` and are never served to browsers. Regenerate
+all derived icons and social cards with:
+
+```bash
+pwsh -File scripts/build-brand-assets.ps1
+```
+
+| Path | Responsibility |
+| --- | --- |
+| `docs/brand/Brand-all-guidelines.png` | Full brand sheet (source) |
+| `docs/brand/logo-icon.png` | Full-bleed app icon on `#2F6DF5` (source) |
+| `apps/web/public/brand/*.png` | In-app artwork: `logo-icon`, `mascot`, `wordmark` |
+| `apps/web/public/icons/*.png` | Manifest icons: 192, 512, maskable, apple-touch |
+| `apps/web/app/icon.png` | Favicon and `apple-icon.png` (Next.js file conventions) |
+| `apps/web/app/opengraph-image.jpg` | Social card (also used as `twitter-image.jpg`) |
+
+`apps/web/lib/site.ts` is the single source of truth for site name, title,
+description, canonical URL, and brand colors; `app/manifest.ts`, `app/robots.ts`,
+and `app/sitemap.ts` all read from it. The palette is the `precision-blue` preset
+from `AGENTS.md`.
+
+## Housekeeping & Performance Notes
+
+- `images: { unoptimized: true }` is deliberate (Netlify target and existing
+  WebP pipeline). Landing images are already WebP; `scripts/optimize-landing-images.mjs`
+  generates them from the master PNGs, which is why those PNGs stay in `public/`.
+- `serverExternalPackages: ['firebase-admin', ...]` is required: bundling
+  firebase-admin into Netlify Functions crashes every `/api/*` route at module
+  init with an empty 500.
+- `poweredByHeader: false` strips the framework fingerprint.
+- The largest client chunks are the Firebase SDK (~489 KB, auth-gated), recharts
+  (~334 KB, loaded as an async chunk per route), and React DOM (~224 KB,
+  framework core). `optimizePackageImports` was measured against Turbopack and
+  produced no change, so it is not configured.
+- `apps/web/scripts/tmp-*.mjs`-style one-off scripts are not part of the
+  repository; regenerate them if a probe is needed rather than committing them.
+
 See [`MUST.md`](MUST.md) for the persistent execution contract and
 [`EXECUTION.md`](EXECUTION.md) for the current phase and task status. Files under
 `tasks/` are retained as historical evidence and are not runtime trackers.
@@ -139,6 +205,13 @@ See [`MUST.md`](MUST.md) for the persistent execution contract and
 
 - Secrets are loaded from environment/config and are never bundled into client code.
 - Protected routes verify Firebase ID tokens and enforce role/class ownership.
+- The browser bundle is scanned against `.next/static/**` only; server and
+  framework artifacts are not served to clients and are excluded to avoid false
+  positives.
+- `poweredByHeader: false` removes the framework fingerprint from every response.
+- CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and
+  `Permissions-Policy` are set in `netlify.toml` at the edge and mirrored by
+  `apps/web/proxy.ts`.
 - File uploads validate MIME type, extension, size, and sanitized names.
 - Raw practice audio is temporary unless the session explicitly requires retention.
 - `.gitignore` excludes local environments, credentials, build output, media,

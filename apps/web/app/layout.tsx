@@ -2,6 +2,14 @@ import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans, Inter, Geist_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
+import {
+  BRAND_COLORS,
+  SITE_DESCRIPTION,
+  SITE_KEYWORDS,
+  SITE_NAME,
+  SITE_TITLE,
+  SITE_URL,
+} from '@/lib/site'
 import './globals.css'
 
 const jakarta = Plus_Jakarta_Sans({
@@ -20,17 +28,46 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'TuturAI — Latihan Speaking Bahasa Inggris dengan AI',
-  description:
-    'Platform latihan speaking Bahasa Inggris berbasis AI untuk siswa SMA/SMK Indonesia. Feedback instan, gamifikasi, dan dashboard analitik untuk guru.',
-  generator: 'v0.app',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_TITLE,
+    template: `%s — ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
+  applicationName: SITE_NAME,
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'id_ID',
+    siteName: SITE_NAME,
+    url: SITE_URL,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: 'default',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f7fbfc' },
-    { media: '(prefers-color-scheme: dark)', color: '#16202b' },
-  ],
+  themeColor: BRAND_COLORS.primary,
 }
 
 export default function RootLayout({

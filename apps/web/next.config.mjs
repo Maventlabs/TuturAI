@@ -19,6 +19,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Remove the framework fingerprint from every response.
+  poweredByHeader: false,
 }
 
 export default nextConfig

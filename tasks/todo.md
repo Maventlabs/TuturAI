@@ -47,6 +47,36 @@
 - [x] Add reproducible scripts and env documentation.
 - [x] Create route-to-PRD feature parity matrix.
 
+## DESIGN: Brand Assets, PWA, SEO & Runtime Security (BRAND-PWA-001)
+
+- [x] Move `Brand-all-guidelines.png` (1.49 MB) out of `public/` into `docs/brand/` and add `logo-icon.png` as the app-icon master.
+- [x] Add `scripts/build-brand-assets.ps1` (measured crop regions + derived resize) and regenerate every icon and social card.
+- [x] Repoint `components/logo.tsx` to `/brand/logo-icon.png`.
+- [x] Delete the 10 unused legacy public images after a repo-wide grep; keep `hero-student.png` / `teacher-dashboard.png` (content, and inputs to `scripts/optimize-landing-images.mjs`).
+- [x] Add `app/manifest.ts` (id/start_url/scope/display_override/lang/icons/shortcuts), refresh `public/sw.js` (`tuturai-static-v4`) and keep the `offline.html` fallback.
+- [x] Add `lib/site.ts` as the single source of truth, plus `app/robots.ts`, `app/sitemap.ts`, and full metadata/canonical/OG/Twitter/appleWebApp in `app/layout.tsx`.
+- [x] Replace `globals.css` `oklch` teal/indigo/amber tokens with the mandated `precision-blue` palette, add a matching dark theme, and set `overflow-x: hidden` on `html` for iOS.
+- [x] Add `poweredByHeader: false` in `next.config.mjs` (found by the runtime security script).
+- [x] Add `scripts/e2e-security-headers.mjs` and pass 56/56 checks: CSP/HSTS/XFO/referrer/permissions-policy, no `x-powered-by`, structured `401` JSON + no redirect on 3 protected APIs, protected pages redirect to login, no secret in `.next/static`, manifest + SW + 4 icons serve 200.
+- [ ] Production redeploy and live re-assertion of the edge header set and HSTS (no Netlify CLI/token/`state.json` in this shell).
+- [ ] PWABuilder packaging report against the deployed HTTPS origin.
+- [ ] Mobile visual review at 320/375/768/1440px against the new palette.
+
+## MAINT: Housekeeping, Performance & Emulator Removal (CLEAN-001 / ENV-CLEAN-001)
+
+- [x] Purge build caches and artifacts, all gitignored (git status count unchanged, proving no tracked file was touched): `.turbo/cache` 7.6 GB, `apps/web/.next` 2.3 GB, `*.tsbuildinfo`, browser-tool log dirs, empty `firestore-debug.log` ×2, and 4 untracked one-off `tmp-*` probe scripts.
+- [x] Delete grep-proven dead code: `components/ui/tabs.tsx`, `components/ui/scroll-area.tsx`, `components/ui/skeleton.tsx`, `components/dashboard/skill-radar.tsx` (all git-tracked = recoverable; no import statement references any of them).
+- [x] Skip `getFirebaseDb()` — zero importers, but it is a live, correctly guarded public accessor, so removing it is a behavior decision, not cleanup.
+- [x] Measure before optimizing: client bundle 3.60 → 3.55 MB; dead components were never imported, so **no bundle win was claimed** for them.
+- [x] Shrink social cards 660 KB → 102 KB (PNG 330 KB → JPEG q92 51 KB each). Palette PNG was rejected because the upscaled wordmark carries ~7000 distinct colors and would band. Card canvas switched to white to remove a visible seam around the lockup.
+- [x] Test and revert `optimizePackageImports` — measured 3.55 → 3.55 MB, a no-op under Turbopack, so the config was not kept.
+- [x] Remove the Firebase emulator setup: `firebase.json` `emulators` block, root `emulators` script, the `emulators:exec` test wrapper, the CI Java-for-emulator step, and the 4 `*_EMULATOR_HOST` lines in `.env.local`.
+- [x] Keep every production security guard that merely *guards* emulator usage: `lib/config/env.ts` prod throw, `client-config.mjs` build validation, `session.ts`/`client.ts` `NODE_ENV` short-circuits, `proxy.ts` dev-only CSP sources.
+- [x] Verify after the changes: clean-cache build PASS with no emulator, `tsc --noEmit` 0 errors, `eslint` 0 errors / 8 pre-existing warnings, tests 63/63 files / 297 passed / 0 failures, security script PASS, all SEO/PWA routes 200.
+- [ ] **Owner decision needed:** Firestore security-rules suite is now opt-in (`pnpm --filter @tuturai/web test:rules`). It hard-fails without an emulator, so it was excluded from the default run rather than deleted. Pick a CI strategy: keep a headless emulator, use a hosted rules runner, or accept opt-in rules coverage.
+- [ ] `MUST.md` is deleted in the worktree but still tracked in `HEAD` and referenced by `README.md`, `DESIGN_OVERHAUL.md`, `tasks/todo.md`, and `docs/AI_PROVIDER_CONTEXT.md`. Predates this session; needs the owner to confirm restore or reference cleanup.
+- [ ] 2.6 MB of `hero-student.png` / `teacher-dashboard.png` still sit in `public/`. Not served (pages use the 36 KB / 43 KB WebP) but referenced as inputs by `scripts/optimize-landing-images.mjs` — move the optimizer inputs out of `public/` if those bytes should leave the deploy.
+
 ## Phase 1: Foundation, Auth & Data Model
 
 - [x] Environment schema and secret boundary (`source/TuturAI/apps/web/lib/config/env.ts`, `.env.example`).
