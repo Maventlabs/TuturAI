@@ -64,6 +64,18 @@ export interface ProcessAssessmentInput {
   }
   /** Structured findings/evidence returned by the provider payload. */
   structuredEvidence?: AssessmentStructuredEvidence
+  /**
+   * Provenance of the transcript. When it came from the browser
+   * (`audioVerified: false`) the assessment has no server-side audio, so
+   * audio-only dimensions (pronunciation, intonation) are forced to
+   * `insufficient_evidence` rather than taking a provider estimate. SCORING_SPEC
+   * §10/§13: a missing metric is never silently zeroed or fabricated.
+   */
+  clientTranscript?: {
+    transcript: string
+    audioVerified: boolean
+    durationPlausible: boolean
+  }
 }
 
 /** Per-dimension canonical resolution (D9 missing-metric/confidence policy). */
@@ -165,7 +177,10 @@ function resolveCanonicalScores(
   }
 
   // -- Pronunciation (new SCORING-003 channel: D1 + D2) ----------------------
-  const pronunciationEvidence = input.structuredEvidence?.pronunciation
+  // A browser transcript has no server-side audio, so alignment evidence cannot
+  // be corroborated and is not accepted for this dimension at all.
+  const audioOnlyChannelForbidden = input.clientTranscript ? !input.clientTranscript.audioVerified : false
+  const pronunciationEvidence = audioOnlyChannelForbidden ? undefined : input.structuredEvidence?.pronunciation
   if (pronunciationEvidence) {
     try {
       const pronunciation = scorePronunciationFromAlignment(pronunciationEvidence)
@@ -192,10 +207,15 @@ function resolveCanonicalScores(
     }
   } else {
     metricStatuses.pronunciation = 'insufficient_evidence'
+    if (audioOnlyChannelForbidden) sources.pronunciation = 'PROVIDER_ESTIMATE'
   }
 
   // -- Vocabulary (new SCORING-007 channel: D6 + D7) -------------------------
-  const vocabularyTranscript = input.structuredEvidence?.vocabularyTranscript ?? null
+  // Vocabulary is a text-only dimension, so a client transcript can drive it
+  // honestly. Fall back to the request transcript when the provider did not
+  // echo its own text, because the student's words are the evidence here.
+  const vocabularyTranscript =
+    input.structuredEvidence?.vocabularyTranscript ?? input.clientTranscript?.transcript ?? null
   if (vocabularyTranscript !== null && vocabularyTranscript.trim()) {
     try {
       const vocabulary = scoreVocabularyFromTranscript(vocabularyTranscript)
@@ -224,7 +244,7 @@ function resolveCanonicalScores(
   }
 
   // -- Intonation (new SCORING-005 channel: D4) ------------------------------
-  const intonationEvidence = input.structuredEvidence?.intonation
+  const intonationEvidence = audioOnlyChannelForbidden ? undefined : input.structuredEvidence?.intonation
   if (intonationEvidence) {
     try {
       const intonation = scoreIntonationFromPitch(intonationEvidence)
@@ -246,6 +266,7 @@ function resolveCanonicalScores(
     }
   } else {
     metricStatuses.intonation = 'insufficient_evidence'
+    if (audioOnlyChannelForbidden) sources.intonation = 'PROVIDER_ESTIMATE'
   }
 
   if (failures.length > 0) {

@@ -34,7 +34,8 @@
     "e2e:classroom-join": "node scripts/e2e-classroom-join.mjs",
     "e2e:onboarding": "node scripts/e2e-onboarding.mjs",
     "e2e:authorization-boundaries": "node scripts/e2e-authorization-boundaries.mjs",
-    "e2e:security-headers": "node scripts/e2e-security-headers.mjs"
+    "e2e:security-headers": "node scripts/e2e-security-headers.mjs",
+    "e2e:pwa": "node scripts/e2e-pwa-install.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

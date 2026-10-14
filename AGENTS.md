@@ -36,7 +36,14 @@ Urutan prioritas:
 Nama model lama di proposal seperti Qwen/Wav2Vec2/Gemma self-hosted **bukan constraint implementasi**. Behavior yang dipertahankan adalah speaking assessment multidimensi, adaptive learning, offline-first, teacher analytics, dan hardware roadmap.
 
 Current AI design:
-- STT: Whisper Large V3 melalui configured provider/API.
+- STT: tidak terkunci ke satu provider. Transkripsi boleh dari Web Speech API di
+  browser (jalur utama, agar tidak bergantung pada tunnel/API eksternal) atau
+  whisper.cpp self-hosted (fallback). Whisper Large V3 via configured API tetap
+  boleh dipakai sebagai opsi, bukan kewajiban.
+- Transkrip dari browser hanya dapat dinilai pada dimensi yang valid dari teks
+  (grammar, vocabulary, fluency dengan metrik turunan server). Pronunciation dan
+  intonation membutuhkan audio asli, jadi berstatus `insufficient_evidence` dan
+  tidak boleh dikarang. Lihat `SCORING_SPEC.md` §10/§13.
 - Voice clone: OmniVoice.
 - TTS: self-hosted.
 - LLM: provider/model configurable; Gemma hanya default sementara bila dikonfigurasi.

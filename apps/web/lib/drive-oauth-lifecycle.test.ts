@@ -78,7 +78,7 @@ describe('Google Drive OAuth lifecycle', () => {
     const verifier = decryptToken(String(fake.collections.get('googleDriveOAuthStates')!.get(state)!.codeVerifier))
     const fetchMock = vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'access-token-fixture', refresh_token: 'refresh-token-fixture', expires_in: 3600 }), { status: 200 }))
 
-    await expect(completeDriveOAuth(state, 'one-use-code')).resolves.toBe('teacher-456')
+    await expect(completeDriveOAuth(state, 'one-use-code', 'teacher-456')).resolves.toBe('teacher-456')
     const request = fetchMock.mock.calls[0]
     const body = new URLSearchParams(String(request?.[1]?.body))
     const connection = fake.collections.get('googleDriveConnections')!.get('teacher-456')!
@@ -91,8 +91,31 @@ describe('Google Drive OAuth lifecycle', () => {
     expect(decryptToken(String(connection.accessToken))).toBe('access-token-fixture')
     expect(decryptToken(String(connection.refreshToken))).toBe('refresh-token-fixture')
     await expect(getDriveConnectionStatus('teacher-456')).resolves.toMatchObject({ connected: true, scope: DRIVE_SCOPE })
-    await expect(completeDriveOAuth(state, 'one-use-code')).rejects.toThrow('INVALID_OAUTH_STATE')
+    await expect(completeDriveOAuth(state, 'one-use-code', 'teacher-456')).rejects.toThrow('INVALID_OAUTH_STATE')
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects a callback completed by a different teacher than the one who started it', async () => {
+    const url = new URL(await createDriveOAuthState('teacher-owner'))
+    const state = url.searchParams.get('state')!
+    const fetchMock = vi.mocked(fetch)
+
+    // An attacker who observes the callback URL must not be able to attach
+    // their own Drive to the victim's account.
+    await expect(completeDriveOAuth(state, 'attacker-code', 'teacher-attacker')).rejects.toThrow('INVALID_OAUTH_STATE')
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(fake.collections.get('googleDriveConnections')?.get('teacher-owner')).toBeUndefined()
+
+    // The state is left intact so the legitimate teacher can still finish.
+    expect(fake.collections.get('googleDriveOAuthStates')!.get(state)).toBeDefined()
+  })
+
+  it('refuses to complete a callback with no authenticated teacher', async () => {
+    const url = new URL(await createDriveOAuthState('teacher-owner'))
+    const state = url.searchParams.get('state')!
+
+    await expect(completeDriveOAuth(state, 'code', undefined)).rejects.toThrow('INVALID_OAUTH_STATE')
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled()
   })
 
   it('does not save credentials when the provider omits a refresh token', async () => {
@@ -100,7 +123,7 @@ describe('Google Drive OAuth lifecycle', () => {
     const state = url.searchParams.get('state')!
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'access-only' }), { status: 200 }))
 
-    await expect(completeDriveOAuth(state, 'one-use-code')).rejects.toThrow('DRIVE_REFRESH_TOKEN_MISSING')
+    await expect(completeDriveOAuth(state, 'one-use-code', 'teacher-789')).rejects.toThrow('DRIVE_REFRESH_TOKEN_MISSING')
     expect(fake.collections.get('googleDriveConnections')?.get('teacher-789')).toBeUndefined()
   })
 })

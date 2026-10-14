@@ -35,6 +35,7 @@ and a replaceable server-side AI provider router.
 | --- | --- |
 | `apps/web` | Next.js App Router web application and protected API routes |
 | `apps/functions` | Privileged Netlify Functions boundary |
+| `apps/ai` | Self-hosted OmniVoice TTS/voice-cloning service (gitignored runtime, local/tunnel) |
 | `packages/domain` | Framework-free business rules, types, and state transitions |
 | `packages/validation` | Shared input validation and API error contracts |
 | `packages/config` | Shared TypeScript/tooling configuration |
@@ -224,6 +225,11 @@ See [`AGENTS.md`](AGENTS.md) for the architecture and operating contract, and
 
 - Secrets are loaded from environment/config and are never bundled into client code.
 - Protected routes verify Firebase ID tokens and enforce role/class ownership.
+- A browser-supplied transcript is treated as untrusted input. Word count is
+  derived on the server, implausible durations are clamped and flagged, and the
+  audio-only dimensions (pronunciation, intonation) are marked
+  `insufficient_evidence` rather than estimated from text. See
+  `lib/ai/client-transcript.ts`.
 - The browser bundle is scanned against `.next/static/**` only; server and
   framework artifacts are not served to clients and are excluded to avoid false
   positives.
@@ -232,6 +238,10 @@ See [`AGENTS.md`](AGENTS.md) for the architecture and operating contract, and
   `Permissions-Policy` are set in `netlify.toml` at the edge and mirrored by
   `apps/web/proxy.ts`.
 - File uploads validate MIME type, extension, size, and sanitized names.
+- The Google Drive OAuth callback requires the same authenticated teacher
+  session that started the flow, and rejects a state document belonging to a
+  different teacher, so an observed redirect URL cannot attach someone else's
+  Drive. Drive access and refresh tokens are AES-256-GCM encrypted at rest.
 - Raw practice audio is temporary unless the session explicitly requires retention.
 - `.gitignore` excludes local environments, credentials, build output, media,
   test artifacts, and browser audit artifacts.

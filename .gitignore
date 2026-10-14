@@ -9,6 +9,11 @@ out/
 coverage/
 *.tsbuildinfo
 
+# Self-hosted AI service (runs locally behind a tunnel; never deployed with the
+# PWA). The whole folder stays out of the repo: it holds multi-gigabyte virtual
+# environments, model weights and generated audio.
+apps/ai/
+
 # Local environment and secrets
 .env
 .env.*

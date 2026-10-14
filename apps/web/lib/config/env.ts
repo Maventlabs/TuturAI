@@ -28,6 +28,18 @@ function apiKeyFor(route: AiRoute): string | undefined {
   return route === 'v1' ? required('AI_V1_API_KEY') : optional('AI_LOCAL_API_KEY')
 }
 
+/**
+ * STT base URL, resolved leniently. The audio-upload path needs a real STT
+ * endpoint (whisper.cpp self-hosted via `AI_LOCAL_BASE_URL`, or a hosted
+ * Whisper via `AI_V1_BASE_URL`); the browser Web Speech API path needs none.
+ * Returning `undefined` instead of throwing lets the caller decide, and the
+ * audio route still fails closed with 503 when nothing is configured.
+ */
+function readSttBaseUrl(route: AiRoute): string | undefined {
+  if (route === 'local') return optional('AI_LOCAL_BASE_URL') ?? undefined
+  return optional('AI_V1_BASE_URL') ?? optional('AI_LOCAL_BASE_URL') ?? undefined
+}
+
 export const publicEnv = {
   appUrl: optional('NEXT_PUBLIC_APP_URL'),
   firebase: {
@@ -125,6 +137,11 @@ export function getAiEnv() {
   const llmRoute = route('AI_LLM_ROUTE', 'v1')
   const tts = getTtsEnv()
 
+  // STT is only required for the audio-upload path. The browser Web Speech API
+  // path transcribes client-side and needs no STT endpoint at all, so a missing
+  // STT base URL/model must not throw here. Routes validate what they need.
+  const sttBaseUrl = readSttBaseUrl(sttRoute)
+
   return {
     ai: {
       localBaseUrl: optional('AI_LOCAL_BASE_URL'),
@@ -133,9 +150,9 @@ export function getAiEnv() {
       v1ApiKey: optional('AI_V1_API_KEY'),
       stt: {
         route: sttRoute,
-        baseUrl: baseUrlFor(sttRoute),
-        apiKey: apiKeyFor(sttRoute),
-        modelId: required('AI_STT_MODEL_ID'),
+        baseUrl: sttBaseUrl,
+        apiKey: sttBaseUrl ? apiKeyFor(sttRoute) : undefined,
+        modelId: optional('AI_STT_MODEL_ID'),
       },
       tts,
       llm: {

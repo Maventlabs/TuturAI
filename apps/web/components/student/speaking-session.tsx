@@ -20,6 +20,7 @@ import { Waveform } from '@/components/dashboard/waveform'
 import { ProgressRing } from '@/components/dashboard/progress-ring'
 import { SKILL_LABELS, type SkillKey } from '@/lib/skills'
 import { useMicrophone } from '@/hooks/use-microphone'
+import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
 import { cn } from '@/lib/utils'
 import type { Assessment } from '@tuturai/domain'
 import { CompletionDialog } from '@/components/dashboard/completion-dialog'
@@ -32,14 +33,30 @@ export function SpeakingSession({ topic, questionId }: { topic: string; question
   const [showCompletion, setShowCompletion] = useState(false)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const mic = useMicrophone()
+  const speech = useSpeechRecognition('en-US')
+
+  // Transcript-mode submission. The server derives word count and clamps the
+  // duration, so only the recognized words and the measured listen time are
+  // sent. When the browser has no speech recognition, the recorded audio is
+  // submitted instead and the server transcribes it.
   useEffect(() => {
-    if (phase !== 'analyzing' || !mic.audioBlob) return
+    if (phase !== 'analyzing') return
+    const transcript = speech.result?.transcript
+    const audioBlob = mic.audioBlob
+    if (!transcript && !audioBlob) return
+
     const controller = new AbortController()
     const submit = async () => {
-        const form = new FormData()
-        form.append('sessionId', crypto.randomUUID())
-        form.append('questionId', questionId)
-      form.append('audio', mic.audioBlob as Blob, 'speaking.webm')
+      const form = new FormData()
+      form.append('sessionId', crypto.randomUUID())
+      form.append('questionId', questionId)
+      if (transcript) {
+        form.append('transcript', transcript)
+        form.append('spokenDurationMs', String(speech.result?.durationMs ?? 0))
+        form.append('transcriptSource', 'browser_speech_api')
+      } else {
+        form.append('audio', audioBlob as Blob, 'speaking.webm')
+      }
       try {
         const response = await fetch('/api/student/assessment', { method: 'POST', body: form, signal: controller.signal })
         const payload = (await response.json()) as { data?: Assessment; error?: { message?: string } }
@@ -56,22 +73,33 @@ export function SpeakingSession({ topic, questionId }: { topic: string; question
     }
     void submit()
     return () => controller.abort()
-  }, [phase, mic.audioBlob, questionId])
+  }, [phase, speech.result, mic.audioBlob, questionId])
 
   async function startRecording() {
     mic.reset()
+    speech.reset()
+    const recognised = speech.supported ? speech.start() : false
     await mic.start()
     setPhase('recording')
+    // Browser transcription is unavailable here; the audio blob is the
+    // submission path. Surface it only as informational, not as an error.
+    if (!recognised && speech.supported) {
+      setAnalysisError('Pengenalan suara tidak aktif; audio akan diproses di server.')
+    }
   }
 
   function stopRecording() {
     mic.stop()
-    setPhase('analyzing')
+    if (speech.status === 'listening') speech.stop()
+    // Let the browser recognition `onend` populate `speech.result` before the
+    // analyzing phase reads it; a microtask keeps that ordering deterministic.
+    queueMicrotask(() => setPhase('analyzing'))
     setAnalysisError(null)
   }
 
   function reset() {
     mic.reset()
+    speech.reset()
     setAssessment(null)
     setShowCompletion(false)
     setAnalysisError(null)

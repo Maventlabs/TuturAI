@@ -112,12 +112,27 @@ export async function createDriveOAuthState(teacherId: string) {
   return url.toString()
 }
 
-export async function completeDriveOAuth(state: string, code: string) {
+/**
+ * Completes the Google OAuth code exchange.
+ *
+ * SECURITY: `initiatingTeacherId` MUST be the authenticated teacher who started
+ * the flow. The OAuth `state` is an unguessable 256-bit value, but a redirect
+ * URL is a bearer credential: anyone who observes it could otherwise complete
+ * the exchange and attach their own Drive to someone else's account. Binding
+ * the callback to the initiating session means an intercepted callback is
+ * rejected rather than silently granting Drive access.
+ */
+export async function completeDriveOAuth(state: string, code: string, initiatingTeacherId?: string) {
   const env = getGoogleOAuthEnv()
   const reference = getAdminDb().collection(DRIVE_OAUTH_STATES_COLLECTION).doc(state)
   const snapshot = await reference.get()
   const stateData = snapshot.data()
   if (!snapshot.exists || !stateData || stateData.expiresAt.toMillis() < Date.now()) throw new Error('INVALID_OAUTH_STATE')
+  if (!initiatingTeacherId || stateData.teacherId !== initiatingTeacherId) {
+    // Deliberately the same error as a missing/expired state: a caller must not
+    // be able to probe which state values exist.
+    throw new Error('INVALID_OAUTH_STATE')
+  }
   await reference.delete()
 
   const response = await fetchDrive('https://oauth2.googleapis.com/token', {

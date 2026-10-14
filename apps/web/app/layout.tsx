@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans, Inter, Geist_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
+import { BootSplash } from '@/app/boot-splash'
+import { AppHydratedMarker } from '@/app/app-hydrated-marker'
 import {
   BRAND_COLORS,
   SITE_DESCRIPTION,
@@ -81,15 +83,29 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${jakarta.variable} ${inter.variable} ${geistMono.variable} bg-background`}
     >
+      <head>
+        {/* Preload the splash mark so it paints without waiting on JS. */}
+        <link
+          rel="preload"
+          as="image"
+          href="/brand/logo-icon.png"
+          // Mobile data: the splash must never wait on a 200 KB asset.
+          media="(min-width: 768px)"
+        />
+      </head>
       <body className="font-sans antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        <BootSplash />
+        <div id="app-root">
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <AppHydratedMarker />
+          </ThemeProvider>
+        </div>
         <ServiceWorkerRegister />
       </body>
     </html>

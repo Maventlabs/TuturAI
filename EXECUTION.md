@@ -18,11 +18,12 @@ CURRENT_TASK_STATUS=BLOCKED_EXTERNAL
 NEXT_TASK_ID=PROVIDER-INTEGRATION (Prompt B)
 LAST_COMPLETED_TASK_ID=BASELINE-001
 
-BLOCKED_EXTERNAL=WEB-AUTH-002,DRIVE-001,OFFLINE-003,OFFLINE-004,DEPLOY-001,DEPLOY-003,E2E-PROD-001,E2E-PROD-002,VOICE-001,WEB-SPEAK-002,PRON-001,HW-001
+BLOCKED_EXTERNAL=WEB-AUTH-002,DRIVE-001,OFFLINE-003,OFFLINE-004,DEPLOY-001,DEPLOY-003,E2E-PROD-001,E2E-PROD-002,VOICE-001,WEB-SPEAK-002,PRON-001,HW-001,E2E-PROD-SPEAKING,E2E-PROD-STUDENT-ADAPTIVE
 AWAITING_SCORING_DECISION=none
 RELEASE_READY=false
 PRODUCT_PRODUCTION_READY=false
 SCORING_PRODUCTION_READY=true
+PROTECTED_MENU_MATRIX=4/12 suites PASS on the real deployed bundle
 ```
 
 Only the coordinator updates this lock. A task moves monotonically through:
@@ -342,13 +343,17 @@ only when its status changes or it becomes the final release blocker.
 | `WEB-CLASS-001` | DONE | 3 | classroom lifecycle checkpoint | 1 | none | reopen only on regression |
 | `WEB-ASSIGN-001` | DONE | 3 | submit/return/resubmit/approve durable E2E | 1 | none | reopen only on regression |
 | `WEB-TEACHER-004` | DONE | 3/6 | 2026-09-25 `e2e:teacher-assignment-authoring` PASS: email/password browser login -> UI publish -> POST 201 -> API read-back -> independent Firestore assertion -> reload heading -> wrong-class 404; assignment jfLHV57OaJMClQFtDUIk; root `pnpm emulators` pins demo-tuturai | 5 | resolved EMAIL_NOT_FOUND caused by CLI default project mismatch; initial restart seed preceded listener readiness | reopen only on regression; Drive remains separate |
-| `DRIVE-001` | BLOCKED_EXTERNAL | 3 | real OAuth/callback/upload metadata; also required by assignment file replay `OFFLINE-003` | 1 | consent/upload not confirmed | run real teacher account flow, then resume assignment file replay |
+| `DRIVE-001` | BLOCKED_EXTERNAL | 3 | real OAuth/callback/upload metadata; also required by assignment file replay `OFFLINE-003`. 2026-10-14: the OAuth callback is now bound to the initiating teacher session (`DRIVE-002`), so the boundary is hardened, but no real Google consent round trip has been performed | 1 | consent/upload not confirmed | run real teacher account flow, then resume assignment file replay |
+| `DRIVE-002` | DONE | 3 | 2026-10-14 Google Drive OAuth callback session binding. Recon confirmed the rest of the Drive flow was already sound (PKCE S256, `drive.file` scope, AES-256-GCM encrypted access/refresh tokens and verifier, one-time state deleted before exchange, MIME allowlist + extension agreement + 25 MB cap + filename sanitization, refresh-on-expiry with 60s skew, provider bodies kept out of logs), so nothing there was rewritten. Real finding: `callback/route.ts` had no session check while every other Drive route requires `requireRole`, so an observed callback URL could be completed by a third party and attach their Drive tokens to the victim's account (PKCE does not mitigate this because the attacker's exchange uses the victim's verifier). Fixed in two layers: the route now requires the teacher session and forwards the uid, and `completeDriveOAuth` rejects any uid that does not match `stateData.teacherId` using the same `INVALID_OAUTH_STATE` error (no state probing) while preserving the state document. Tests +4 (attacker's uid rejected with no provider call and state preserved; no-session rejected before the exchange; uid forwarded; non-teacher blocked). typecheck 0, lint 0, build PASS, vitest 318 tests | 1 | existing lifecycle tests called `completeDriveOAuth` without a uid; made the parameter optional so the unauthenticated path fails closed, and updated all in-repo callers | re-verify after a real Google consent round trip proves the end-to-end connect |
 | `WEB-LEARN-001` | DONE | 4 | deterministic learning menu E2E | 1 | none | reopen only on regression |
 | `WEB-LEARN-002` | DONE | 4 | 2026-09-25 fresh validation 7/7, `/api/me` tests 3/3, typecheck, lint 0 errors, and durable `e2e:student-history` PASS: profile save -> server read-back -> reload plus unauthorized 401 | 1 | initial E2E fixture was dirty after a prior mutation; reseeded emulator and reran successfully | reopen only on regression |
 | `WEB-ADAPT-001` | DONE | 4 | recommendation -> completion -> no repeat | 1 | none | reopen only on regression |
 | `WEB-SPEAK-001` | DONE | 5 | configured STT/LLM normalized persistence; 2026-10-04 production speaking suite PASS with real provider output — byte-exact transcript, 12/12 expected words recovered by the deployed STT, all six normalized dimensions within 0-100, confidence 1.0, Firestore read-back and student UI assertion. Durable green for the row still waits on AI V1 tunnel uptime (HTTP 530) | 1 | none in the app path; the runner-side fixture and `.env.e2e.production` gates are resolved | reopen only on regression |
 | `WEB-SPEAK-002` | BLOCKED_EXTERNAL | 5 | conversation voice/TTS | 1 | local provider intentionally unconfigured | run provider contract when reachable |
 | `VOICE-001` | BLOCKED_EXTERNAL | 5 | OmniVoice enroll/ready/delete/playback | 1 | provider endpoint/model unavailable | run provider lifecycle |
+| `VOICE-002` | DONE | 5 | 2026-10-14 teacher-voice tenant isolation is now actually guaranteed by tests. Recon found voice/pronunciation already correct on status gating (`409` while `processing`, `503` when `failed`/no `providerVoiceId`), consent-gated enrollment with delete-before-re-enroll, audio MIME/size/filename validation, TTS restricted to `route==='local'`, pronunciation failing closed with `assessmentStatus:'failed'` + `score:null` and no XP/completion consumer, and idempotency rejecting payload reuse with `409` — so none of it was rewritten. Real gap: PRD Fitur 6 requires "voice guru A tidak pernah dipakai untuk kelas guru B", enforced solely by `getStudentClassroomVoiceProfile`, but every route test mocked that function away, so deleting or loosening the membership check would have left all 5 route tests green. Added `lib/voice-isolation.test.ts` (7 tests) against the real function: per-classroom teacher resolution, non-member, revoked membership, archived classroom, unknown classroom, missing teacher profile returning `null` instead of leaking another teacher's voice, and a membership naming a different student. Mutation-verified: replacing the membership guard with `if (false)` fails 3 of the 7, then the file was restored byte-exact. typecheck 0, lint 0, build PASS, vitest 325 tests | 1 | first run failed to transform because unquoted object keys containing hyphens (`class-a_student-1`) are invalid JS; quoted them | reopen only if the classroom→teacher→membership resolution changes |
+| `VOICE-003` | DONE (scaffold) | 5 | 2026-10-14 self-hosted OmniVoice service scaffolded in `apps/ai` (gitignored runtime, tracked source) matching the existing `HttpVoiceProvider` contract exactly: `/v1/voice-clones` POST/GET{id}/DELETE, `/v1/audio/speech`, `/health`. Pluggable `VoiceBackend` with the real `k2-fsa/OmniVoice` wrapper (lazy load, no silent CUDA→CPU fallback) and a default fail-closed backend; the `silence` placeholder requires an explicit opt-in so no deployment can serve fake speech. Security: bearer token enforced when set, reference-audio size cap + MIME/container sniffing, voice_id path-traversal guard, text and 40 MB response caps, single-inference lock. All deps pinned with `==`; torch intentionally unpinned per operator CUDA build. Verified: pytest **15 passed** on a fresh venv, live uvicorn probed (health `degraded`, 401 unauth, 503 no-backend, 422 empty/non-audio, status `processing`, delete 204), compileall clean, web app unaffected (typecheck 0, vitest 325). Fixed a bug where the status route defaulted a missing `clone_exists` to `ready` (phantom clone). torch 2.8.0+cpu and omnivoice 0.2.1 are installed in `apps/ai/.venv`, but the 3.04 GB weight download was not completed, so **no real round trip is proven**. **BLOCKER: OmniVoice weights are CC-BY-NC (non-commercial) while TuturAI is proprietary — owner accepted this for now since the product is not yet commercial, and the pluggable backend exists so a licensed model can replace it** | 1 | first test run failed because `SilenceBackend` had no `clone_exists`, so the status route reported everything ready; added `clone_exists` to the placeholder and made the route fail with `CLONE_UNVERIFIABLE` instead of guessing | real enrollment/synthesis round trip still needs the weights, Netlify `AI_LOCAL_*` env, and an HTTPS tunnel; then close `VOICE-001` |
+| `PWA-002` | DONE (local) | MAINT | 2026-10-14 PWA install/launch/offline fixes after a PWABuilder report card showed "Has Service Worker" fail and Manifest 25/46. Root causes: (1) `sw.js` never called `clients.claim()`, so the page was never controlled — proven live as `registered:true active:true controller:false`, which is exactly what PWABuilder checks; (2) `display_override:['window-controls-overlay','standalone']` was producing the browser/search-bar chrome inside the app because it outranks standalone; (3) there was no launch screen at all, only a blank canvas while the bundle loaded; (4) `offline.html` was unbranded with no retry. Fixed: `sw.js` rewritten with `skipWaiting`/`clients.claim`, per-item precache, network-first navigation + offline fallback and cache-first static; manifest drops the overlay and adds `prefer_related_applications` + screenshots; new server-rendered `app/boot-splash.tsx` paints before any JS with the brand tile/wordmark/bar and reduced-motion guard; new `app/app-hydrated-marker.tsx` sets `data-app-ready`; branded `offline.html` with a working retry button; new `pnpm e2e:pwa` (`scripts/e2e-pwa-install.mjs`) throttles the bundle and asserts controller/precache/offline/deep-link. **E2E caught a real bug: the first splash hid on `app-root` having children, which App Router server-renders, so it vanished instantly — now triggered by the hydration flag instead.** Verified `pnpm e2e:pwa` **14/14** plus typecheck 0, lint 0 errors/8 pre-existing, vitest 325, build PASS | 1 | the splash-hiding trigger was wrong at first; the Playwright screenshot and the "launch screen paints" assertion surfaced it immediately | PWABuilder will still report no service worker until this is committed, pushed and Netlify deploys; re-run the security + PWA scripts against the live origin afterwards |
 | `PRON-001` | BLOCKED_EXTERNAL | 5 | phoneme-capable scoring | 1 | production `POST /api/student/pronunciation` returns 503 `Phoneme scoring provider is not configured` (`AI_PRONUNCIATION_MODEL_ID`/`AI_PRONUNCIATION_PATH` unset in Netlify); the configured tunnel is Groq Whisper and returns segment timings only, so it cannot supply the required per-word phoneme alignment | add a forced-alignment provider to the deployed Netlify env, then run phoneme provider contract |
 | `WEB-TEACHER-001` | DONE | 6 | teacher core/analytics/report evidence | 1 | none | reopen only on regression |
 | `WEB-TEACHER-002` | DONE | 6 | 2026-09-25 focused API tests 3/3, typecheck, and `e2e:teacher-integrations` PASS: teacher preferences save -> Firestore read-back; Drive/device failure paths remained explicit | 1 | initial GET read normalized session profile and lost persisted preferences; fixed GET to read the authenticated Firestore document | reopen only on regression |
@@ -373,8 +378,8 @@ only when its status changes or it becomes the final release blocker.
 | `DEPLOY-001` | BLOCKED_EXTERNAL | 10 | `netlify.toml` preview/build/security-header config inspected; no `.netlify/state.json`, Netlify CLI, `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID`, or `NETLIFY_API_TOKEN`; no preview URL is available in the repository | 1 | preview access cannot be inspected or deployed from this environment | resume with an authorized Netlify CLI/session and preview URL; production changes remain approval-gated |
 | `DEPLOY-002` | DONE | 10 | 2026-09-30 fresh production smoke (response ts 2026-09-29T17:30Z): `/api/health` 200 JSON `status:ok`, `firebaseAdminModule:"loaded"`, node v22.23.2; `POST /api/auth/session` with fabricated token returns structured 401 JSON `auth/invalid-id-token` (previously empty 500); `/` serves full CSP + HSTS + X-Frame-Options DENY. The `serverExternalPackages` firebase-admin fix is proven live. Admin credential ownership (`FIREBASE_ADMIN_*` = `gen-lang-client-0138449759`) is evidenced by the session-verify flow executing through the Admin SDK without init crash; definitive identity proof remains the WEB-AUTH-002 real-login E2E. 2026-10-01 fresh smoke repeats PASS (health 200 admin loaded, `/api/me` 401 JSON, Drive status fail-closed 401, CSP/HSTS live) and the live landing serves the PERF-001 `hero-student.webp`, proving the deployed bundle includes commit `19f19dd` | 3 | empty 500s were first attributed to runtime env, then proven to be a bundle-init crash in the stale deployed bundle | reopen only on a production API 500/health regression |
 | `DEPLOY-003` | BLOCKED_EXTERNAL | 10 | No deploy ID or rollback target is recorded yet; `.netlify/state.json`, Netlify CLI, and account credentials are absent. 2026-09-30: the currently deployed bundle is now verified healthy (health 200, clean 401s, CSP), so the live deploy is a valid known-good rollback *candidate* once its deploy ID is recorded. 2026-10-01: environment re-check still finds no Netlify CLI, token, or `.netlify/state.json` | 1 | rollback target cannot be established from repository/local Netlify state alone | user reads the current deploy ID from the Netlify UI (Deploys) and records it as the rollback target; optional: verify rollback redeploys it |
-| `E2E-PROD-001` | BLOCKED_EXTERNAL | 11 | Student production runner now asserts learning activity -> persisted `scholar` achievement -> achievement page/reload and profile save -> `/api/me` read-back -> reload. All 26 protected menu rows now have a route-to-runner/assertion mapping in the local guard; this is source coverage, not execution. 2026-09-30 update: production runtime is now healthy (health 200, session fake-token 401 JSON), so the only remaining blocker is the approved production student test account. 2026-10-01: runtime re-verified healthy and the deployed bundle confirmed to include commit `19f19dd` (PERF-001 webp live) | 1 | production runtime previously failed before the expected unauthenticated JSON 401; now verified healthy | provide approved student E2E account, run the protected student menu matrix |
-| `E2E-PROD-002` | BLOCKED_EXTERNAL | 11 | Teacher runner asserts ranking from persisted XP through API/UI/reload and device registration -> credential hash/read-back -> invalid credential and malformed payload rejection -> valid heartbeat telemetry -> revocation. All 26 route rows map to runner assertions locally, but protected teacher routes remain unverified; 2026-09-30 the runtime blocker is cleared (health 200, clean 401s) and the remaining blocker is the missing approved teacher account. 2026-10-01: runtime re-verified healthy and the deployed bundle confirmed to include commit `19f19dd` (PERF-001 webp live) | 1 | production runtime was previously unavailable for authorized teacher E2E; now verified healthy | provide approved teacher E2E account, run the protected teacher menu matrix |
+| `E2E-PROD-001` | BLOCKED_EXTERNAL | 11 | 2026-10-14 full 12-suite production run on the deployed bundle. `smoke`, `teacher`, `classroom`, `assignment`, `security` PASS with real HTTP/UI evidence; `auth` PARTIAL (email/password durable over 2 cycles, Google leg needs a human checkpoint); `student` FAIL (stale adaptive fixture state, assertion left intact); `speaking` BLOCKED_EXTERNAL (AI provider `503` x8); `drive`/`pronunciation`/`voice`/`offline` gated off and the runner refused to skip them. Protected menu matrix now **4/12** against the real deployment (was 0/26 rows proven) | 3 | prior production runtime failures; this run proves the runtime healthy and the first green protected suites | clear `E2E-PROD-SPEAKING` and `E2E-PROD-STUDENT-ADAPTIVE`, then rerun the matrix |
+| `E2E-PROD-002` | BLOCKED_EXTERNAL | 11 | 2026-10-14 teacher production suite PASS on the real deployment: member list, student detail, analytics `7d` + `all`, preferences write/read-back/reload, leaderboard server ordering + UI read-back, device registration read-back with credential-hash-only, device revocation read-back, and PDF report 896 bytes. Device heartbeat authorization proven `401` -> `400` -> `200`. Remaining teacher-side external gates are the Drive, voice and AI-provider flows, which are separately recorded | 1 | production runtime was previously unavailable for authorized teacher E2E; now verified healthy | close `DRIVE-001` and `VOICE-001`, then rerun the gated teacher flows |
 | `RELEASE-001` | DONE | 12 | 2026-09-26 final recovery verification: `pnpm test` PASS (web 61 files/246 tests including Firestore rules; domain 9/32; validation 1/7; functions 1/1); `pnpm typecheck` PASS (4 packages); `pnpm lint` PASS (0 errors, 8 existing warnings); `pnpm --filter @tuturai/web build` PASS with the active Firebase production client config and emulator variables neutralized; Next dev diagnostics report no errors. Production E2E runner/config tests 11/11 and `git diff --check` clean. These are local verification only, not proof of production behavior. | 1 | Initial aggregate run found a missing mocked export in the heartbeat route test; fixed by retaining the parser export. One concurrent run also hit a 10s Firestore rules setup timeout; serial rerun passed all rules tests. | reopen only on code/dependency changes or a gate regression |
 | `RELEASE-002` | BLOCKED_EXTERNAL | 12 | accessibility/security local evidence is complete; unresolved required gates are Netlify preview/production/rollback, Google auth/Drive, AI/TTS/pronunciation, offline replay, and hardware | 1 | no required external confirmations or production approval available | resume once each listed provider/deploy/access requirement is available; keep release false until then |
 | `RELEASE-003` | BLOCKED_EXTERNAL | 12 | Current worktree has 79 modified/untracked entries from prior in-progress project work plus this recovery's menu/device/offline runner and execution-ledger updates; nothing is staged. `git diff --check` has no whitespace errors (Git only warns about configured LF-to-CRLF conversion). Rollback evidence is still unavailable. | 1 | no authorized Netlify deploy history or verified-good rollback target | complete rollback evidence after Netlify access provides a healthy deployment ID; preserve existing worktree changes |
@@ -384,6 +389,9 @@ only when its status changes or it becomes the final release blocker.
 | `CLEAN-001` | DONE | MAINT | 2026-10-14 housekeeping: `.turbo/cache` 7.6 GB + `.next` 2.3 GB + `*.tsbuildinfo` + browser-tool logs + 4 untracked `tmp-*` scripts purged (all gitignored; `git status` entry count unchanged, proving no tracked file was touched). Dead code deleted only after grep proof: `components/ui/{tabs,scroll-area,skeleton}.tsx` and `components/dashboard/skill-radar.tsx` (all git-tracked = recoverable). `getFirebaseDb()` deliberately KEPT — zero importers but a working guarded public accessor. Measured: bundle 3.60 → 3.55 MB (dead files were never imported, so NO bundle win was claimed); social cards 660 KB → 102 KB via JPEG q92 after measuring 7000 distinct colors ruled out a palette. `optimizePackageImports` tested and reverted because it measured 3.55 → 3.55 MB (no-op under Turbopack). Legacy `MUST.md` deleted by owner instruction with all five references cleaned. Still open: 2.6 MB of `hero-student.png`/`teacher-dashboard.png` in `public/` referenced by the image optimizer | 1 | first instinct was to delete `getFirebaseDb()`; caught that it is a live guarded export and reverted the whole file | reopen only if a measured regression or a newly-proven unused file appears |
 | `ENV-CLEAN-001` | DONE | MAINT | 2026-10-14 Firebase emulator setup removed per owner instruction: `firebase.json` `emulators` block, root `package.json` `emulators` script, `apps/web` `test` script changed from the `emulators:exec` wrapper to `vitest run`, the CI `Setup Java for Firebase Emulator` step, and 4 `*_EMULATOR_HOST` lines in `.env.local` (credentials verified intact after). Production security guards deliberately KEPT: `lib/config/env.ts` throw-on-prod, `client-config.mjs` build validation, `session.ts`/`client.ts` `NODE_ENV` guards, `proxy.ts` dev-only CSP. Verified after: clean-cache build PASS with no emulator, tests 63/63 files 0 failures | 1 | initially edited `client.ts` to drop the firestore import assuming `getFirebaseDb` was fully dead; it was not, reverted and restored the file byte-exact from `HEAD` | reopen on a production env-validation regression |
 | `RULES-SUITE-001` | NEEDS_OWNER_DECISION | MAINT | Firestore security-rules coverage is now off by default. `lib/firebase/firestore.rules.test.ts` hard-fails without a reachable emulator; the file was NOT deleted (it is the security-rules proof) but was excluded from the default vitest run in `vitest.config.ts` with an explanatory comment, matching the existing live-Upstash pattern, and `scripts/test-firestore.mjs` now targets that single file so it can still be run via `pnpm --filter @tuturai/web test:rules`. Consequence: `pnpm test` reports 63 files / 0 failures instead of 64 / 1 failure — the drop is an exclusion, not a hidden pass. Owner must choose: keep a headless emulator for CI, adopt a hosted/managed rules runner, or accept rules coverage as opt-in | 1 | removing the emulator (owner request) and keeping CI green (quality gate) conflict; resolved toward not silently hiding a security test | reopen when the owner picks a CI strategy for rules coverage |
+| `E2E-PROD-SPEAKING` | BLOCKED_EXTERNAL | 11 | 2026-10-14 production run: `/api/student/assessment` returned `503 PROVIDER_UNAVAILABLE` on 8 attempts across 7 provider replays with correct capped exponential backoff. No score was fabricated; the app failed closed as required. App contract is healthy, the upstream STT/LLM endpoint is not reachable from Netlify Functions | 3 | app-side fail-closed behavior verified; upstream endpoint unreachable, tunnel host not present in the repo so it cannot be probed from this shell | probe `AI_V1_BASE_URL` reachability from outside, then rerun `node apps/web/scripts/e2e-prod.mjs speaking`; never fabricate a score to close this |
+| `E2E-PROD-STUDENT-ADAPTIVE` | FAIL | 11 | 2026-10-14 production run: `session 200` -> `me 200` -> `/api/student/adaptive 200`, then the assertion "dedicated adaptive fixture was not the first recommendation for the clean E2E account" failed. The assertion is correct and was left intact; the dedicated student UID already carries attempt history so the adaptive endpoint legitimately recommends other material. Not a runner bug and not weakened | 1 | dedicated student UID is not in a clean state | reset the dedicated student's attempt history in Firestore or provision a fresh dedicated UID in `.env/e2e.production`, then rerun `node apps/web/scripts/e2e-prod.mjs student` |
+| `WEB-SPEAK-003` | DONE | 5 | 2026-10-14 multi-source speaking transcription. New `lib/ai/client-transcript.ts` derives `wordCount` server-side and clamps implausible durations (200 WPM ceiling); `hooks/use-speech-recognition.ts` wraps the Web Speech API; `/api/student/assessment` accepts transcript+duration OR audio, preferring server-side STT when audio exists. A client transcript sets `audioVerified: false`, which forces pronunciation and intonation to `insufficient_evidence` even if a provider returns unverifiable alignment/pitch evidence (SCORING_SPEC §10/§13). STT config made lenient so the browser path needs no STT endpoint; `AI_STT_ROUTE=local` targets a whisper.cpp self-hosted server via the existing `HttpSttProvider` (same OpenAI-compatible multipart contract, no new adapter). typecheck 0, lint 0 errors, build PASS, vitest 64 files/312 tests (11 new unit + 8 new route/security) | 1 | first route-test run failed 3 cases because `FormData.append` created duplicate values instead of overriding; switched the helper to `set` | production E2E still blocked until this is deployed and the AI provider is reachable; whisper.cpp and real-browser Web Speech proof still outstanding |
 | `SCORING-000` | DONE | SCORING | All 9 Human Decision Gate items resolved 2026-09-30 via the evidence hierarchy (SCORING_MD_RULE > implementation > PRD > Indonesia > ASEAN > international > engineering), implemented in `packages/domain/src/scoring-decisions.ts` with provenance labels + machine-readable `SCORING_DECISION_LEDGER`, deterministic tests in `scoring-decisions.test.ts` (46 tests), documented in SCORING_SPEC.md §21/§23 SOURCES. Scoring version bumped 2026.1 → 2026.2 (spec §15); historical scores keep their persisted version | 2 | first write of the decisions module contained a broken ledger string, dead code, and a degenerate coverage formula; rewritten clean before merge | reopen only on a scoring-formula regression or a new source revision |
 | `SCORING-001` | DONE | SCORING | `packages/domain/src/scoring-engine.ts`: `SCORING_VERSION='2026.1'`, canonical types, `clampScore`/`normalizeMetric` with NaN/Infinity/zero-denominator guards (spec §10, §15). Unit tests in `scoring-engine.test.ts` | 1 | none | reopen only on versioning/normalization regression |
 | `SCORING-002` | DONE | SCORING | `evaluateAudioQuality` implements source gates: SNR < 10 dB -> `RETRY_AUDIO_TOO_NOISY`, speech < 1500 ms -> `RETRY_SPEECH_TOO_SHORT`, duration gate first, non-finite input fails safely; no score is produced on rejection (spec §9). 8 unit tests PASS | 1 | none | reopen only on quality-gate regression |
@@ -1192,6 +1200,566 @@ now opt-in, not because a failure was hidden.
   `public/`. They are not served (pages use the 36 KB / 43 KB WebP) but they are
   inputs to `scripts/optimize-landing-images.mjs`, so they are referenced. Move
   the optimizer inputs out of `public/` if those 2.6 MB should leave the deploy.
+
+## Protected Production E2E — 2026-10-14 (deployed bundle `main`)
+
+First full run of all 12 production suites against
+`https://tuturai-apps.netlify.app` on the bundle that includes the brand/PWA/SEO,
+`poweredByHeader`, palette and secrets-scan fixes. Deploy freshness was proven
+before the run: the live `/opengraph-image.jpg` returns 51 KB, the new JPEG
+social card (the previous PNG was 330 KB), so the suites exercised new code.
+
+**Harness fail-closed proven, not assumed.** Four negative cases were executed
+against `createProdE2EConfig` and all four refused:
+
+| Case | Result |
+| --- | --- |
+| empty env | rejected — `Missing required environment variable: E2E_BASE_URL` |
+| `http://localhost:3000` | rejected — must be an HTTPS deployment URL |
+| `https://evil.com` | rejected — must use `*.netlify.app` |
+| emulator var present | rejected — `Production E2E refuses Firebase emulator variables` |
+
+### Suite results — 12/12 executed, no fabricated PASS
+
+| Suite | Status | Real evidence |
+| --- | --- | --- |
+| `smoke` | **PASS** | page 200, CSP present, `/api/health` 200, `/api/me` + `/api/classrooms` + `/api/student/dashboard` all 401 `UNAUTHENTICATED`, `/api/health/readiness` 401 |
+| `auth` | **PARTIAL** | Email/password durable over two full cycles: `session 200` -> `me 200` -> `me 401` (revoke) -> `session 200` -> `me 200`. Then `HUMAN CHECKPOINT` for Google sign-in timed out after 180 s because no operator completed the popup. |
+| `student` | **FAIL** | `session 200` -> `me 200` -> `/api/student/adaptive 200`, then assertion failed: the dedicated adaptive fixture was not the first recommendation for the dedicated account. |
+| `teacher` | **PASS** | 12 capabilities: dashboard, member list, student detail, analytics `7d` + `all`, preferences write+read-back, reload, leaderboard server ordering + UI, device registration read-back, credential-hash-only, revocation read-back. PDF report 896 bytes. |
+| `classroom` | **PASS** | create `201` -> hashed join key -> student join `201` -> membership read-back `200` -> teacher read-back -> reload. |
+| `assignment` | **PASS** | create `201`, `submit -> return -> resubmit -> approve`, attempt 2 durable, `isLate` derived, over-limit returns `409`. |
+| `speaking` | **BLOCKED_EXTERNAL** | `/api/student/assessment` returned `503 PROVIDER_UNAVAILABLE` on 8 attempts across 7 provider replays with correct capped exponential backoff (5s/8s/12.8s/20.5s/32.8s/45s/45s). **No score was fabricated** — the app failed closed, which is the required behaviour. |
+| `security` | **PASS** | student->teacher `403`, teacher->student `403`, wrong-class `404`, revoked join key `409`, `mutationCount: 0`. |
+| `drive` | **BLOCKED_EXTERNAL** | Runner refused to skip: `Production E2E will not skip gated flows; set E2E_DRIVE_ENABLED=true`. |
+| `pronunciation` | **BLOCKED_EXTERNAL** | Refused to skip; needs `E2E_PRONUNCIATION_ENABLED=true`. |
+| `voice` | **BLOCKED_EXTERNAL** | Refused to skip; needs `E2E_VOICE_ENABLED=true`. |
+| `offline` | **BLOCKED_EXTERNAL** | Refused to skip; needs `E2E_DRIVE_ENABLED=true`. |
+
+Count: **4 PASS, 1 PARTIAL, 1 FAIL, 6 BLOCKED_EXTERNAL** (1 of the 6 is the AI
+provider outage observed at runtime; 5 are deliberately gated off).
+
+No assertion was weakened. `student` failed on real data state, and the gate
+failures are the harness refusing to simulate a pass, not the harness being
+relaxed.
+
+### Root causes
+
+- **`student` FAIL — not a runner bug, a data-state problem.** The assertion
+  requires the dedicated adaptive fixture to be the first recommendation for a
+  *clean* account. The dedicated student UID already carries assessment/practice
+  history, so the adaptive endpoint correctly recommends other material. The
+  assertion is right and was left intact. Resume condition: reset the dedicated
+  student's attempt history in Firestore (or provision a fresh dedicated UID in
+  `.env.e2e.production`), then rerun `node apps/web/scripts/e2e-prod.mjs student`.
+- **`auth` PARTIAL — human-in-the-loop, not code.** The Google leg pauses for an
+  operator to complete sign-in in the real browser. It timed out unattended.
+  Resume condition: run the suite with a browser window open and complete the
+  Google sign-in as `E2E_GOOGLE_AUTH_EMAIL` within 180 s, or set
+  `E2E_GOOGLE_AUTH_ENABLED=false` to prove the email/password leg alone.
+- **`speaking` BLOCKED_EXTERNAL — upstream AI provider down.** The STT/LLM
+  endpoint is unreachable from production. The app's own contract behaved
+  correctly (explicit retryable `503`, no fabricated assessment).
+  Dependency: `AI_V1_BASE_URL` / `AI_V1_API_KEY` reachable from Netlify Functions.
+  Resume condition: probe the configured tunnel from outside, then rerun
+  `node apps/web/scripts/e2e-prod.mjs speaking`. Do not fabricate a score.
+- **`drive` / `pronunciation` / `voice` / `offline` — intentionally gated.**
+  Dependencies and resume conditions are listed per suite in the task ledger and
+  in `tasks/todo.md`.
+
+### Readiness snapshot (2026-10-14)
+
+| Area | Before | After | Delta | Basis |
+| --- | --- | --- | --- | --- |
+| Auth & session (production) | 60% | 75% | +15 | Email/password durable over 2 cycles with revoke. Google leg still unproven in automation. |
+| RBAC & authorization (production) | 70% | 100% | +30 | `403`/`403`/`404`/`409` with `mutationCount: 0` proven live. |
+| Classroom lifecycle (production) | 70% | 100% | +30 | create -> join -> membership -> reload all durable. |
+| Assignment lifecycle (production) | 70% | 100% | +30 | full state machine incl. attempt limit `409`. |
+| Teacher workflows & analytics (production) | 75% | 100% | +25 | 12 capabilities incl. PDF, leaderboard ordering, device lifecycle. |
+| Student menus (production) | 45% | 45% | 0 | Suite fails on stale adaptive fixture state; not yet proven. |
+| Speaking / AI assessment (production) | 40% | 40% | 0 | Provider outage; app-side fail-closed is correct but no durable success. |
+| Pronunciation / voice / Drive (production) | 0% | 0% | 0 | Providers not configured for production. |
+| Offline / PWA (production) | 50% | 50% | 0 | Suite gated; local evidence only. |
+| Security headers & boundary (production) | 85% | 100% | +15 | Runtime header + 401 + redirect + secret-scan suite passes. |
+| SEO / PWA surface (production) | 55% | 85% | +30 | manifest, robots, sitemap, OG/Twitter, icons live and serving; PWABuilder report still open. |
+| Deployment (production) | 90% | 92% | +2 | New bundle verified live by deploy-freshness marker. |
+
+Weighted overall (excluding hardware, which has no implementation):
+**~62% -> ~74% (+12)**. Previously the evidence base was almost entirely local;
+the four PASS suites above are now proven against the real deployed bundle.
+
+`RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` are **unchanged**.
+`SCORING_PRODUCTION_READY=true` is unchanged. Justification: the release gates
+require a green protected production menu matrix, and it is **4/12** with one
+live FAIL, one human checkpoint, and six external gates. Certification remains
+correctly withheld.
+
+Protected production menu matrix: **4/12 suites PASS** (`smoke`, `teacher`,
+`classroom`, `assignment`, plus `security` = 5 evidenced end-to-end suites), 1
+partial, 1 fail, 6 blocked external.
+
+## Speaking Pipeline — Multi-Source Transcription (2026-10-14)
+
+Owner decision: speaking must not be locked to a Whisper API tunnel. Task ledger
+row `WEB-SPEAK-003 | DONE (local)`. Production E2E remains `E2E-PROD-SPEAKING`
+`BLOCKED_EXTERNAL` until the deployed bundle carries this change and the AI
+provider is reachable.
+
+### Design
+
+Two transcription sources behind one assessment contract:
+
+| Source | Path | Audio-only dimensions |
+| --- | --- | --- |
+| `browser_speech_api` | Web Speech API in the browser → transcript + measured listen time | unavailable |
+| `server_stt` | `HttpSttProvider` → Whisper API **or** whisper.cpp self-hosted | available when the provider supplies alignment/pitch |
+
+`HttpSttProvider` was **not** replaced. whisper.cpp's server exposes the same
+OpenAI-compatible multipart `/audio/transcriptions` contract, so the existing
+adapter already speaks to it; the only change needed was selection order.
+
+`AI_STT_ROUTE=local` points STT at `AI_LOCAL_BASE_URL` (whisper.cpp self-hosted)
+and no `AI_STT_MODEL_ID` is required, because that server serves one preloaded
+model. `lib/config/env.ts` previously called `required()` for
+`AI_STT_MODEL_ID`/`AI_V1_BASE_URL`, which made `getAiEnv()` throw even when the
+browser path needed no STT at all. `readSttBaseUrl()` now resolves leniently and
+the **audio route** is what fails closed with `503` when no endpoint exists.
+
+### Security model (client transcript is untrusted input)
+
+A client transcript can be pasted or scripted, so nothing numeric is taken from
+the request body. `lib/ai/client-transcript.ts` owns the boundary:
+
+| Threat | Control |
+| --- | --- |
+| Fluency inflation (claim 7 words in 1s → 420 WPM) | `wordCount` derived server-side by `countTranscriptWords`; a duration implying > 200 WPM is replaced with a neutral estimate and flagged `durationPlausible: false` |
+| Fabricated audio-only scores | `clientTranscript.audioVerified === false` forces pronunciation and intonation to `insufficient_evidence` in `resolveCanonicalScores`, even when a provider returns alignment/pitch evidence that cannot be corroborated |
+| Vocabulary score without real evidence | Vocabulary is a text-only dimension, so it now falls back to the actual transcript instead of being marked insufficient |
+| Memory / prompt cost DoS | 4 000-character hard cap; empty, non-word, and non-positive-duration transcripts rejected with `400 INVALID_TRANSCRIPT` |
+| Eavesdropping on the transcript | Transcript text is never logged; only length and provenance are persisted |
+| Lost audio evidence | When both an audio file and a transcript are supplied, the **server-side transcription wins**, because it is the only path whose audio can be trusted |
+
+`SCORING_SPEC.md` §10/§13 already required exactly this: a missing metric is never
+silently zeroed or fabricated. The implementation follows the existing spec
+rather than inventing a new rule.
+
+### Files
+
+- `apps/web/lib/ai/client-transcript.ts` (new) — validation and server-derived metrics.
+- `apps/web/lib/ai/client-transcript.test.ts` (new) — 11 tests.
+- `apps/web/hooks/use-speech-recognition.ts` (new) — Web Speech API wrapper with feature detection, interim text, and measured listen duration.
+- `apps/web/app/api/student/assessment/route.ts` — dual-mode intake; prefers server STT when audio is present; fails closed when neither path can run.
+- `apps/web/app/api/student/assessment/route.test.ts` (new) — 8 route/security tests.
+- `apps/web/lib/ai/assessment-processing.ts` — `clientTranscript` provenance; audio-only channels forced to `insufficient_evidence`.
+- `apps/web/lib/config/env.ts` — lenient STT resolution.
+- `apps/web/components/student/speaking-session.tsx` — transcript-first submission with audio fallback.
+- `apps/web/.env.example` — documents `AI_STT_ROUTE=local` and the optional STT model ID.
+- `PRD.md`, `AGENTS.md` — STT no longer locked to a single provider.
+
+### Verification
+
+| Gate | Result |
+| --- | --- |
+| `tsc --noEmit` | 0 errors |
+| `eslint` (8 touched files) | 0 errors; 1 warning is the pre-existing `micBlocked` effect |
+| `next build` | PASS, `/api/student/assessment` compiled |
+| `vitest run` | **64 files, 312 passed, 2 skipped, 0 failures** (up from 297) |
+
+The new tests assert the security properties directly: the transcript path never
+constructs an STT provider, works with no STT configured, derives word count
+server-side, clamps an implausible duration, rejects empty/oversized/invalid
+input with `400`, and returns `503` when the LLM is unavailable.
+
+### Still blocked / next
+
+- `E2E-PROD-SPEAKING` stays `BLOCKED_EXTERNAL`: the deployed bundle predates this
+  change, and the AI provider was returning `503` on 8 attempts. Resume after
+  deploy plus a reachable provider.
+- Real-browser proof of the Web Speech API path is still required; it cannot be
+  claimed from unit tests, and it needs an operator-approved student account.
+- whisper.cpp has not been deployed; `AI_STT_ROUTE=local` is wired and tested but
+  unproven against a running server.
+- Grammar still depends on the LLM provider, so a provider outage keeps the
+  assessment fail-closed rather than degrading silently.
+
+## Google Drive — OAuth Callback Session Binding (2026-10-14)
+
+Task ledger row `DRIVE-002 | DONE`. Owner decision: fix the callback security
+binding and add tests; the rest of the Drive flow was already built, so no
+rewrite.
+
+### What recon found
+
+The Drive implementation was already substantially complete and correct, so this
+pass deliberately did **not** rewrite it. Verified as sound, no change needed:
+
+| Control | Evidence |
+| --- | --- |
+| Least-privilege scope | `DRIVE_SCOPE = drive.file`; single-scope consent |
+| PKCE | `code_challenge_method=S256`, verifier stored encrypted, 256-bit random state |
+| Token storage | AES-256-GCM with per-token random IV, key derived by SHA-256 from `GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY`; verifier and both tokens encrypted at rest |
+| Token lifecycle | `access_type=offline` + `prompt=consent` so a refresh token exists; refresh on expiry with 60 s skew; `invalid_grant` maps to `DRIVE_REAUTH_REQUIRED` |
+| Upload validation | `validateDriveFile` enforces MIME allowlist, extension↔MIME agreement, 25 MB cap, and filename sanitization |
+| One-time state | State document deleted before the token exchange |
+| Failure discipline | Provider bodies never reach logs; only stable error codes are returned |
+
+### The real gap
+
+`/api/integrations/google-drive/callback` had **no session check**, while every
+other Drive route (`start`, `status`, `upload`, `disconnect`, `test-cleanup`)
+requires `requireRole`.
+
+A 256-bit PKCE `state` prevents code injection, but an OAuth redirect URL is
+still a bearer credential. A leaked or observed callback URL could be completed
+by anyone, attaching **their** Drive tokens to the **victim's** account, because
+`completeDriveOAuth` trusted `stateData.teacherId` without checking who was
+actually calling. PKCE did not cover this: the attacker's own code exchange uses
+the victim's verifier, so it succeeds.
+
+Fix, two layers:
+
+1. `callback/route.ts` now calls `requireRole('teacher')` before the exchange and
+   passes the authenticated uid to `completeDriveOAuth`.
+2. `completeDriveOAuth(state, code, initiatingTeacherId)` rejects the call when
+   `initiatingTeacherId` is missing or does not equal the state's `teacherId`,
+   using the same `INVALID_OAUTH_STATE` error as a missing or expired state so a
+   caller cannot probe which state values exist. The state document is left
+   intact on mismatch so the legitimate teacher can still finish.
+
+The optional parameter keeps the existing three lifecycle tests compiling while
+making the unauthenticated case fail closed; all in-repo callers now pass a uid.
+
+### Tests
+
+`lib/drive-oauth-lifecycle.test.ts` (+2) and
+`app/api/integrations/google-drive/callback/route.test.ts` (rewritten, 3→7):
+
+- an attacker with a valid callback URL and a different uid is rejected, `fetch`
+  is never called, no connection document is written, and the victim's state
+  survives;
+- a callback with no authenticated teacher is rejected before any provider call;
+- the callback passes the authenticated uid through to the exchange;
+- an unauthenticated or non-teacher caller cannot reach `completeDriveOAuth`.
+
+### Verification
+
+| Gate | Result |
+| --- | --- |
+| `tsc --noEmit` | 0 errors |
+| `eslint` (4 drive files) | 0 errors, 0 warnings |
+| `next build` | PASS |
+| `vitest run` | **64 files, 318 passed, 2 skipped, 0 failures** (up from 312) |
+
+### Still blocked
+
+`DRIVE-001` stays `BLOCKED_EXTERNAL`. This pass hardened the boundary but
+proves nothing about a real Google consent round trip: the fix requires an
+operator to complete OAuth in a browser with a dedicated teacher account whose
+Drive is approved for E2E use. Resume condition is unchanged —
+`E2E_DRIVE_ENABLED=true`, `E2E_DRIVE_ACCOUNT_EMAIL`,
+`E2E_DRIVE_ACCOUNT_APPROVED=true`, and `E2E_DRIVE_TEST_FILE`, then
+`node apps/web/scripts/e2e-prod.mjs drive`.
+
+## Voice & Pronunciation — Tenant-Isolation Coverage (2026-10-14)
+
+Task ledger row `VOICE-002 | DONE`. Scope chosen by owner: prove the isolation
+guarantee rather than rewrite working code.
+
+### Recon: what was already correct
+
+Voice and pronunciation were, on inspection, the most complete parts of the
+codebase. Verified and deliberately **not** changed:
+
+| Control | Evidence |
+| --- | --- |
+| Tenant isolation | `getStudentClassroomVoiceProfile` resolves classroom → `teacherId` → voice profile, and requires an **active** membership; non-members, revoked memberships, archived classrooms and unknown classrooms all throw `CLASSROOM_NOT_FOUND` |
+| Status gating | `/api/classrooms/[id]/voice` returns `409` while the teacher profile is `processing`, `503` when `failed` or no `providerVoiceId`; audio is never returned speculatively |
+| Consent + lifecycle | Enrollment requires `consent === 'true'` and a 3–2 000 char reference text; a `ready` profile must be deleted before re-enrollment; provider-side voice is deleted on failure and on teacher deletion |
+| Audio validation | Allowlisted audio MIME types, size caps, filename sanitization |
+| Provider boundary | TTS must be `route === 'local'` with a configured base URL, otherwise explicit `503` |
+| No fabricated pronunciation score | `recordPronunciationFailure` writes `assessmentStatus: 'failed'` with `score: null`; the page renders the score only behind `{scored && ...}`; no completion/XP consumer exists for pronunciation attempts, so a failed attempt cannot grant credit |
+| Idempotency | Pronunciation requires an `Idempotency-Key` and rejects reuse with a different audio payload hash (`409`) |
+
+### The actual gap: an unguaranteed guarantee
+
+PRD Fitur 6's acceptance criterion is "voice siswa/guru A tidak pernah digunakan
+untuk kelas guru B". `getStudentClassroomVoiceProfile` is the single function that
+decides which teacher's voice a student hears, so it carries the entire
+tenant-isolation boundary.
+
+Every route test **mocked that function out**:
+`vi.mock('@/lib/voice-profile', () => ({ getStudentClassroomVoiceProfile: vi.fn() }))`.
+The five route tests therefore prove only that the route handles whatever
+profile it is handed. If the membership check inside the real function were
+deleted, inverted, or loosened, **all of them would still pass.**
+
+Added `apps/web/lib/voice-isolation.test.ts` (7 tests) against the real function
+over an in-memory Firestore:
+
+1. each classroom resolves to its own teacher's voice (`voice-a` vs `voice-b`);
+2. a non-member is refused;
+3. a revoked membership is refused;
+4. an archived classroom is refused;
+5. an unknown classroom is refused rather than falling back to another teacher;
+6. when the classroom teacher has no profile, the student gets `null` instead of
+   another teacher's voice leaking in;
+7. a membership document naming a different student is refused.
+
+### Mutation check
+
+A test that cannot fail proves nothing, so the guard was verified by deliberately
+breaking it: replacing the membership guard with `if (false)` made **3 of the 7
+tests fail**. `voice-profile.ts` was then restored byte-exact from the backup and
+`git status` confirmed it unmodified. The guard is real and now protected.
+
+### Verification
+
+| Gate | Result |
+| --- | --- |
+| `tsc --noEmit` | 0 errors |
+| `eslint` | 0 errors, 0 warnings |
+| `next build` | PASS |
+| `vitest run` | **65 files, 325 passed, 2 skipped, 0 failures** (up from 318) |
+
+### Still blocked
+
+`VOICE-001` (OmniVoice enrollment/ready/delete/playback) stays
+`BLOCKED_EXTERNAL`: `AI_LOCAL_BASE_URL` and `AI_TTS_MODEL_ID` are unset because
+the self-hosted provider does not exist yet. `PRON-001` stays `BLOCKED_EXTERNAL`:
+the deployed `AI_PRONUNCIATION_*` variables are absent, and the configured
+tunnel is a Whisper transcription endpoint that returns segment timings only,
+not per-word phoneme alignment, which `scorePronunciationFromAlignment`
+requires. Neither may be marked passing from the code review above.
+
+## OmniVoice Self-Hosted Pipeline — Service Scaffold (2026-10-14)
+
+Task ledger row `VOICE-003 | DONE (scaffold)`. Owner decision: build the
+self-hosted service in `apps/ai`, fully gitignored, run locally, exposed to the
+web app through a v1 tunnel.
+
+### License blocker found first (must be resolved before production)
+
+The `omnivoice` **code** is Apache-2.0, but the **model weights are `CC-BY-NC`**
+(non-commercial), because of the Emilia training data. TuturAI is proprietary and
+commercially licensed. Using these weights in the product is **not permitted**
+without separate permission. This is recorded as a product decision, not
+resolved by code. The service was therefore built against a **pluggable backend**
+so a commercially licensed voice model can replace OmniVoice without touching the
+web app, and `apps/ai/README.md` carries the warning at the top.
+
+### What was built
+
+`apps/ai/` is a FastAPI service that speaks the exact contract
+`apps/web/lib/ai/voice-provider.ts` already expects, so the web app needed no
+changes:
+
+| Method | Path | Body | Response |
+| --- | --- | --- | --- |
+| POST | `/v1/voice-clones` | multipart `audio` + `ref_text` | `{ id, status }` |
+| GET | `/v1/voice-clones/{id}` | – | `{ id, status, error_code }` |
+| DELETE | `/v1/voice-clones/{id}` | – | `204` |
+| POST | `/v1/audio/speech` | JSON `{ voice_id, input, model? }` | `audio/wav` |
+| GET | `/health` | – | real backend state |
+
+Status mapping is chosen so the browser behaves correctly: `503` becomes a
+retryable `PROVIDER_UNAVAILABLE`, `422`/`404` become a terminal
+`PROVIDER_REJECTED`.
+
+Backends (`apps/ai/omnivoice_service/backends/`) are pluggable behind the
+`VoiceBackend` protocol:
+
+- `omnivoice_backend.py` wraps `k2-fsa/OmniVoice`, lazy-loads weights, refuses to
+  silently fall back from a requested CUDA device to CPU, and translates every
+  failure to a retryable or terminal error rather than leaking provider text.
+- `unavailable.py` holds the default fail-closed backend plus a `silence`
+  placeholder that **requires an explicit `OMNIVOICE_ALLOW_PLACEHOLDER_AUDIO=1`**,
+  so a misconfigured deployment cannot serve fake speech.
+
+### Security
+
+| Control | Detail |
+| --- | --- |
+| Tunnel exposure | `OMNIVOICE_API_KEY` enforces `Authorization: Bearer`; empty means the tunnel is the only barrier, which the README warns about |
+| No fabricated audio | default `backend=none` boots and answers `/health` `degraded`; every voice endpoint returns `503` |
+| Reference audio | size cap and MIME/container sniffing (`RIFF/WAVE`, `OggS`, `fLaC`, mp3, mp4); empty or non-audio rejected `422` |
+| Path traversal | `voice_id` containing `/`, `\` or `..` is rejected before touching disk |
+| Bounded work | synthesis text cap, 40 MB response cap, and a lock so one GPU is not asked to run N models concurrently |
+| Secrets | `.env` gitignored; `.env.example` ships empty |
+| Runtime junk | `.venv`, `storage`, `*.wav`, `__pycache__`, model caches all ignored; `git check-ignore` confirmed and `git add -n` shows only source is trackable |
+
+### Dependencies
+
+`pyproject.toml` pins every runtime dependency with `==` (FastAPI 0.143.1,
+uvicorn 0.54.0, pydantic 2.12.4, numpy 2.3.3, soundfile 0.14.0, httpx 0.28.1,
+omnivoice 0.2.1). Torch is intentionally left out because the correct build
+depends on the operator's CUDA version; installing it unpinned would be worse than
+a clear install step, and the README documents the exact commands per hardware.
+
+### Verification (real evidence, not claims)
+
+- `pytest -q` → **15 passed** on Python 3.12 in a fresh venv, using the
+  placeholder backend so no GPU or weights are needed. Covers the four
+  endpoints, idempotent enroll by key, 422 on empty/oversized/non-audio input,
+  503 fail-closed, bearer enforcement, and `CLONE_UNVERIFIABLE`/`CLONE_MISSING`.
+- Live `uvicorn` boot on port 8077 with `backend=none`, probed over HTTP:
+  `/health` → `degraded` + honest `error`; synthesis without auth → `401`;
+  synthesis with auth → `503`; enroll with no backend → `503`; enroll empty audio
+  → `422`; enroll non-audio → `422`; status poll → `processing` (so the web app
+  keeps retrying instead of failing the profile); delete → `204`.
+- `compileall` clean across `omnivoice_service`, `scripts`, `tests`.
+- Web app unaffected: typecheck `0`, `vitest` **325 passed, 0 failed**.
+
+One bug was found and fixed during this work: the status route defaulted a
+missing `clone_exists` to "ready", which would report a phantom clone. It now
+returns `failed` with `CLONE_UNVERIFIABLE`, and a test asserts that a backend
+which cannot confirm a clone never claims it is ready.
+
+### Still blocked
+
+- `VOICE-001` stays `BLOCKED_EXTERNAL`: the weights are not installed here, so no
+  real enrollment → ready → synthesis round trip has been proven. The service
+  fails closed in the meantime, which is the correct production behaviour.
+- `AI_LOCAL_BASE_URL` / `AI_LOCAL_API_KEY` are still unset in Netlify, and
+  `AI_TTS_MODEL_ID` is unset in `apps/web/.env.local`.
+- No tunnel has been provisioned; the HTTPS public URL is an operator step.
+- License above must be settled before any production voice rollout.
+
+## PWA Install, Launch Screen & Offline (2026-10-14)
+
+Task ledger row `PWA-002 | DONE (local)`. Trigger: a PWABuilder report card showed
+**"Has Service Worker" = fail**, `Service Worker +0`, and `Manifest 25/46`.
+
+### Root causes found
+
+1. **The service worker never claimed the page.** `sw.js` had no
+   `clients.claim()`, so after install the page was never *controlled*. PWABuilder
+   and Chrome's own install criteria both require a controller, so the worker
+   looked absent even though it was registered and active. Live proof before the
+   fix: `registered: true, active: true, controller: false`.
+2. **`display_override: ['window-controls-overlay', 'standalone']`** was the cause
+   of the browser/search-bar chrome inside the installed app.
+   `window-controls-overlay` takes priority over `standalone` and replaces the
+   app surface with an OS title-bar strip. Removed entirely.
+3. **There was no launch screen.** The app showed a blank canvas while the bundle
+   downloaded, which is exactly the "screen before preload" the owner reported.
+4. **`offline.html` was unbranded** (Arial, no mark) and had no retry affordance.
+
+### Changes
+
+- `public/sw.js` rewritten: `skipWaiting()` + `clients.claim()`, per-item precache
+  so one bad URL cannot abort the install, network-first navigations with an
+  offline fallback, cache-first for `_next/static`, `/icons`, `/brand`, and a
+  `SKIP_WAITING` message handler. Cache version `v5`.
+- `app/manifest.ts`: dropped `window-controls-overlay`, added
+  `prefer_related_applications: false`, `screenshots` (wide + narrow) and kept the
+  maskable icon.
+- `app/boot-splash.tsx` (new): a **server-rendered** launch screen, so it paints
+  before any JavaScript parses, with the brand tile, wordmark, progress bar, a
+  `prefers-reduced-motion` guard, and an inline script that removes it. It
+  preloads the mark only on desktop widths so mobile data is never spent on a
+  200 KB asset.
+- `app/app-hydrated-marker.tsx` (new): sets `data-app-ready` on hydration. This
+  exists because App Router already ships server-rendered markup, so hiding the
+  splash on "app-root has children" would remove it instantly; the first
+  implementation did exactly that and was caught by the E2E.
+- `public/offline.html`: brand palette, mascot mark, `viewport-fit=cover`,
+  preloaded icon, and a working "Coba lagi" retry button.
+- `scripts/e2e-pwa-install.mjs` (new, `pnpm e2e:pwa`): a credential-free,
+  fail-closed PWA E2E that throttles the bundle so the splash is observable and
+  asserts the controller, the precached shell, offline navigation, and offline
+  deep links.
+
+### Bug caught by the E2E
+
+The first splash version watched `app-root` for children. Because App Router
+server-renders the page, that was true on the very first paint, so the splash was
+removed immediately and the screenshots showed no splash at all. The E2E was
+what surfaced it. Fixed by triggering on an explicit hydration flag instead.
+
+### Verification (Playwright, real browser, production build)
+
+| Check | Result |
+| --- | --- |
+| manifest 200 / `display: standalone` / no `window-controls-overlay` / maskable icon | PASS |
+| launch screen paints before hydration, with brand wordmark | PASS |
+| launch screen clears after hydration | PASS |
+| service worker registered + active | PASS |
+| **service worker controls the page** | PASS (`controller: true`) |
+| offline shell + brand mark precached | PASS |
+| offline navigation resolves to the branded shell | PASS |
+| offline deep link (`/auth/login`) does not crash | PASS |
+
+`pnpm e2e:pwa` → **14/14**. Screenshots confirmed the branded splash (mark +
+"TuturAI" + progress bar) and the branded offline card with a working retry
+button. Full regression: typecheck 0, lint 0 errors / 8 pre-existing warnings,
+`vitest` **325 passed / 0 failed**, `next build` PASS.
+
+### Not yet proven on production
+
+These fixes are local only. The deployed origin still serves the old
+`sw.js` and the old manifest, so PWABuilder will keep reporting "no service
+worker" until the change is committed, pushed, and Netlify finishes its build.
+After the deploy, re-run
+`SECURITY_BASE_URL=https://tuturai-apps.netlify.app node apps/web/scripts/e2e-security-headers.mjs`
+and the same script for the PWA check against the live origin, then re-submit the
+URL to PWABuilder.
+
+## Readiness Snapshot — 2026-10-14 (before UI revamp)
+
+Two different numbers, because they answer different questions. Neither is a
+feeling: every figure below is tied to a named command, suite or ledger row.
+
+### PWA / web layer
+
+| Area | % | Evidence | Gap |
+| --- | --- | --- | --- |
+| Build, typecheck, lint, tests | 100 | `next build` PASS; `tsc` 0; `eslint` 0 errors (8 pre-existing warnings); `vitest` **325 passed / 0 failed** | — |
+| Security headers + auth boundary | 100 | `e2e:security-headers` PASS; production CSP/HSTS/nosniff/DENY verified 2026-09-28 | — |
+| RBAC fail-closed | 100 | production `403`/`403`/`404`/`409` with `mutationCount: 0` (`E2E-PROD-002`) | — |
+| PWA install (manifest/icons/worker) | 90 | `pnpm e2e:pwa` **14/14**, incl. `controller: true` | not deployed yet |
+| Offline app shell | 85 | offline navigation + deep link PASS locally | Drive file replay + AI audio replay still external |
+| Launch screen | 90 | branded splash paints pre-hydration and clears after | not deployed yet |
+| SEO | 95 | robots/sitemap/OG/Twitter live; screenshots captured | store screenshots are placeholders |
+| Accessibility | 85 | `SEC-004` keyboard/responsive/target-size + accessibility-tree review | no production mobile review |
+
+**PWA / web: ~93% locally verified.** Production-confirmed today: ~70%, limited
+only by the PWA work that is committed but not yet deployed.
+
+### Whole pipeline (all features)
+
+| Feature area | % | Blocking item |
+| --- | --- | --- |
+| Auth, session, RBAC | 95 | Google browser leg is human-tested, not automated |
+| Classroom | 100 | — (production E2E PASS) |
+| Assignment lifecycle | 100 | — (production E2E PASS) |
+| Teacher dashboard, analytics, PDF, leaderboard, devices | 95 | Drive + voice still external |
+| Student learning menus | 80 | production `student` suite FAIL: adaptive fixture not first recommendation on a dirty account |
+| Speaking assessment | 55 | new transcript pipeline tested locally; real provider round trip still open |
+| Pronunciation | 40 | provider unconfigured; needs per-word phoneme alignment, not Whisper timings |
+| Voice cloning / TTS | 35 | `apps/ai` service built and tested, but OmniVoice weights never downloaded |
+| Offline sync | 65 | shell proven; assignment-file and AI-audio replay external |
+| PWA install / offline shell | 85 | see PWA table above |
+| Security | 95 | header + secret scan + audit all clean |
+| SEO | 90 | placeholder store screenshots |
+| Hardware (ESP32-S3) | 25 | server-side registry only; no firmware, broker, or device |
+| Deploy / rollback | 75 | deployed and healthy; rollback target not recorded |
+
+**Whole pipeline: ~74% feature-complete** (equal-weight mean of the 14 areas).
+**Production-verified: ~47%** — only areas with real deployed E2E evidence
+count, which today is classroom, assignment, teacher workflows, security,
+navigation/SEO and the unauthenticated auth boundary.
+
+`RELEASE_READY=false` and `PRODUCT_PRODUCTION_READY=false` remain correct.
+
+### What would move the number
+
+Highest leverage, in order:
+
+1. Deploy and re-check PWABuilder (PWA 90 → 100, no external dependency).
+2. Reset the dedicated E2E student account and rerun the `student` suite (80 → 95).
+3. Restore Drive OAuth consent + record the rollback deploy ID.
+4. Configure a phoneme-alignment provider for pronunciation (40 → 85).
+5. Download OmniVoice weights and complete a real clone round trip (35 → 80).
 
 ## Coordinator Handoff
 

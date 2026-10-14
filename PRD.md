@@ -150,7 +150,7 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 **Prioritas:** P0  
 **Bergantung pada:** Fitur 4
 
-- **STT** — Whisper Large V3 melalui API key/provider endpoint.
+- **STT** — tidak lagi terkunci ke satu provider. Transkripsi boleh berasal dari (a) STT server-side (Whisper Large V3 via configured API, atau whisper.cpp self-hosted), atau (b) Web Speech API di browser. Web Speech API adalah jalur utama agar tidak bergantung pada tunnel/API eksternal; whisper.cpp self-hosted adalah fallback ketika browser tidak mendukung atau gagal. Mode transkrip-dari-browser hanya dapat menilai dimensi yang valid dari teks (grammar, vocabulary, fluency dengan metrik turunan server); dimensi yang membutuhkan audio (pronunciation, intonation) berstatus `insufficient_evidence` dan tidak boleh dikarang.
 - **Assessment** — hasil minimum: pronunciation, fluency, intonation, grammar, vocabulary, overall score, transcript, feedback, confidence/error metadata.
 - **LLM analysis** — sementara dapat menggunakan Gemma melalui API, tetapi `model_id`, base URL, dan provider wajib configurable.
 - **AI environment policy** — konfigurasi `v1` yang dipakai STT/LLM wajib tersedia server-side. Konfigurasi `local` untuk OmniVoice/TTS boleh kosong sampai provider self-hosted selesai dibuat; kosong pada `AI_LOCAL_BASE_URL` dan `AI_TTS_MODEL_ID` dalam `.env.local` bukan credential blocker dan tidak boleh dianggap sebagai simulated success.
@@ -263,7 +263,7 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 **Terkait fitur:** Fitur 5–6
 
 - [ ] Implement AI provider abstraction untuk tunnel URL/API key/model ID.
-- [ ] Integrasi Whisper Large V3 STT.
+- [ ] Integrasi STT multi-sumber: Web Speech API (browser) + whisper.cpp self-hosted, dengan Whisper Large V3 via API tetap opsional.
 - [ ] Normalisasi lima dimensi + overall score + feedback.
 - [ ] Adaptive recommendation engine.
 - [ ] OmniVoice enrollment satu profile/guru.
@@ -365,7 +365,7 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 | Local data | IndexedDB + Service Worker + Cache Storage | Offline-first drafts/audio queue/cache |
 | File storage | Google Drive milik guru | Tidak membutuhkan Firebase Storage; ownership tetap pada guru |
 | AI Gateway | Tunnel/API milik proyek; provider/model configurable | Model tidak di-hardcode |
-| STT | Whisper Large V3 via configured API | Speech-to-text pipeline |
+| STT | Web Speech API (browser) + whisper.cpp self-hosted; Whisper API opsional | Menghindari ketergantungan tunnel eksternal; provider tetap replaceable |
 | Voice | OmniVoice + self-hosted TTS | Satu cloned voice profile per guru |
 | PDF | Client/server PDF renderer sesuai implementation repo | Export dashboard report |
 | Hardware | ESP32-S3 N16R8, ESP-IDF, FreeRTOS, TinyML | Edge/offline device |
@@ -634,7 +634,7 @@ flowchart LR
   DRIVE[Teacher Google Drive]
   AIGW[AI Provider Adapter]
   TUNNEL[User Tunnel + API Key + Model IDs]
-  STT[Whisper Large V3]
+  STT[WebSpeechAPI / whisper.cpp self-host]
   LLM[Configurable LLM]
   VOICE[OmniVoice + Self-hosted TTS]
   HW[ESP32-S3 Handheld]
@@ -743,6 +743,7 @@ Phase QA dan Phase Security wajib lulus sebelum release dianggap selesai.
 
 | Tanggal | Perubahan |
 |---|---|
+| 14 Oktober 2026 | Keputusan owner: speaking tidak lagi terkunci ke Whisper API. Transkripsi memakai Web Speech API di browser sebagai jalur utama dan whisper.cpp self-hosted sebagai fallback; Whisper Large V3 via API tetap opsional. Mode transkrip-dari-browser hanya menilai dimensi yang valid dari teks (grammar, vocabulary, fluency dengan metrik turunan server); pronunciation dan intonation berstatus `insufficient_evidence` karena membutuhkan audio asli, dan tidak boleh dikarang. |
 | 25 September 2026 | Scope auth dikoreksi kembali menjadi Google + email/password; GitHub tetap di luar scope. `WEB-AUTH-002` diaktifkan kembali untuk verifikasi browser/provider; Drive OAuth tetap integrasi terpisah. |
 | 25 September 2026 | Historical decision (superseded by the entry above and §1): production auth was considered email/password-only; Google is now in scope, while GitHub remains out of scope. Drive OAuth stays separate; prior verification evidence is retained as historical. |
 | 21 September 2026 | Draft v0.1 TuturAI berdasarkan proposal LIDM, produk aktif, dan keputusan final: Firebase/Netlify, classroom key, assignment+Drive, AI tunnel, teacher voice cloning, offline-first, PDF report, dan hardware integration. |

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiError } from '@tuturai/validation'
 import { completeDriveOAuth, DriveConfigurationError } from '@/lib/drive'
+import { requireRole } from '@/lib/api/auth-guard'
 import { getRequestId, logApiFailure } from '@/lib/api/observability'
 
 export async function GET(request: NextRequest) {
@@ -12,8 +13,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(apiError('FORBIDDEN', 'Google Drive authorization was cancelled', { code: 'DRIVE_OAUTH_CANCELLED', requestId }), { status: 400 })
   }
   if (!state || !code) return NextResponse.json(apiError('VALIDATION_ERROR', 'OAuth state and code are required', { code: 'INVALID_OAUTH_CALLBACK', requestId }), { status: 400 })
+
+  // SECURITY: the callback is a redirect target, so it must require the same
+  // authenticated teacher session that started the flow. `completeDriveOAuth`
+  // additionally verifies this uid matches the state document, so a leaked
+  // callback URL cannot attach an attacker's Drive to a victim's account.
+  const auth = await requireRole('teacher')
+  if (!auth.ok) return auth.response
+
   try {
-    await completeDriveOAuth(state, code)
+    await completeDriveOAuth(state, code, auth.user.uid)
     return NextResponse.redirect(new URL('/guru/pengaturan?drive=connected', request.url), { headers: { 'cache-control': 'no-store', 'x-request-id': requestId } })
   } catch (cause) {
     if (cause instanceof DriveConfigurationError || (cause instanceof Error && cause.message.startsWith('Missing required environment variable'))) {
