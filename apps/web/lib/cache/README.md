@@ -8,7 +8,7 @@ Latency changes; correctness never does.
 ## Enabling
 
 Set both values in `apps/web/.env.local`, and in Netlify's Functions scope for
-production (see `netlify-env.template`):
+production (see `.env.example` in the same folder):
 
 ```
 UPSTASH_REDIS_REST_URL=

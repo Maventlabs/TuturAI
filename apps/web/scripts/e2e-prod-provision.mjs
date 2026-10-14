@@ -12,7 +12,7 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore'
 
 const envPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', '.env.e2e.production')
 if (!existsSync(envPath)) {
-  console.error(JSON.stringify({ event: 'provision', status: 'FAIL', reason: 'missing .env.e2e.production; copy e2e-prod.env.template first' }))
+  console.error(JSON.stringify({ event: 'provision', status: 'FAIL', reason: 'missing .env.e2e.production; create it from the E2E_* block in .env.example' }))
   process.exit(1)
 }
 if (typeof process.loadEnvFile === 'function') process.loadEnvFile(envPath)

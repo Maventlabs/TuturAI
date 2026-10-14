@@ -25,7 +25,7 @@ Before touching UI:
 
 1. read `PRD.md`;
 2. read `AGENTS.md`;
-3. read `MUST.md`;
+3. read `AGENTS.md`;
 4. read `EXECUTION.md`;
 5. inspect current frontend architecture;
 6. inventory existing components/routes/layouts;

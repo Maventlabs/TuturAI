@@ -11,7 +11,7 @@
 - **Completion rule:** mark a feature `[x]` only after its full user path works end-to-end with the real configured boundary, durable state, success state, failure state, and verification evidence. Unit tests or provider adapters alone remain unchecked prework.
 - **Execution strategy:** production breadth-first sweep. Implement every student/teacher menu through a real durable/API boundary before deepening later-phase AI, offline, analytics, or hardware behavior. Do not loop back to already-verified auth unless a new regression is demonstrated.
 - Phase 1 checkpoint complete for Firebase email/password, server session, permanent role, RBAC, and Firestore rules. Phase 2 classroom checkpoint is complete. Phase 2.5 is complete. Phase 3 implementation is complete locally; real Google Drive consent/upload verification remains open.
-- Repository hygiene files (`MUST.md`, expanded `.gitignore`, and shield-based `README.md`) are prepared locally; the first GitHub MCP commit is blocked by a `403 Resource not accessible by personal access token` from `vetrns/TuturAI-Final`.
+- Repository hygiene files (expanded `.gitignore` and shield-based `README.md`) are prepared locally; the first GitHub MCP commit is blocked by a `403 Resource not accessible by personal access token` from `vetrns/TuturAI-Final`.
 
 - [x] Read `PRD.md` and `AGENTS.md`.
 - [x] Audit public landing/auth routes with Firecrawl and browser automation.
@@ -74,7 +74,7 @@
 - [x] Keep every production security guard that merely *guards* emulator usage: `lib/config/env.ts` prod throw, `client-config.mjs` build validation, `session.ts`/`client.ts` `NODE_ENV` short-circuits, `proxy.ts` dev-only CSP sources.
 - [x] Verify after the changes: clean-cache build PASS with no emulator, `tsc --noEmit` 0 errors, `eslint` 0 errors / 8 pre-existing warnings, tests 63/63 files / 297 passed / 0 failures, security script PASS, all SEO/PWA routes 200.
 - [ ] **Owner decision needed:** Firestore security-rules suite is now opt-in (`pnpm --filter @tuturai/web test:rules`). It hard-fails without an emulator, so it was excluded from the default run rather than deleted. Pick a CI strategy: keep a headless emulator, use a hosted rules runner, or accept opt-in rules coverage.
-- [ ] `MUST.md` is deleted in the worktree but still tracked in `HEAD` and referenced by `README.md`, `DESIGN_OVERHAUL.md`, `tasks/todo.md`, and `docs/AI_PROVIDER_CONTEXT.md`. Predates this session; needs the owner to confirm restore or reference cleanup.
+- [x] `MUST.md` (legacy) deleted by owner instruction; its five references in `README.md`, `DESIGN_OVERHAUL.md`, `EXECUTION.md`, `tasks/todo.md`, and `docs/AI_PROVIDER_CONTEXT.md` were cleaned so no dangling link remains. `AGENTS.md` is the architecture/operating contract and `EXECUTION.md` is the only runtime status source.
 - [ ] 2.6 MB of `hero-student.png` / `teacher-dashboard.png` still sit in `public/`. Not served (pages use the 36 KB / 43 KB WebP) but referenced as inputs by `scripts/optimize-landing-images.mjs` — move the optimizer inputs out of `public/` if those bytes should leave the deploy.
 
 ## Phase 1: Foundation, Auth & Data Model

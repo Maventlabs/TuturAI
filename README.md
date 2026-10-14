@@ -13,7 +13,7 @@ workflows, teacher analytics, Google Drive assignment files, offline recovery,
 and a replaceable server-side AI provider router.
 
 > Project status: active implementation. Read [`PRD.md`](PRD.md),
-> [`AGENTS.md`](AGENTS.md), [`MUST.md`](MUST.md), and [`EXECUTION.md`](EXECUTION.md)
+> [`AGENTS.md`](AGENTS.md) and [`EXECUTION.md`](EXECUTION.md)
 > before making changes. `EXECUTION.md` is the only runtime status source.
 > Incomplete external integrations must report their real state rather than
 > simulate success.
@@ -66,6 +66,25 @@ Never commit `.env.local`, service-account files, OAuth secrets, private keys,
 or provider tokens. Public Firebase web configuration may be exposed by the
 browser; Firebase Admin, Google OAuth secrets, token encryption keys, and AI
 API keys must remain server-only.
+
+There are exactly two env files in `apps/web`: `.env.example` (the tracked
+reference for every variable, including the optional `E2E_*` production-runner
+block at the bottom) and `.env.local` (your real values, gitignored). Copy
+`.env.example` to start and edit `.env.local` for local development and testing;
+no third template is needed.
+
+### Netlify secrets scanning
+
+Netlify greps the repository for the literal **value** of every environment
+variable, so a variable holding an ordinary word fails the build.
+`E2E_GOOGLE_AUTH_ROLE=student` matched `firestore.rules`, every role guard, and
+~700 lines of ordinary code. Two rules follow from this:
+
+- Keep `E2E_*` variables out of the Netlify environment. They exist only to run
+  the Playwright runner locally.
+- Non-secret identifiers, enums, booleans and URLs are listed in
+  `SECRETS_SCAN_OMIT_KEYS` in `netlify.toml`. Never add a real credential
+  there; the omit list is public.
 
 ## Development Commands
 
@@ -197,7 +216,7 @@ from `AGENTS.md`.
 - `apps/web/scripts/tmp-*.mjs`-style one-off scripts are not part of the
   repository; regenerate them if a probe is needed rather than committing them.
 
-See [`MUST.md`](MUST.md) for the persistent execution contract and
+See [`AGENTS.md`](AGENTS.md) for the architecture and operating contract, and
 [`EXECUTION.md`](EXECUTION.md) for the current phase and task status. Files under
 `tasks/` are retained as historical evidence and are not runtime trackers.
 

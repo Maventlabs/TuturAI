@@ -39,10 +39,10 @@ The committed `netlify.toml` defines:
 Sensitive values must be entered in Netlify UI or CLI environment management,
 never in `netlify.toml`.
 
-Use `apps/web/netlify-env.template` as a manual entry sheet only; do not import
-it as-is. The checked-in `apps/web/.env.local` is for emulator development and
-uses project `demo-tuturai` with Auth/Firestore emulators at localhost. Do not
-copy its Firebase Admin values or emulator hosts to production. The configured
+Use `apps/web/.env.example` as the key reference for the full variable list; it is
+the single env template in the repository. Do not import it as-is. The checked-in
+`apps/web/.env.local` is for local development and holds real secrets, so never
+copy it to production. The configured
 `AI_V1_*` entries may be copied to Netlify Functions only if they are the
 intended production provider credentials; those variables and v1 model IDs are
 present in the local file, but their secret values are deliberately not repeated
@@ -52,11 +52,15 @@ endpoint; never put their values in Git. The
 TTS/local provider remains explicitly unavailable while `AI_LOCAL_BASE_URL` is
 unset.
 
-`apps/web/e2e-prod.env.template` is a separate local Playwright-runner template,
-not a Netlify environment file. It deliberately disables gated suites until
-dedicated production test accounts, matching Firebase Admin credentials, and
-real provider access are configured. Do not set local Firebase emulator hosts
-when running `pnpm e2e:prod:*`.
+`E2E_*` keys (documented at the bottom of `apps/web/.env.example`) drive the
+local Playwright runner, not Netlify. Keep them OUT of the Netlify environment:
+several hold ordinary words or booleans (`E2E_GOOGLE_AUTH_ROLE=student`, the
+`*_ENABLED=false` flags), and Netlify's secrets scanner greps the repository for
+every environment value, so a single one of those fails the build. The runner
+reads only `apps/web/.env.e2e.production` and disables gated suites until
+dedicated production accounts, matching Firebase Admin credentials, and real
+provider access are configured. Do not set Firebase emulator hosts when running
+`pnpm e2e:prod:*`.
 
 Copy it to `apps/web/.env.e2e.production` and fill values locally. The runner
 loads only that file; it never loads `.env.local`. This file is Git-ignored.
