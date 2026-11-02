@@ -31,8 +31,9 @@ export interface NavItem {
 export const studentNav: NavItem[] = [
   { label: 'Dashboard', href: '/siswa', icon: LayoutDashboard },
   { label: 'Penugasan', href: '/siswa/penugasan', icon: ClipboardCheck },
+  { label: 'Challenge Speaking', href: '/siswa/challenge-speaking', icon: Users },
   { label: 'Speaking Practice', href: '/siswa/speaking', icon: Mic },
-  { label: 'AI Conversation', href: '/siswa/percakapan', icon: MessageSquare, badge: 'Online' },
+  { label: 'Latihan Bicara AI', href: '/siswa/latihan-bicara-ai', icon: Headphones, badge: 'AI' },
   { label: 'Pronunciation Lab', href: '/siswa/pronunciation', icon: AudioLines },
   { label: 'Vocabulary', href: '/siswa/vocabulary', icon: BookText },
   { label: 'Listening', href: '/siswa/listening', icon: Headphones },

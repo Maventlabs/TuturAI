@@ -35,7 +35,8 @@
     "e2e:onboarding": "node scripts/e2e-onboarding.mjs",
     "e2e:authorization-boundaries": "node scripts/e2e-authorization-boundaries.mjs",
     "e2e:security-headers": "node scripts/e2e-security-headers.mjs",
-    "e2e:pwa": "node scripts/e2e-pwa-install.mjs"
+    "e2e:pwa": "node scripts/e2e-pwa-install.mjs",
+    "e2e:voice-seam": "node scripts/e2e-voice-seam.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -47,6 +48,8 @@
     "firebase": "^12.19.0",
     "firebase-admin": "^14.4.0",
     "framer-motion": "^12.41.0",
+    "livekit-client": "^2.23.0",
+    "livekit-server-sdk": "^2.19.2",
     "lucide-react": "^1.16.0",
     "next": "16.3.3",
     "next-themes": "^0.4.6",

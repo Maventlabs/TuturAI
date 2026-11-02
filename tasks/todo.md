@@ -76,6 +76,20 @@
 - [ ] **Owner decision needed:** Firestore security-rules suite is now opt-in (`pnpm --filter @tuturai/web test:rules`). It hard-fails without an emulator, so it was excluded from the default run rather than deleted. Pick a CI strategy: keep a headless emulator, use a hosted rules runner, or accept opt-in rules coverage.
 - [x] `MUST.md` (legacy) deleted by owner instruction; its five references in `README.md`, `DESIGN_OVERHAUL.md`, `EXECUTION.md`, `tasks/todo.md`, and `docs/AI_PROVIDER_CONTEXT.md` were cleaned so no dangling link remains. `AGENTS.md` is the architecture/operating contract and `EXECUTION.md` is the only runtime status source.
 
+## OmniVoice Q8 GGUF — Real Round Trip (VOICE-003)
+
+Owner instruction: use Q8, not fp32, and prioritise speed. Owner also accepted the non-commercial weight licence for now since the product is not yet commercial.
+
+- [x] Established that Q8_0 GGUF **cannot** be loaded by the Python `omnivoice` package — it needs `omnivoice.cpp` (C++17/GGML). Q8 is 0.90 GB vs 3.04 GB fp32 (3.4x smaller). Weights downloaded.
+- [x] Installed a C++ toolchain: VS Build Tools installed but `modify` fails with exit 5007 on this build, so switched to MSYS2 (gcc 16.2 / cmake / ninja 1.13.2).
+- [x] Cloned `omnivoice.cpp` + `ggml` submodule, configured `-DGGML_VULKAN=ON`, built **373/373 targets RC=0** → `omnivoice-tts.exe`, `omnivoice-codec.exe`, `tts-server.exe`. Two build fixes: `-D_WIN32_WINNT=0x0A00` for `CreateFile2`, and Vulkan dev packages.
+- [x] Measured speed and set defaults: **Vulkan0 10.5s RTF 5.86 vs CPU 38.1s RTF 21.19 (3.6x)**; `OMNIVOICE_DEVICE=Vulkan0`, `OMNIVOICE_STEPS=16`.
+- [x] Added the GGUF backend (`backends/gguf_backend.py`) using `tts-server` with per-voice `.rvq` pre-encoding so the codec encode is skipped on every synthesis. No web file changed — the contract is identical.
+- [x] **Real round trip proven**: enroll 1.1s → ready → 2.03s audio (peak 31502, 83.7% audible) → delete 204. `e2e:voice-seam` **11/11** proving the web `HttpVoiceProvider` contract against the live service.
+- [x] Fixed 2 real bugs found by the round trip: `_send()` ignored `allow_status` (registry 404 became a 422 on delete) and `delete_clone` started the model before checking the directory.
+- [x] Regression: typecheck 0, `vitest` 325 passed, tenant isolation 7/7, Python 15/15.
+- [ ] Close `VOICE-001` (production): expose an HTTPS tunnel, set Netlify `AI_LOCAL_BASE_URL` + `AI_LOCAL_API_KEY`, add a real teacher reference clip, and set `E2E_VOICE_ENABLED=true`. These are production changes / credentials, so they were not done unilaterally.
+
 ## PWA Install, Launch Screen & Offline (PWA-002)
 
 Trigger: PWABuilder report card showed "Has Service Worker" fail, `Service Worker +0`, `Manifest 25/46`.

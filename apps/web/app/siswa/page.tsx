@@ -104,7 +104,7 @@ export default function StudentDashboard() {
   return (
     <div className="mx-auto max-w-6xl">
       {/* Welcome */}
-      <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-gradient-to-br from-primary to-accent p-6 text-primary-foreground sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-primary p-6 text-primary-foreground sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium text-primary-foreground/80">
             {greeting()}, {profile?.full_name?.split(' ')[0] ?? 'Siswa'}!

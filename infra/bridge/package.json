@@ -1,0 +1,21 @@
+{
+  "name": "@tuturai/bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Bridges the TuturAI device MQTT broker to Cloud Firestore",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/index.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "mqtt": "^5.10.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  }
+}

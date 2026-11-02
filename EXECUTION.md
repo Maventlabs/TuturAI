@@ -352,7 +352,7 @@ only when its status changes or it becomes the final release blocker.
 | `WEB-SPEAK-002` | BLOCKED_EXTERNAL | 5 | conversation voice/TTS | 1 | local provider intentionally unconfigured | run provider contract when reachable |
 | `VOICE-001` | BLOCKED_EXTERNAL | 5 | OmniVoice enroll/ready/delete/playback | 1 | provider endpoint/model unavailable | run provider lifecycle |
 | `VOICE-002` | DONE | 5 | 2026-10-14 teacher-voice tenant isolation is now actually guaranteed by tests. Recon found voice/pronunciation already correct on status gating (`409` while `processing`, `503` when `failed`/no `providerVoiceId`), consent-gated enrollment with delete-before-re-enroll, audio MIME/size/filename validation, TTS restricted to `route==='local'`, pronunciation failing closed with `assessmentStatus:'failed'` + `score:null` and no XP/completion consumer, and idempotency rejecting payload reuse with `409` — so none of it was rewritten. Real gap: PRD Fitur 6 requires "voice guru A tidak pernah dipakai untuk kelas guru B", enforced solely by `getStudentClassroomVoiceProfile`, but every route test mocked that function away, so deleting or loosening the membership check would have left all 5 route tests green. Added `lib/voice-isolation.test.ts` (7 tests) against the real function: per-classroom teacher resolution, non-member, revoked membership, archived classroom, unknown classroom, missing teacher profile returning `null` instead of leaking another teacher's voice, and a membership naming a different student. Mutation-verified: replacing the membership guard with `if (false)` fails 3 of the 7, then the file was restored byte-exact. typecheck 0, lint 0, build PASS, vitest 325 tests | 1 | first run failed to transform because unquoted object keys containing hyphens (`class-a_student-1`) are invalid JS; quoted them | reopen only if the classroom→teacher→membership resolution changes |
-| `VOICE-003` | DONE (scaffold) | 5 | 2026-10-14 self-hosted OmniVoice service scaffolded in `apps/ai` (gitignored runtime, tracked source) matching the existing `HttpVoiceProvider` contract exactly: `/v1/voice-clones` POST/GET{id}/DELETE, `/v1/audio/speech`, `/health`. Pluggable `VoiceBackend` with the real `k2-fsa/OmniVoice` wrapper (lazy load, no silent CUDA→CPU fallback) and a default fail-closed backend; the `silence` placeholder requires an explicit opt-in so no deployment can serve fake speech. Security: bearer token enforced when set, reference-audio size cap + MIME/container sniffing, voice_id path-traversal guard, text and 40 MB response caps, single-inference lock. All deps pinned with `==`; torch intentionally unpinned per operator CUDA build. Verified: pytest **15 passed** on a fresh venv, live uvicorn probed (health `degraded`, 401 unauth, 503 no-backend, 422 empty/non-audio, status `processing`, delete 204), compileall clean, web app unaffected (typecheck 0, vitest 325). Fixed a bug where the status route defaulted a missing `clone_exists` to `ready` (phantom clone). torch 2.8.0+cpu and omnivoice 0.2.1 are installed in `apps/ai/.venv`, but the 3.04 GB weight download was not completed, so **no real round trip is proven**. **BLOCKER: OmniVoice weights are CC-BY-NC (non-commercial) while TuturAI is proprietary — owner accepted this for now since the product is not yet commercial, and the pluggable backend exists so a licensed model can replace it** | 1 | first test run failed because `SilenceBackend` had no `clone_exists`, so the status route reported everything ready; added `clone_exists` to the placeholder and made the route fail with `CLONE_UNVERIFIABLE` instead of guessing | real enrollment/synthesis round trip still needs the weights, Netlify `AI_LOCAL_*` env, and an HTTPS tunnel; then close `VOICE-001` |
+| `VOICE-003` | DONE (engine proven) | 5 | 2026-10-14 OmniVoice switched from fp32 safetensors to **Q8_0 GGUF** (0.90 GB vs 3.04 GB, 3.4x smaller) as instructed. Q8 is only loadable by `omnivoice.cpp` (C++17/GGML), not the Python package, so the C++ runtime was built: VS Build Tools installed but its `modify` path fails with exit 5007 on this build and the C++ workload never landed, so MSYS2 was used instead (gcc 16.2, cmake, ninja 1.13.2); repo + ggml submodule cloned; `-DGGML_VULKAN=ON` configured; two build fixes were required — `cpp-httplib` needs `-D_WIN32_WINNT=0x0A00` for `CreateFile2`, and Vulkan needed vulkan-headers/loader/shaderc/spirv-headers/glslang/libgomp. Build **373/373, RC=0**, producing `omnivoice-tts.exe`, `omnivoice-codec.exe`, `tts-server.exe`. Speed measured: **Vulkan0 10.5s RTF 5.86 vs CPU 38.1s RTF 21.19 — 3.6x faster**, so `Vulkan0` and `steps=16` are the defaults. Real round trip proven: enroll 1.1s -> ready -> 2.03s audio (peak 31502, 83.7% audible) -> delete 204, plus `e2e:voice-seam` **11/11** proving the web `HttpVoiceProvider` contract against the live service. Two real bugs caught and fixed: `_send()` ignored `allow_status` so a registry 404 became a 422 on delete, and `delete_clone` started the model before checking the directory. Web regression typecheck 0 / vitest 325 / isolation 7/7; Python 15/15; no web file changed. `VOICE-001` stays blocked because Netlify has no `AI_LOCAL_BASE_URL` tunnel, `E2E_VOICE_AUDIO_FIXTURE` is empty, and the gate flag is off | 2 | first round trip failed delete with 422 because `allow_status` was accepted but never applied in `_send()`; then `delete_clone` started the model before checking the directory — both fixed at root cause | close `VOICE-001` after exposing an HTTPS tunnel, setting Netlify `AI_LOCAL_*`, supplying a real teacher reference clip, and setting `E2E_VOICE_ENABLED=true` |
 | `PWA-002` | DONE (local) | MAINT | 2026-10-14 PWA install/launch/offline fixes after a PWABuilder report card showed "Has Service Worker" fail and Manifest 25/46. Root causes: (1) `sw.js` never called `clients.claim()`, so the page was never controlled — proven live as `registered:true active:true controller:false`, which is exactly what PWABuilder checks; (2) `display_override:['window-controls-overlay','standalone']` was producing the browser/search-bar chrome inside the app because it outranks standalone; (3) there was no launch screen at all, only a blank canvas while the bundle loaded; (4) `offline.html` was unbranded with no retry. Fixed: `sw.js` rewritten with `skipWaiting`/`clients.claim`, per-item precache, network-first navigation + offline fallback and cache-first static; manifest drops the overlay and adds `prefer_related_applications` + screenshots; new server-rendered `app/boot-splash.tsx` paints before any JS with the brand tile/wordmark/bar and reduced-motion guard; new `app/app-hydrated-marker.tsx` sets `data-app-ready`; branded `offline.html` with a working retry button; new `pnpm e2e:pwa` (`scripts/e2e-pwa-install.mjs`) throttles the bundle and asserts controller/precache/offline/deep-link. **E2E caught a real bug: the first splash hid on `app-root` having children, which App Router server-renders, so it vanished instantly — now triggered by the hydration flag instead.** Verified `pnpm e2e:pwa` **14/14** plus typecheck 0, lint 0 errors/8 pre-existing, vitest 325, build PASS | 1 | the splash-hiding trigger was wrong at first; the Playwright screenshot and the "launch screen paints" assertion surfaced it immediately | PWABuilder will still report no service worker until this is committed, pushed and Netlify deploys; re-run the security + PWA scripts against the live origin afterwards |
 | `PRON-001` | BLOCKED_EXTERNAL | 5 | phoneme-capable scoring | 1 | production `POST /api/student/pronunciation` returns 503 `Phoneme scoring provider is not configured` (`AI_PRONUNCIATION_MODEL_ID`/`AI_PRONUNCIATION_PATH` unset in Netlify); the configured tunnel is Groq Whisper and returns segment timings only, so it cannot supply the required per-word phoneme alignment | add a forced-alignment provider to the deployed Netlify env, then run phoneme provider contract |
 | `WEB-TEACHER-001` | DONE | 6 | teacher core/analytics/report evidence | 1 | none | reopen only on regression |
@@ -1760,6 +1760,112 @@ Highest leverage, in order:
 3. Restore Drive OAuth consent + record the rollback deploy ID.
 4. Configure a phoneme-alignment provider for pronunciation (40 → 85).
 5. Download OmniVoice weights and complete a real clone round trip (35 → 80).
+
+## OmniVoice Q8 GGUF — Real Round Trip Proven (2026-10-14)
+
+Task ledger row `VOICE-003` moves from scaffold to a working engine, and
+`VOICE-001` stays `BLOCKED_EXTERNAL` for production reasons recorded below.
+Owner decided the non-commercial weight licence is acceptable for now because
+the product is not yet commercial; that is a recorded product decision, not a
+resolved licence question.
+
+### Q8, not fp32 — and why it required a different engine
+
+The Python `omnivoice` package only reads the fp32/bf16 safetensors checkpoint
+(3.04 GB). The Q8_0 GGUF build is served by **`omnivoice.cpp`**, a separate
+C++17/GGML port, which cannot be loaded from Python at all. Switching to Q8
+therefore meant building the C++ runtime, not changing a config value.
+
+| Variant | base | tokenizer | total |
+| --- | --- | --- | --- |
+| F32 (Python path) | 2.46 GB | 734 MB | 3.04 GB |
+| **Q8_0 (chosen)** | **626 MB** | **275 MB** | **0.90 GB** |
+
+3.4x smaller. Weights downloaded and verified.
+
+### Toolchain and build
+
+No C++ compiler existed on this machine. Visual Studio Build Tools installed but
+its `modify` path fails with **exit code 5007** on this build, and the VS C++
+workload never landed (0.1 GB, no `cl`/`cmake`/`ninja`). Switched to **MSYS2**
+(`gcc 16.2`, `cmake`, `ninja 1.13.2`), which installed cleanly.
+
+`omnivoice.cpp` was cloned with its `ggml` submodule and configured with
+`-DGGML_VULKAN=ON`. Two fixes were required:
+
+- `cpp-httplib` calls `CreateFile2`, which MinGW hides behind
+  `_WIN32_WINNT >= 0x0602`; fixed with `-D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00`.
+- Vulkan needed `vulkan-headers`, `vulkan-loader`, `shaderc` (glslc),
+  `spirv-headers`, `glslang`, `libgomp`.
+
+Build result: **373/373 targets, `BUILD_RC=0`**, producing `omnivoice-tts.exe`,
+`omnivoice-codec.exe`, and `tts-server.exe`.
+
+### Speed — measured, Vulkan justified
+
+Measured on this machine (Intel Iris Xe, no NVIDIA) with Q8_0, 16 MaskGIT steps,
+2 s of audio, cloned voice:
+
+| Device | Total | RTF | vs CPU |
+| --- | --- | --- | --- |
+| **Vulkan0** | **10.5 s** | **5.86** | **3.6x faster** |
+| CPU | 38.1 s | 21.19 | baseline |
+
+`Vulkan0` is detected (`ggml_vulkan: 0 = Intel(R) Iris(R) Xe Graphics`), so it
+is the default `OMNIVOICE_DEVICE`. `OMNIVOICE_STEPS=16` is the default because
+it halves wall-clock versus the 32-step default with audible output intact.
+
+### Real round trip — proven, not mocked
+
+`apps/ai/scripts/real_roundtrip.py` against the running service:
+
+```
+service boots on the GGUF backend      PASS  backend=omnivoice-gguf device=Vulkan0 loaded=True
+unauthenticated synthesis rejected    PASS  401
+enrollment returns ready (1.1 s)       PASS
+status reports ready                   PASS
+unknown voice does not report ready    PASS
+synthesis returns 200 audio/wav        PASS
+audio: 2.03 s  peak=31502  audible=83.7%   PASS  (real signal, not silence)
+delete returns 204                     PASS
+deleted voice no longer reports ready  PASS
+```
+
+`apps/web/scripts/e2e-voice-seam.mjs` then drives the **web `HttpVoiceProvider`
+contract** against the live service — the same multipart enrollment, status
+poll, JSON synthesis and delete the browser uses: **11/11 PASS**, audio
+`2.56 s, peak=12152, audible=91.1%`.
+
+Two real bugs were caught and fixed during this:
+
+1. `_send()` accepted `allow_status` but never honoured it, so a 404 from the
+   voice registry surfaced as `BackendRejected` and delete returned `422`. Fixed
+   so allowed statuses pass through.
+2. `delete_clone` called `self.load()` before checking the directory, so
+   deleting a non-existent profile started the whole model. Reordered.
+
+### Still BLOCKED_EXTERNAL — production, not the engine
+
+`VOICE-001` cannot close yet, for three independent reasons, none of which is
+code:
+
+| Dependency | Required value | Currently |
+| --- | --- | --- |
+| Netlify runtime route | `AI_LOCAL_BASE_URL` + `AI_LOCAL_API_KEY` pointing at a public HTTPS tunnel | unset on Netlify |
+| E2E teacher reference audio | `E2E_VOICE_AUDIO_FIXTURE`, `E2E_VOICE_REFERENCE_TEXT` | empty |
+| Gate flag | `E2E_VOICE_ENABLED=true` | `false`, and the runner correctly refuses to skip a gated flow |
+
+Production cannot reach this laptop until a tunnel (ngrok is installed, no
+cloudflared) is exposed **and** the Netlify runtime variables are set. Changing
+production runtime variables is an approval gate, so it was not done unilaterally.
+The engine is proven; only the wiring is outstanding.
+
+### Regression
+
+Web: typecheck 0, `vitest` **325 passed / 0 failed**, tenant-isolation suite
+**7/7** still green with the new backend. Python: **15/15**. `client.ts`,
+`env.ts`, and the web voice routes were **not modified** — the contract is
+unchanged, which is why the seam test could run without a Firebase session.
 
 ## Coordinator Handoff
 

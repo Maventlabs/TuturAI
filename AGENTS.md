@@ -33,21 +33,127 @@ Urutan prioritas:
 3. Current working code/repository.
 4. Proposal LIDM sebagai baseline pedagogi/produk.
 
-Nama model lama di proposal seperti Qwen/Wav2Vec2/Gemma self-hosted **bukan constraint implementasi**. Behavior yang dipertahankan adalah speaking assessment multidimensi, adaptive learning, offline-first, teacher analytics, dan hardware roadmap.
+### AI Stack (Dikunci 24 Okt 2026)
 
-Current AI design:
-- STT: tidak terkunci ke satu provider. Transkripsi boleh dari Web Speech API di
-  browser (jalur utama, agar tidak bergantung pada tunnel/API eksternal) atau
-  whisper.cpp self-hosted (fallback). Whisper Large V3 via configured API tetap
-  boleh dipakai sebagai opsi, bukan kewajiban.
-- Transkrip dari browser hanya dapat dinilai pada dimensi yang valid dari teks
-  (grammar, vocabulary, fluency dengan metrik turunan server). Pronunciation dan
-  intonation membutuhkan audio asli, jadi berstatus `insufficient_evidence` dan
-  tidak boleh dikarang. Lihat `SCORING_SPEC.md` §10/§13.
-- Voice clone: OmniVoice.
-- TTS: self-hosted.
-- LLM: provider/model configurable; Gemma hanya default sementara bila dikonfigurasi.
-- Base URL/tunnel, API key, dan model ID wajib melalui environment/config server-side.
+| Komponen | Pilihan | Dokumen |
+|---|---|---|
+| STT (transkripsi) | wav2vec2-indonesian-javanese-sundanese (self-hosted) | `docs/AI_ARCHITECTURE.md` §2.1 |
+| LLM (penilaian) | Gemini 3.7 Flash + 3.6 backup (via 9router, OpenAI-compat) | `docs/AI_ARCHITECTURE.md` §2.2 |
+| TTS (voice clone) | OmniVoice self-hosted (pre-generated, bukan real-time) | `docs/AI_ARCHITECTURE.md` §2.3 |
+| Edge AI (IoT offline) | DS-CNN + MFCC + INT8 + TFLite Micro + ESP-NN | `docs/AI_ARCHITECTURE.md` §2.4 |
+| Hosting pipeline | `docs/AI_HOSTING.md` | Semua komponen self-hosted |
+
+**Behavior yang dipertahankan:** speaking assessment multidimensi, adaptive learning, offline-first, teacher analytics, hardware roadmap.
+
+**Aturan AI:**
+- Transkrip dari browser (Web Speech API) hanya dapat dinilai pada dimensi yang valid dari teks (grammar, vocabulary, fluency). Pronunciation dan intonation membutuhkan audio asli → berstatus `insufficient_evidence`. Lihat `SCORING_SPEC.md` §10/§13.
+- Semua provider di belakang adapter internal (`HttpSttProvider`, `HttpAssessmentProvider`, `HttpPronunciationProvider`, `HttpVoiceProvider`).
+- Base URL, API key, model ID wajib melalui environment/config server-side. Tidak ada hardcode.
+- Never fabricate score. Jika inference gagal, status `failed/retryable`.
+
+### Progress Saat Ini (24 Okt 2026)
+
+**Web (PWA):**
+- ✅ Auth, RBAC, Firestore rules (verified)
+- ✅ Classroom (create, join, member listing)
+- ✅ Assignment lifecycle (create, submit, review, approve)
+- ✅ Student dashboard (rank, streak, weekly target, recent activity)
+- ✅ Speaking session (audio upload, assessment, scoring)
+- ✅ Pronunciation (score-free, provider_unavailable status)
+- ✅ Adaptive learning (recommendation, completion tracking)
+- ✅ Teacher analytics (trend, skill, common-error)
+- ✅ Offline sync (mutation queue, reconnect replay)
+- ✅ Google Drive integration (metadata, upload)
+- ✅ Device monitoring (heartbeat, telemetry, queue)
+- ✅ Voice profile (enrollment, status polling, delete)
+- ✅ Conversation voice (class-scoped, TTS playback)
+- ✅ Typecheck, build, lint (0 errors), tests (325 passed)
+- ⏳ OmniVoice TTS real enrollment/playback (butuh endpoint)
+- ⏳ Google Drive real consent (butuh akun Google)
+- ⏳ Pronunciation scoring (butuh provider phoneme-capable)
+
+**Firmware (IoT):**
+- ✅ Source code ESP-IDF (C++) — ada, belum di-flash
+- ✅ Source code Arduino (.ino + lv_conf.h) — siap compile
+- ✅ Pin map, audio chain, VAD, AGC, WAV writer, MQTT, HTTPS upload
+- ✅ LVGL UI 8 layar + keypad on-device
+- ✅ Self-test (8 item, jujur)
+- ❌ Belum di-flash ke board (idf.py tidak terpasang, board belum dibeli)
+- ❌ Edge AI model (DS-CNN) belum ada
+- ❌ MQTT broker belum di-deploy
+
+**AI Infrastruktur:**
+- ✅ Provider adapters (STT, LLM, pronunciation, voice)
+- ✅ Env config (local/v1 routing, model ID configurable)
+- ❌ wav2vec2 wrapper (belum dibangun)
+- ❌ OmniVoice wrapper (belum dibangun)
+- ❌ 9router setup (belum dibangun)
+- ❌ Edge Impulse KWS training (belum dimulai)
+
+### Konteks Produk (dari Proposal LIDM)
+
+**Target user:** Siswa SMA/SMK, guru Bahasa Inggris, sekolah (B2B)
+**Problem:** Mute English + Foreign Language Speaking Anxiety (FLSA)
+**Hasil riset:** FLSA turun dari 110,0 → 83,6, speaking score +15 poin, SUS 80,0
+**RAB pengembangan:** ~Rp4.380.000 (purwarupa + operasional)
+
+**Menu Siswa (PWA):**
+- Real-Time Speaking dengan AI
+- Kuis Per Kata (flashcard, Easy/Medium/Hard)
+- Analisis Paragraf
+- Latihan Listening (audio level adaptif)
+- Kuis Bahasa Inggris terpadu
+- Adaptive Learning (modul PDF sesuai level)
+- Progres Belajar (streak, skor, poin)
+- Leaderboard, Badge pencapaian
+- Menu Offline (akses luring terbatas)
+- **TuturTalk (Peer Practice)** — Omegle-style speaking practice dengan sesama siswa (level ±1), misi terstruktur, video/audio, AI moderation (PLANNED)
+- **Challenge Speaking (Matchmacikung)** — Real-time video/audio speaking challenge dengan siswa lain. 3 mode: Random 1v1, Random Group (4 orang), Private Room (kode unik). 2 mode permainan: Instruction Mode (role-based) dan Free Play Mode (Omegle-style). Tech: Firebase RTDB + LiveKit + Netlify (PLANNED — develop setelah TuturTalk)
+
+**Menu Guru (PWA):**
+- Dashboard (analytics, trend, skill, common-error)
+- Penugasan (terintegrasi Google Drive)
+- Daftar Siswa
+- Monitoring Perangkat (B2B — status perangkat aktif)
+- Voice Profile (OmniVoice enrollment)
+- Laporan PDF
+
+**Domain Perangkat (IoT, offline):**
+- Latihan Speaking, Reading, Kuis dasar
+- Penilaian: fluency (Edge AI), pronunciation = insufficient evidence
+- Sync queue saat online
+
+**4 AI Components (komposisi):**
+- DS-CNN INT8 (15%) — Edge AI, VAD, MFCC, fluency scoring offline
+- Wav2Vec2 (25%) — ASR cloud, transkripsi presisi
+- Gemini 3.7 Flash (30%) — LLM, 5 dimensi linguistik, feedback JSON
+- OmniVoice (30%) — TTS, voice clone guru
+
+### Desain UI (Dikunci 24 Okt 2026)
+
+**Prinsip:** Student UI dan Teacher UI **berbeda total**.
+
+- **Student:** Complete redesign (rombak abis). Mobile-first, gamified, visual-heavy, safe speaking environment. Tidak ada analytics/dashboard yang kompleks.
+- **Teacher:** Dashboard-centric. Data-driven, analytics, classroom management, device monitoring. Tidak ada gamifikasi.
+
+**Preset visual (precision-blue):**
+- canvas `#f5f5f7`, surface `#ffffff`, text `#1d1d1f`, muted `#6e6e73`
+- primary `#2f6df5`, border `#d2d2d7`, accent `#0071e3`
+- Inter / Inter / IBM Plex Mono
+- No gradients, no emoji icons, no generic shadows, no auto-animation
+
+### Rencana Kerja (Urutan)
+
+1. **Web UI/PWA** — kunci semua tampilan dan flow sampai jalan lokal (student redesign + teacher dashboard)
+2. **PWA polish** — offline, install prompt, responsive, accessibility
+3. **IoT/Firmware** — flash, test, kalibrasi
+4. **AI pipeline** — deploy wav2vec2, OmniVoice, 9router
+5. **Edge AI** — training DS-CNN, flash model
+6. **Production** — deploy, smoke test, release
+
+### Aturan Testing (Sementara)
+
+Semua testing dilakukan **lokal dulu** (dev server, emulator). Performance web harus jalan lokal sebelum deploy. Tidak ada deploy ke production sampai semua gate lokal lulus. Student UI dan Teacher UI diuji terpisah.
 
 ## 4. Architecture Boundaries
 

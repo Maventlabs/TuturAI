@@ -11,7 +11,6 @@ const navItems = [
   { label: 'Fitur', href: '#fitur' },
   { label: 'Cara Kerja', href: '#cara-kerja' },
   { label: 'Untuk Siapa', href: '#untuk-siapa' },
-  { label: 'Harga', href: '#harga' },
 ]
 
 export function SiteHeader() {

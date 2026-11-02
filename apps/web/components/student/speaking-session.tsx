@@ -264,7 +264,7 @@ export function SpeakingSession({ topic, questionId }: { topic: string; question
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
-              <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-gradient-to-b from-primary/5 to-transparent p-6 sm:flex-row sm:gap-6">
+              <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-primary/5 p-6 sm:flex-row sm:gap-6">
                 <ProgressRing value={overall} size={120} label={String(overall)} sublabel="Skor" />
                 <div className="text-center sm:text-left">
                   <h3 className="text-lg font-bold text-foreground">Kerja bagus!</h3>

@@ -153,7 +153,8 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 - **STT** — tidak lagi terkunci ke satu provider. Transkripsi boleh berasal dari (a) STT server-side (Whisper Large V3 via configured API, atau whisper.cpp self-hosted), atau (b) Web Speech API di browser. Web Speech API adalah jalur utama agar tidak bergantung pada tunnel/API eksternal; whisper.cpp self-hosted adalah fallback ketika browser tidak mendukung atau gagal. Mode transkrip-dari-browser hanya dapat menilai dimensi yang valid dari teks (grammar, vocabulary, fluency dengan metrik turunan server); dimensi yang membutuhkan audio (pronunciation, intonation) berstatus `insufficient_evidence` dan tidak boleh dikarang.
 - **Assessment** — hasil minimum: pronunciation, fluency, intonation, grammar, vocabulary, overall score, transcript, feedback, confidence/error metadata.
 - **LLM analysis** — sementara dapat menggunakan Gemma melalui API, tetapi `model_id`, base URL, dan provider wajib configurable.
-- **AI environment policy** — konfigurasi `v1` yang dipakai STT/LLM wajib tersedia server-side. Konfigurasi `local` untuk OmniVoice/TTS boleh kosong sampai provider self-hosted selesai dibuat; kosong pada `AI_LOCAL_BASE_URL` dan `AI_TTS_MODEL_ID` dalam `.env.local` bukan credential blocker dan tidak boleh dianggap sebagai simulated success.
+- **AI environment policy** - konfigurasi `v1` yang dipakai STT/LLM wajib tersedia server-side. Konfigurasi `local` untuk OmniVoice/TTS boleh kosong sampai provider self-hosted selesai dibuat; kosong pada `AI_LOCAL_BASE_URL` dan `AI_TTS_MODEL_ID` dalam `.env.local` bukan credential blocker dan tidak boleh dianggap sebagai simulated success.
+- **AI stack (dikunci 24 Okt 2026):** STT = wav2vec2-indonesian-javanese-sundanese (self-hosted), LLM = Gemini 3.7 Flash + 3.6 backup (via 9router, OpenAI-compat), TTS = OmniVoice (self-hosted, pre-generated), Edge AI = DS-CNN + MFCC + INT8 + TFLite Micro. Detail: `docs/AI_ARCHITECTURE.md` dan `docs/AI_HOSTING.md`.
 - **Google environment policy** — Firebase Google Sign-In memakai konfigurasi provider Firebase yang sudah ada; jangan membuat client key Google kedua untuk login. Drive OAuth dan callback Google server-side harus memakai satu shared OAuth client (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`) dan token encryption key server-only.
 - **Adaptive engine** — rekomendasi materi dan difficulty berdasarkan histori lima dimensi, assignment, dan performa terbaru.
 - **Provider adapter/fallback** — internal interface mendukung tunnel v1, API key, model ID, sync/async inference, timeout, retry, dan explicit error.
@@ -219,6 +220,21 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 - **Dashboard monitoring:** online/offline, battery, firmware version, last sync, pending queue.
 - **Offline behavior:** device tetap menjalankan fungsi lokal yang tersedia dan menyinkronkan data saat online.
   - Acceptance criteria: perangkat tidak dapat publish/consume topic di luar scope device/class yang diotorisasi.
+
+### Fitur 11: TuturTalk — Peer-to-Peer Speaking Practice (PLANNED — develop terakhir)
+**Deskripsi:** Fitur Omegle-style speaking practice yang memungkinkan siswa menemukan dan berlatih berbicara Bahasa Inggris dengan sesama siswa secara real-time. Siswa dipasangkan berdasarkan level (±1 level) untuk memastikan percakapan produktif. Setiap sesi memiliki misi terstruktur (topik + instruksi) untuk memandu percakapan. Mendukung video/audio atau open mic only. Dilengkapi AI moderation, gamifikasi (XP, badge, leaderboard), dan integrasi dengan sistem existing.  
+**Prioritas:** P2 (develop terakhir setelah semua fitur core selesai)  
+**Bergantung pada:** Fitur 1, 2, 4, 5
+
+- **Matching berbasis level:** Siswa hanya dipasangkan dengan siswa lain yang memiliki level Bahasa Inggris setara atau berdekatan (±1 level). Level ±2 atau lebih tidak diizinkan (terlalu jimplang).
+- **Safe environment:** Hanya siswa terdaftar TuturAI. Matching antar siswa dari classroom yang sama atau partnered schools. Tidak ada "stranger" anonim.
+- **Mission Card:** Setiap sesi diawali popup misi berisi topik dan instruksi percakapan (role-play, discussion, debate, storytelling, problem-solving, Q&A).
+- **Opsi media:** Video+Audio, Audio Only (Open Mic), Text Chat (fallback).
+- **Keamanan & moderasi:** AI moderation real-time (Gemini), tombol lapor, auto-terminate pada pelanggaran, no direct contact sharing, session logging, consent recording.
+- **Gamifikasi:** +25 XP/sesi selesai, +10 XP bonus misi selesai, badge (First Peer Session, Peer Practice Streak, Social Speaker), leaderboard peer, streak harian.
+- **Teknologi:** WebRTC (P2P media), Firebase/Redis (matching queue), STUN/TURN (NAT traversal), Gemini (moderation), MediaRecorder (recording opsional).
+- **Integrasi:** XP system, level system, adaptive learning (topik misi disesuaikan), teacher dashboard (statistik peer practice), classroom scoping.
+  - Acceptance criteria: matching hanya antar level ±1; tidak ada kontak personal yang dibagikan; AI moderation aktif; sesi tercatat dengan consent.
 
 ---
 
@@ -310,6 +326,25 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 
 **Anggap fase ini selesai kalau:** handheld fisik dapat dipair, bekerja lokal sesuai capability, lalu sinkron dan termonitor dari dashboard.
 
+### Phase 8: TuturTalk — Peer-to-Peer Speaking Practice (P2 — Develop Terakhir)
+**Terkait fitur:** Fitur 11
+
+- [ ] Matching queue (Firebase/Redis) dengan level-based filtering (±1 level).
+- [ ] WebRTC signaling server (Firebase Realtime DB atau dedicated).
+- [ ] STUN/TURN server configuration untuk NAT traversal.
+- [ ] Mission Card system (topik + instruksi per sesi).
+- [ ] Video/audio call UI dengan mission overlay.
+- [ ] Open Mic mode (audio only) dan Text Chat fallback.
+- [ ] AI moderation real-time (Gemini) untuk content safety.
+- [ ] Tombol lapor dan auto-terminate pada pelanggaran.
+- [ ] Session logging dan consent recording.
+- [ ] Gamifikasi: XP, badge, leaderboard peer, streak.
+- [ ] Teacher dashboard: statistik peer practice siswa.
+- [ ] Integrasi dengan XP system, level system, adaptive learning.
+- [ ] Uji matching accuracy, latency, dan keamanan.
+
+**Anggap fase ini selesai kalau:** siswa dapat dipasangkan dengan peer level ±1, sesi berjalan smooth dengan video/audio, AI moderation aktif, dan gamifikasi terintegrasi.
+
 ### Phase QA: Pengujian & Verifikasi
 **Terkait fitur:** Seluruh fitur P0 dan integrasi P1 yang telah diaktifkan
 
@@ -364,6 +399,7 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 | Auth | Firebase Authentication | Google + email/password |
 | Local data | IndexedDB + Service Worker + Cache Storage | Offline-first drafts/audio queue/cache |
 | File storage | Google Drive milik guru | Tidak membutuhkan Firebase Storage; ownership tetap pada guru |
+| Generated audio storage | Cloudinary | Audio hasil generate bukan milik guru, jadi tidak masuk Drive. Free tier 25 GB. Firebase Storage ditolak karena tidak ada free tier |
 | AI Gateway | Tunnel/API milik proyek; provider/model configurable | Model tidak di-hardcode |
 | STT | Web Speech API (browser) + whisper.cpp self-hosted; Whisper API opsional | Menghindari ketergantungan tunnel eksternal; provider tetap replaceable |
 | Voice | OmniVoice + self-hosted TTS | Satu cloned voice profile per guru |
@@ -394,6 +430,62 @@ TuturAI memadukan **safe speaking environment**, feedback AI multidimensi, class
 | monospace font | IBM Plex Mono |
 
 **Batasan eksplisit:** tidak ada decorative gradient tanpa fungsi, generic shadow pada semua card, icon campur-gaya, eyebrow ALL-CAPS berulang, motion otomatis berlebihan, emoji sebagai ikon UI, atau warna tambahan tanpa alasan aksesibilitas/status. Hierarki dashboard harus berasal dari layout, typography, spacing, data density, dan state yang jelas.
+
+---
+
+## 5B. Agent Skill Policy (WAJIB)
+
+> Ditambahkan 15 Oktober 2026 atas instruksi pemilik produk.
+
+### 5B.1 Aturan
+
+Setiap task — implementasi, redesign, debugging, atau review — **wajib** dimulai dengan
+mencari dan memakai skill yang sudah terinstal dan relevan. Ini bukan rekomendasi,
+ini **gerbang**.
+
+| Aturan | Status |
+|---|---|
+| Skill yang dipakai wajib **disebutkan** di output | Wajib |
+| Tidak ada skill yang cocok → menyatakan terus terang, bukan diam-diam skipping | Wajib |
+| Skill, MCP, dan credential adalah **tiga hal berbeda** | Wajib |
+| Skill tidak pernah diperlakukan sebagai "terhubung" ke provider eksternal | Wajib |
+| Credential gate tetap berlaku meski skill tersedia | Wajib |
+
+### 5B.2 Pemetaan skill → area kerja
+
+| Area kerja | Kategori skill yang dipakai |
+|---|---|
+| React/TypeScript, komponen, state | React/TS, web performance |
+| PWA, offline, service worker | PWA/offline-first |
+| Firebase, Firestore, rules | Firebase, Firestore, security rules |
+| Security, header, authz | Web security, authz patterns |
+| Integrasi API, AI provider | API integration |
+| Testing, E2E, regression | Testing, E2E |
+| Accessibility | WCAG/accessibility |
+| PDF/report | PDF/reporting |
+| Hardware/IoT | ESP-IDF, FreeRTOS, embedded |
+| Visual/UI overhaul | Design system, frontend UI, visual QA |
+
+### 5B.3 Kualitas kode
+
+Karena codebase ini adalah **production E2E**, standar kode wajib setara ketatnya dengan
+standar visual dan tidak boleh diturunkan karena alasan "cuma UI":
+
+- TypeScript strict; tidak ada `any` baru; `@ts-ignore` harus disertai alasan tertulis
+- Zero duplication — logika di 2+ menu diekstrak ke shared module
+- Server-side validation di setiap boundary; validasi client bukan keamanan
+- Aksesibilitas sebagai requirement, bukan garnish
+- Test untuk setiap logika baru; screenshot bukan pengganti test
+- Nilai environment hanya lewat config layer, tidak pernah dibaca langsung di component
+- `typecheck` + `lint` + `test` harus hijau sebelum job dianggap selesai
+- Tidak ada `TODO`/`FIXME`/placeholder yang lolos ke branch
+
+### 5B.4 Referensi
+
+- `AGENTS.md` §2 — Skill & Tool Discovery
+- `menu.md` — rencana per-menu, human-in-the-loop, stage gate
+- `DESIGN_OVERHAUL.md` — aturan visual dan anti-slop
+- `EXECUTION.md` — ledger eksekusi dan bukti
 
 ---
 

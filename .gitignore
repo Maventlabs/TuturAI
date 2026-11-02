@@ -14,6 +14,11 @@ coverage/
 # environments, model weights and generated audio.
 apps/ai/
 
+# Device firmware (ESP32-S3). Kept in this workspace for building and testing,
+# but it is tracked in its own repository so the firmware and the web codebase can
+# be versioned and released independently.
+apps/firmware/
+
 # Local environment and secrets
 .env
 .env.*

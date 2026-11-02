@@ -8,7 +8,7 @@ import {
   Trophy,
   BarChart3,
   BookOpenCheck,
-  ShieldCheck,
+  WifiOff,
 } from 'lucide-react'
 
 const features = [
@@ -21,8 +21,8 @@ const features = [
   },
   {
     icon: Gauge,
-    title: 'Feedback Pronunciation Instan',
-    desc: 'Dapatkan skor pelafalan, tata bahasa, dan kelancaran secara langsung setelah bicara.',
+    title: 'Feedback 5 Dimensi Instan',
+    desc: 'Skor pronunciation, fluency, intonation, grammar, vocabulary — langsung setelah bicara.',
     color: 'text-accent',
     bg: 'bg-accent/10',
   },
@@ -48,9 +48,9 @@ const features = [
     bg: 'bg-primary/10',
   },
   {
-    icon: ShieldCheck,
-    title: 'Aman & Ramah Sekolah',
-    desc: 'Data siswa terlindungi, konten terkurasi, dan cocok digunakan di lingkungan kelas.',
+    icon: WifiOff,
+    title: 'Offline-First',
+    desc: 'Latihan tanpa internet. Hasil disimpan di perangkat, sync otomatis saat online.',
     color: 'text-accent',
     bg: 'bg-accent/10',
   },

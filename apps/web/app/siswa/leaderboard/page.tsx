@@ -56,7 +56,7 @@ export default function LeaderboardPage() {
       ) : (
         <>
           <FadeIn>
-            <Card className="border-border bg-gradient-to-b from-primary/5 to-transparent p-6">
+            <Card className="border-border bg-primary/5 p-6">
               <div className="flex items-end justify-center gap-3 sm:gap-6">
                 {podiumOrder.map((row) => (
                   <div key={row.studentId} className="flex flex-1 flex-col items-center sm:max-w-[160px]">

@@ -20,7 +20,7 @@ const teacherPoints = [
 
 export function Audience() {
   return (
-    <section id="untuk-siapa" className="scroll-mt-20 py-20 sm:py-28">
+    <section id="untuk-siapa" className="scroll-mt-20 overflow-hidden py-20 sm:py-28">
       <div className="mx-auto max-w-6xl space-y-20 px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">

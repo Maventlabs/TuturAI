@@ -11,19 +11,11 @@ const columns = [
     ],
   },
   {
-    title: 'Perusahaan',
-    links: [
-      { label: 'Tentang', href: '#' },
-      { label: 'Blog', href: '#' },
-      { label: 'Karier', href: '#' },
-    ],
-  },
-  {
     title: 'Dukungan',
     links: [
-      { label: 'Bantuan', href: '#' },
-      { label: 'Kontak', href: '#' },
-      { label: 'Privasi', href: '#' },
+      { label: 'Masuk', href: '/auth/login' },
+      { label: 'Daftar', href: '/auth/sign-up' },
+      { label: 'Kontak', href: 'mailto:hello@tuturai.id' },
     ],
   },
 ]
@@ -32,7 +24,7 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-secondary/40">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
             <Logo />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
