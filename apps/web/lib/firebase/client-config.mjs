@@ -8,6 +8,7 @@ const REQUIRED_PUBLIC_FIELDS = [
 const OPTIONAL_PUBLIC_FIELDS = [
   ['NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET', 'storageBucket'],
   ['NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', 'messagingSenderId'],
+  ['NEXT_PUBLIC_FIREBASE_DATABASE_URL', 'databaseURL'],
 ]
 
 const EMULATOR_FIELDS = [
@@ -27,7 +28,7 @@ function normalize(value) {
 /**
  * @param {Record<string, string | undefined>} env
  * @param {{ nodeEnv?: string }} [options]
- * @returns {{ apiKey: string, authDomain: string, projectId: string, appId: string, storageBucket?: string, messagingSenderId?: string }}
+ * @returns {{ apiKey: string, authDomain: string, projectId: string, appId: string, storageBucket?: string, messagingSenderId?: string, databaseURL?: string }}
  */
 export function validateFirebaseClientConfig(env, options = {}) {
   const nodeEnv = options.nodeEnv ?? env.NODE_ENV ?? 'development'

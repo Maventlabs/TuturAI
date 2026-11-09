@@ -1,68 +1,95 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useEffect, useRef } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { MousePointerClick, Mic, LineChart } from 'lucide-react'
+
+gsap.registerPlugin(ScrollTrigger)
 
 const steps = [
   {
     icon: MousePointerClick,
-    step: '01',
+    n: '01',
     title: 'Pilih Topik',
-    desc: 'Mulai dari skenario sehari-hari, materi sekolah, atau latihan ujian. Tinggal tap satu topik.',
+    desc: 'Skenario sehari-hari, materi sekolah, atau latihan ujian. Satu tap, langsung mulai.',
   },
   {
     icon: Mic,
-    step: '02',
+    n: '02',
     title: 'Bicara dengan AI',
-    desc: 'Tekan tombol mikrofon dan mulai ngobrol. AI menanggapi secara natural dalam Bahasa Inggris.',
+    desc: 'Tekan mikrofon dan ngobrol. AI merespons natural dalam Bahasa Inggris.',
   },
   {
     icon: LineChart,
-    step: '03',
+    n: '03',
     title: 'Dapat Feedback & XP',
-    desc: 'Lihat skor pronunciation, koreksi tata bahasa, lalu kumpulkan XP untuk naik level.',
+    desc: 'Skor pronunciation, koreksi grammar, kumpulkan XP untuk naik level.',
   },
 ]
 
 export function HowItWorks() {
+  const sectionRef = useRef<HTMLElement>(null)
+  const stackRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce || !stackRef.current) return
+    const ctx = gsap.context(() => {
+      const cards = gsap.utils.toArray<HTMLElement>('.how-card')
+      cards.forEach((card, i) => {
+        if (i === cards.length - 1) return
+        ScrollTrigger.create({
+          trigger: card,
+          start: 'top top',
+          end: 'bottom top',
+          pin: true,
+          pinSpacing: false,
+        })
+        gsap.to(card, {
+          scale: 0.94,
+          opacity: 0.6,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: cards[i + 1],
+            start: 'top bottom',
+            end: 'top top',
+            scrub: true,
+          },
+        })
+      })
+    }, sectionRef)
+    return () => ctx.revert()
+  }, [])
+
   return (
-    <section
-      id="cara-kerja"
-      className="scroll-mt-20 bg-secondary/50 py-20 sm:py-28"
-    >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            Cara Kerja
-          </p>
-          <h2 className="mt-3 text-balance font-heading text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-            Tiga langkah sederhana untuk mulai
+    <section ref={sectionRef} id="cara-kerja" className="scroll-mt-20 bg-secondary/40 px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+      <div className="mx-auto max-w-[1400px]">
+        <div className="max-w-2xl">
+          <h2 className="font-heading text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            Tiga langkah. Langsung bicara.
           </h2>
+          <p className="mt-4 text-muted-foreground">Scroll — kartu langkah menumpuk, kuncinya urutan belajarnya jelas.</p>
         </div>
 
-        <div className="relative mt-14 grid gap-8 md:grid-cols-3">
+        <div ref={stackRef} className="mt-12 space-y-6">
           {steps.map((s, i) => (
-            <motion.div
-              key={s.step}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.45, delay: i * 0.1 }}
-              className="relative rounded-3xl border border-border bg-card p-7 shadow-sm"
+            <article
+              key={s.n}
+              className="how-card sticky top-24 flex min-h-[280px] flex-col justify-between overflow-hidden rounded-[1.75rem] border border-border bg-card p-7 shadow-[0_8px_40px_-16px_rgba(29,29,31,0.18)] sm:min-h-[320px] sm:p-10"
+              style={{ top: `${96 + i * 14}px` }}
             >
-              <span className="font-heading text-5xl font-extrabold text-primary/15">
-                {s.step}
-              </span>
-              <span className="mt-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <s.icon className="h-6 w-6" />
-              </span>
-              <h3 className="mt-4 font-heading text-xl font-bold text-foreground">
-                {s.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {s.desc}
-              </p>
-            </motion.div>
+              <div className="flex items-start justify-between gap-6">
+                <span className="font-mono text-5xl font-bold text-primary/15 sm:text-7xl">{s.n}</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <s.icon className="h-6 w-6" />
+                </span>
+              </div>
+              <div className="mt-8">
+                <h3 className="font-heading text-2xl font-bold text-foreground sm:text-3xl">{s.title}</h3>
+                <p className="mt-2 max-w-[58ch] text-muted-foreground">{s.desc}</p>
+              </div>
+            </article>
           ))}
         </div>
       </div>

@@ -1,13 +1,32 @@
 import { getFirebaseApp } from '@/lib/firebase/client'
-import { getDatabase, ref, set, get, push, onValue, remove, update, serverTimestamp, type Database } from 'firebase/database'
+import { getDatabase, ref, set, get, push, onValue, remove, update, serverTimestamp, onDisconnect, type Database } from 'firebase/database'
 
 let db: Database | null = null
 
+function getDatabaseUrl(): string | undefined {
+  const fromEnv = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL?.trim()
+  if (fromEnv) return fromEnv
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim()
+  // Default region for this project (TuturAI) is asia-southeast1.
+  // Prefer setting NEXT_PUBLIC_FIREBASE_DATABASE_URL explicitly (copy from Firebase Console).
+  if (projectId) return `https://${projectId}-default-rtdb.asia-southeast1.firebasedatabase.app`
+  return undefined
+}
+
 export function getChallengeDb(): Database {
   if (!db) {
-    db = getDatabase(getFirebaseApp())
+    const url = getDatabaseUrl()
+    const app = getFirebaseApp()
+    db = url ? getDatabase(app, url) : getDatabase(app)
   }
   return db
+}
+
+export function getChallengeDbDiagnostics() {
+  return {
+    databaseUrl: getDatabaseUrl() ?? null,
+    hasDatabaseUrl: Boolean(getDatabaseUrl()),
+  }
 }
 
 // ─── Room Management ──────────────────────────────────────────────────────────
@@ -150,6 +169,54 @@ export async function endRoom(roomId: string): Promise<void> {
 }
 
 // ─── Private Room Code ───────────────────────────────────────────────────────
+
+// ─── Presence (online users) ─────────────────────────────────────────────────
+
+export interface PresenceEntry {
+  uid: string
+  name: string
+  level: number
+  timestamp: number
+}
+
+export async function setPresence(uid: string, name: string, level: number): Promise<void> {
+  const database = getChallengeDb()
+  const presenceRef = ref(database, `presence/${uid}`)
+  // Auto-cleanup when user closes tab / disconnects
+  await onDisconnect(presenceRef).remove()
+  await set(presenceRef, {
+    uid,
+    name,
+    level,
+    timestamp: serverTimestamp(),
+  })
+}
+
+export async function removePresence(uid: string): Promise<void> {
+  const database = getChallengeDb()
+  await remove(ref(database, `presence/${uid}`))
+}
+
+export function listenToPresence(
+  callback: (users: PresenceEntry[]) => void,
+): () => void {
+  const database = getChallengeDb()
+  const presenceRef = ref(database, 'presence')
+  return onValue(presenceRef, (snapshot) => {
+    if (!snapshot.exists()) {
+      callback([])
+      return
+    }
+    const val = snapshot.val() as Record<string, PresenceEntry>
+    callback(Object.values(val))
+  })
+}
+
+export function listenToPresenceCount(
+  callback: (count: number) => void,
+): () => void {
+  return listenToPresence((users) => callback(users.length))
+}
 
 export function generateRoomCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()

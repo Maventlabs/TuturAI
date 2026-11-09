@@ -1,102 +1,120 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Card } from '@/components/ui/card'
-import {
-  Mic,
-  Gauge,
-  Trophy,
-  BarChart3,
-  BookOpenCheck,
-  WifiOff,
-} from 'lucide-react'
-
-const features = [
-  {
-    icon: Mic,
-    title: 'Partner Speaking AI',
-    desc: 'Ngobrol bebas dengan AI yang sabar 24/7. Tidak ada rasa malu, latihan sebanyak yang kamu mau.',
-    color: 'text-primary',
-    bg: 'bg-primary/10',
-  },
-  {
-    icon: Gauge,
-    title: 'Feedback 5 Dimensi Instan',
-    desc: 'Skor pronunciation, fluency, intonation, grammar, vocabulary — langsung setelah bicara.',
-    color: 'text-accent',
-    bg: 'bg-accent/10',
-  },
-  {
-    icon: Trophy,
-    title: 'Gamifikasi & Streak',
-    desc: 'Kumpulkan XP, naik level, jaga streak harian, dan bersaing di leaderboard kelas.',
-    color: 'text-brand-foreground',
-    bg: 'bg-brand/20',
-  },
-  {
-    icon: BookOpenCheck,
-    title: 'Materi Kurikulum Merdeka',
-    desc: 'Topik dan skenario yang relevan dengan pelajaran sekolah dan ujian Bahasa Inggris.',
-    color: 'text-success',
-    bg: 'bg-success/15',
-  },
-  {
-    icon: BarChart3,
-    title: 'Dashboard Analitik Guru',
-    desc: 'Pantau perkembangan tiap siswa, identifikasi kesulitan, dan beri tugas dengan mudah.',
-    color: 'text-primary',
-    bg: 'bg-primary/10',
-  },
-  {
-    icon: WifiOff,
-    title: 'Offline-First',
-    desc: 'Latihan tanpa internet. Hasil disimpan di perangkat, sync otomatis saat online.',
-    color: 'text-accent',
-    bg: 'bg-accent/10',
-  },
-]
+import Image from 'next/image'
+import { Mic, Gauge, Trophy, WifiOff, BarChart3 } from 'lucide-react'
+import { GSAPLines, GSAPReveal } from './gsap-helpers'
 
 export function Features() {
   return (
-    <section id="fitur" className="scroll-mt-20 py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            Fitur Unggulan
-          </p>
-          <h2 className="mt-3 text-balance font-heading text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-            Semua yang dibutuhkan untuk lancar berbicara
-          </h2>
-          <p className="mt-4 text-pretty text-muted-foreground">
-            Dirancang khusus untuk konteks belajar siswa Indonesia, dari latihan
-            mandiri hingga pemantauan guru.
-          </p>
+    <section id="fitur" className="scroll-mt-20 bg-background px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+      <div className="mx-auto max-w-[1400px]">
+        <div className="max-w-2xl">
+          <GSAPLines>
+            <h2 className="font-heading text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+              <span data-line className="block">Semua alat bicara,</span>
+              <span data-line className="block">dalam satu tempat.</span>
+            </h2>
+          </GSAPLines>
+          <GSAPReveal delay={0.1}>
+            <p className="mt-4 text-muted-foreground">
+              Mulai dari partner AI sampai analitik guru — dirancang untuk konteks belajar Indonesia.
+            </p>
+          </GSAPReveal>
         </div>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.45, delay: i * 0.05 }}
-            >
-              <Card className="group h-full border-border p-6 transition-shadow hover:shadow-md">
-                <span
-                  className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${f.bg} ${f.color}`}
-                >
-                  <f.icon className="h-6 w-6" />
+        {/* Bento 5 sel: 2 besar + 3 kecil — ritme ber-variasi, background beragam */}
+        <div className="mt-12 grid gap-5 md:grid-cols-6">
+          {/* Hero cell: partner speaking + image */}
+          <GSAPReveal className="md:col-span-4">
+            <article className="group relative h-full overflow-hidden rounded-[1.75rem] border border-border bg-card">
+              <div className="grid sm:grid-cols-2">
+                <div className="p-7 sm:p-9">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Mic className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-5 font-heading text-xl font-bold text-foreground">Partner Speaking AI</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    Ngobrol bebas 24/7. Tidak malu, tidak dinilai teman — latihan sampai berani.
+                  </p>
+                  <ul className="mt-5 space-y-2 text-xs text-muted-foreground">
+                    <li className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-primary" /> Skenario sehari-hari & materi sekolah</li>
+                    <li className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-primary" /> Suara AI bisa pakai suara guru</li>
+                  </ul>
+                </div>
+                <div className="relative min-h-56 overflow-hidden bg-secondary">
+                  <Image
+                    src="/hero-student.webp"
+                    alt="Siswa berlatih speaking dengan partner AI TuturAI"
+                    width={640}
+                    height={520}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                  />
+                </div>
+              </div>
+            </article>
+          </GSAPReveal>
+
+          {/* 5 dimensi */}
+          <GSAPReveal delay={0.07} className="md:col-span-2">
+            <article className="h-full rounded-[1.75rem] bg-primary p-7 text-primary-foreground">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15">
+                <Gauge className="h-5 w-5" />
+              </span>
+              <h3 className="mt-5 font-heading text-xl font-bold">Feedback 5 Dimensi</h3>
+              <p className="mt-2 text-sm leading-relaxed text-primary-foreground/80">
+                Pronunciation, fluency, intonation, grammar, vocabulary — langsung setelah bicara.
+              </p>
+              <div className="mt-6 space-y-2">
+                {['Pronunciation', 'Fluency', 'Intonation', 'Grammar', 'Vocabulary'].map((d) => (
+                  <span key={d} className="inline-block rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold">
+                    {d}
+                  </span>
+                ))}
+              </div>
+            </article>
+          </GSAPReveal>
+
+          {/* Gamifikasi */}
+          <GSAPReveal delay={0.03} className="md:col-span-2">
+            <article className="h-full rounded-[1.75rem] border border-border bg-brand/15 p-7">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/25 text-brand-foreground">
+                <Trophy className="h-5 w-5" />
+              </span>
+              <h3 className="mt-5 font-heading text-xl font-bold text-foreground">XP, Streak & Badge</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Kumpulkan XP, jaga streak, naik leaderboard kelas.
+              </p>
+            </article>
+          </GSAPReveal>
+
+          {/* Guru */}
+          <GSAPReveal delay={0.08} className="md:col-span-2">
+            <article className="group relative h-full overflow-hidden rounded-[1.75rem] border border-border bg-card">
+              <div className="p-7">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                  <BarChart3 className="h-5 w-5" />
                 </span>
-                <h3 className="font-heading text-lg font-bold text-foreground">
-                  {f.title}
-                </h3>
+                <h3 className="mt-5 font-heading text-xl font-bold text-foreground">Dashboard Guru</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {f.desc}
+                  Tren, skill, common-error — putuskan perbaikan dari data.
                 </p>
-              </Card>
-            </motion.div>
-          ))}
+              </div>
+            </article>
+          </GSAPReveal>
+
+          {/* Offline */}
+          <GSAPReveal delay={0.12} className="md:col-span-2">
+            <article className="h-full rounded-[1.75rem] bg-foreground p-7 text-background">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
+                <WifiOff className="h-5 w-5" />
+              </span>
+              <h3 className="mt-5 font-heading text-xl font-bold">Offline-First</h3>
+              <p className="mt-2 text-sm leading-relaxed text-background/70">
+                Tanpa internet pun tetap latihan. Sync otomatis saat online.
+              </p>
+              <p className="mt-5 inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold">PWA + perangkat ESP32-S3</p>
+            </article>
+          </GSAPReveal>
         </div>
       </div>
     </section>

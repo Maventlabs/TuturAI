@@ -42,9 +42,60 @@ Student Browser (Netlify Static)
 
 ## Environment Variables
 ```
+# Firebase RTDB (wajib — copy exact URL from Firebase Console > Realtime Database)
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://gen-lang-client-0138449759-default-rtdb.asia-southeast1.firebasedatabase.app
+# LiveKit Cloud (wss://... from LiveKit dashboard > Settings > Keys)
 NEXT_PUBLIC_LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=your-api-key
 LIVEKIT_API_SECRET=your-api-secret
+```
+
+## Status (8 Nov 2026 — tested local)
+- ✅ UI menu/lobby/room (responsive mobile-first)
+- ✅ LiveKit token API (`POST /api/student/challenge-speaking/token`) — real JWT via `livekit-server-sdk` (verified locally)
+- ✅ Firebase RTDB service (`lib/challenge-speaking.ts`) with fallback URL `https://<project>-default-rtdb.asia-southeast1.firebasedatabase.app`
+- ✅ `getDatabase(app, url)` explicit + `client-config` supports `NEXT_PUBLIC_FIREBASE_DATABASE_URL`
+- ✅ Presence / online count (`presence/{uid}` + `onDisconnect`, hook `use-presence`, card "Online sekarang")
+- ✅ Gates: typecheck ✅, build ✅, tests ✅ (65 files, 325 passed), Playwright 0 console/page errors
+- ⏳ End-to-end real 2-user video (needs 2 logged-in sessions + camera permission — test manual di browser)
+
+## Security Rules (RTDB) — tambah `presence`
+```json
+{
+  "rules": {
+    "presence": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "matchmaking": {
+      "$mode": {
+        "$uid": {
+          ".write": "auth != null && auth.uid == $uid",
+          ".read": "auth != null"
+        }
+      }
+    },
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "participants": {
+          "$uid": {
+            ".write": "auth != null && auth.uid == $uid"
+          }
+        }
+      }
+    },
+    "matches": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null"
+      }
+    }
+  }
+}
 ```
 
 ## Status: UI Implemented (Demo Mode)

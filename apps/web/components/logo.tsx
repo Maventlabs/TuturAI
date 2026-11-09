@@ -10,7 +10,7 @@ export function Logo({
 }) {
   return (
     <span className={cn('flex items-center gap-2', className)}>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg">
         <Image
           src="/brand/logo-icon.png"
           alt="Logo TuturAI"

@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useLiveKit } from '@/hooks/use-livekit'
+import { usePresence } from '@/hooks/use-presence'
 import {
   joinMatchmakingQueue,
   leaveMatchmakingQueue,
@@ -74,9 +75,38 @@ export default function ChallengeSpeakingPage() {
   const [topic, setTopic] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{ uid: string; name: string; level: number } | null>(null)
+  const [rtdbReady, setRtdbReady] = useState<boolean | null>(null)
 
   const livekit = useLiveKit()
+  const presence = usePresence(currentUser)
   const unsubscribeRef = useRef<(() => void) | null>(null)
+
+  // Load current user from /api/me
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/me', { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('ME_FAILED')
+        const payload = await res.json()
+        if (!cancelled && payload.data?.user) {
+          setCurrentUser({
+            uid: payload.data.user.uid,
+            name: payload.data.profile?.full_name ?? payload.data.user.displayName ?? 'Siswa',
+            level: payload.data.profile?.level ?? 1,
+          })
+        }
+      })
+      .catch(() => {
+        // Keep demo fallback if needed, but surface error in UI
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  // Check RTDB config presence
+  useEffect(() => {
+    setRtdbReady(Boolean(process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL))
+  }, [])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -96,25 +126,36 @@ export default function ChallengeSpeakingPage() {
       const maxP = matchMode === '1v1' ? 2 : 4
       const code = matchMode === 'private' ? roomCode : undefined
 
+      const uid = currentUser?.uid ?? 'demo-user'
+      const myName = currentUser?.name ?? 'Kamu'
       createRoom({
         mode: matchMode!,
         gameModel,
         topic: selectedTopic,
-        hostId: 'current-user',
-        hostName: 'You',
-        participants: {},
+        hostId: uid,
+        hostName: myName,
+        participants: {
+          [uid]: { uid, name: myName, role: 'speaker_1', joinedAt: Date.now(), isMuted: false, isCameraOff: false },
+        },
         maxParticipants: maxP,
         code,
         status: 'waiting',
-      }).then((roomId) => {
+      }).then(async (roomId) => {
+        try {
+          await joinRoom(roomId, { uid, name: myName, role: 'speaker_1' })
+        } catch {
+          // ignore if RTDB unavailable, continue with local state
+        }
         setRoomData({
           id: roomId,
           mode: matchMode!,
           gameModel,
           topic: selectedTopic,
-          hostId: 'current-user',
-          hostName: 'You',
-          participants: {},
+          hostId: uid,
+          hostName: myName,
+          participants: {
+            [uid]: { uid, name: myName, role: 'speaker_1', joinedAt: Date.now(), isMuted: false, isCameraOff: false },
+          },
           maxParticipants: maxP,
           status: 'waiting',
           createdAt: Date.now(),
@@ -132,7 +173,7 @@ export default function ChallengeSpeakingPage() {
         unsubscribeRef.current = unsub
 
         // Get LiveKit token
-        fetchLiveKitToken(roomId, 'current-user').then((tokenData) => {
+        fetchLiveKitToken(roomId, uid).then((tokenData) => {
           if (tokenData) {
             livekit.connect(tokenData.token, tokenData.url, roomId)
           }
@@ -140,7 +181,9 @@ export default function ChallengeSpeakingPage() {
 
         setPageState('room')
       }).catch((err) => {
-        setError('Gagal membuat room. Coba lagi.')
+        const msg = err instanceof Error ? err.message : ''
+        const hint = rtdbReady === false ? ' RTDB belum terkonfigurasi (isi NEXT_PUBLIC_FIREBASE_DATABASE_URL).' : ''
+        setError(`Gagal membuat room.${hint} ${msg ? msg : ''}`.trim())
         setPageState('menu')
       })
       return
@@ -226,6 +269,52 @@ export default function ChallengeSpeakingPage() {
           title="Challenge Speaking"
           description="Latih kemampuan berbicara Bahasa Inggris dengan siswa lain secara real-time. Pilih mode yang kamu inginkan."
         />
+
+        {rtdbReady === false && (
+          <Card className="border-amber-500/30 bg-amber-500/10 p-4">
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              Mode demo: Firebase Realtime Database belum terkonfigurasi. Isi <code>NEXT_PUBLIC_FIREBASE_DATABASE_URL</code> di <code>.env.local</code> lalu restart dev server.
+            </p>
+          </Card>
+        )}
+
+        {error && (
+          <Card className="border-destructive/30 bg-destructive/10 p-4">
+            <p role="alert" className="text-sm text-destructive">{error}</p>
+          </Card>
+        )}
+
+        {/* Online users (overall) */}
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-success" />
+            </span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">Online sekarang</p>
+              <p className="text-xs text-muted-foreground">
+                {presence.onlineCount === null
+                  ? 'Memuat jumlah pengguna online…'
+                  : `${presence.onlineCount} siswa sedang online`}
+                {presence.error ? ` — ${presence.error}` : ''}
+              </p>
+            </div>
+            <Badge variant="secondary">{presence.onlineCount ?? '…'}</Badge>
+          </div>
+          {presence.users.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {presence.users.slice(0, 8).map((u) => (
+                <Badge key={u.uid} variant="outline" className="text-[11px]">
+                  {u.name}
+                </Badge>
+              ))}
+              {presence.users.length > 8 && (
+                <Badge variant="outline" className="text-[11px]">+{presence.users.length - 8}</Badge>
+              )}
+            </div>
+          )}
+        </Card>
 
         {/* Game Model Selector */}
         <Card className="p-4">
