@@ -1,94 +1,155 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { MousePointerClick, Mic, LineChart } from 'lucide-react'
+import { useGSAP } from '@gsap/react'
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, useGSAP)
+
+const topics = ['Perkenalan diri', 'Wawancara kerja', 'Presentasi kelas', 'Cerita liburan']
 
 const steps = [
   {
-    icon: MousePointerClick,
     n: '01',
-    title: 'Pilih Topik',
-    desc: 'Skenario sehari-hari, materi sekolah, atau latihan ujian. Satu tap, langsung mulai.',
+    title: 'Pilih topik',
+    desc: 'Ambil skenario harian, materi sekolah, atau latihan ujian. Satu ketuk, sesi langsung mulai.',
+    visual: (
+      <div className="flex flex-wrap gap-2">
+        {topics.map((t, i) => (
+          <span
+            key={t}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+              i === 0 ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground'
+            }`}
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+    ),
   },
   {
-    icon: Mic,
     n: '02',
     title: 'Bicara dengan AI',
-    desc: 'Tekan mikrofon dan ngobrol. AI merespons natural dalam Bahasa Inggris.',
+    desc: 'Tekan mikrofon dan mulai bicara. AI merespons natural dalam bahasa Inggris, tanpa menghakimi.',
+    visual: (
+      <div className="rounded-lg border border-border bg-secondary p-4">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-primary" />
+          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Merekam
+          </span>
+          <span className="ml-auto font-mono text-[11px] text-muted-foreground">0:42</span>
+        </div>
+        <div className="mt-3 flex h-10 items-end gap-1" aria-hidden>
+          {[40, 70, 55, 90, 65, 80, 50, 95, 60, 75, 45, 85, 58, 72].map((h, i) => (
+            <span key={i} className="w-1.5 rounded-lg bg-primary" style={{ height: `${h}%` }} />
+          ))}
+        </div>
+      </div>
+    ),
   },
   {
-    icon: LineChart,
     n: '03',
-    title: 'Dapat Feedback & XP',
-    desc: 'Skor pronunciation, koreksi grammar, kumpulkan XP untuk naik level.',
+    title: 'Dapat feedback dan XP',
+    desc: 'Skor lima dimensi, koreksi grammar, dan XP yang menambah progres levelmu.',
+    visual: (
+      <div className="space-y-2.5">
+        {[
+          { label: 'Pronunciation', value: 86 },
+          { label: 'Fluency', value: 78 },
+          { label: 'Grammar', value: 82 },
+        ].map((r) => (
+          <div key={r.label} className="flex items-center gap-3">
+            <span className="w-24 shrink-0 text-[11px] text-muted-foreground">{r.label}</span>
+            <span className="h-1.5 flex-1 overflow-hidden rounded-lg bg-secondary">
+              <span className="block h-full rounded-lg bg-primary" style={{ width: `${r.value}%` }} />
+            </span>
+            <span className="w-6 font-mono text-[11px] font-semibold text-foreground">{r.value}</span>
+          </div>
+        ))}
+        <p className="pt-1 font-mono text-[11px] text-muted-foreground">+40 XP · Level 12</p>
+      </div>
+    ),
   },
 ]
 
+const STACK_TOP = 96
+const STACK_STEP = 16
+
 export function HowItWorks() {
   const sectionRef = useRef<HTMLElement>(null)
-  const stackRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce || !stackRef.current) return
-    const ctx = gsap.context(() => {
-      const cards = gsap.utils.toArray<HTMLElement>('.how-card')
-      cards.forEach((card, i) => {
-        if (i === cards.length - 1) return
-        ScrollTrigger.create({
-          trigger: card,
-          start: 'top top',
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia()
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const cards = gsap.utils.toArray<HTMLElement>('.how-card')
+        const pairs = cards.slice(0, -1).map((card, i) => ({ card, next: cards[i + 1] }))
+
+        // Sticky elements make ScrollTrigger's start/end strings unreliable, so
+        // the recess is derived from the cards' real positions: 0 when the next
+        // card touches this card's bottom edge, 1 when it reaches its top.
+        const update = () => {
+          pairs.forEach(({ card, next }) => {
+            const rect = card.getBoundingClientRect()
+            const p = gsap.utils.clamp(0, 1, (rect.bottom - next.getBoundingClientRect().top) / rect.height)
+            gsap.set(card, { scale: 1 - 0.06 * p, opacity: 1 - 0.4 * p })
+          })
+        }
+
+        const trigger = ScrollTrigger.create({
+          trigger: sectionRef.current,
+          start: 'top bottom',
           end: 'bottom top',
-          pin: true,
-          pinSpacing: false,
+          onUpdate: update,
+          onRefresh: update,
         })
-        gsap.to(card, {
-          scale: 0.94,
-          opacity: 0.6,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: cards[i + 1],
-            start: 'top bottom',
-            end: 'top top',
-            scrub: true,
-          },
-        })
+        update()
+
+        return () => trigger.kill()
       })
-    }, sectionRef)
-    return () => ctx.revert()
-  }, [])
+      return () => mm.revert()
+    },
+    { scope: sectionRef },
+  )
 
   return (
-    <section ref={sectionRef} id="cara-kerja" className="scroll-mt-20 bg-secondary/40 px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section
+      ref={sectionRef}
+      id="cara-kerja"
+      className="scroll-mt-24 bg-secondary/50 px-4 py-20 sm:px-6 sm:py-28 lg:px-8"
+    >
       <div className="mx-auto max-w-[1400px]">
         <div className="max-w-2xl">
-          <h2 className="font-heading text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-            Tiga langkah. Langsung bicara.
+          <h2 className="font-display text-3xl font-medium leading-[1.08] tracking-[-0.02em] text-foreground text-balance sm:text-4xl lg:text-5xl">
+            Tiga langkah, lalu kamu bicara.
           </h2>
-          <p className="mt-4 text-muted-foreground">Scroll — kartu langkah menumpuk, kuncinya urutan belajarnya jelas.</p>
+          <p className="mt-5 text-muted-foreground text-pretty">
+            Urutannya sengaja sederhana supaya siswa bisa mulai sendiri tanpa dijelaskan dulu.
+          </p>
         </div>
 
-        <div ref={stackRef} className="mt-12 space-y-6">
+        {/* CSS sticky rather than ScrollTrigger pinning: later cards paint above
+            earlier ones by DOM order, so the stack never shows through. */}
+        <div className="mt-12">
           {steps.map((s, i) => (
             <article
               key={s.n}
-              className="how-card sticky top-24 flex min-h-[280px] flex-col justify-between overflow-hidden rounded-[1.75rem] border border-border bg-card p-7 shadow-[0_8px_40px_-16px_rgba(29,29,31,0.18)] sm:min-h-[320px] sm:p-10"
-              style={{ top: `${96 + i * 14}px` }}
+              className="how-card sticky mb-6 grid gap-8 rounded-lg border border-border bg-card p-7 shadow-[0_8px_40px_-24px_rgba(29,29,31,0.28)] sm:p-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center"
+              style={{ top: `${STACK_TOP + i * STACK_STEP}px`, zIndex: i + 1 }}
             >
-              <div className="flex items-start justify-between gap-6">
-                <span className="font-mono text-5xl font-bold text-primary/15 sm:text-7xl">{s.n}</span>
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <s.icon className="h-6 w-6" />
-                </span>
+              <div>
+                <span className="font-mono text-sm font-semibold text-primary">{s.n}</span>
+                <h3 className="mt-3 font-display text-2xl font-medium tracking-[-0.01em] text-foreground sm:text-3xl">
+                  {s.title}
+                </h3>
+                <p className="mt-3 max-w-[52ch] leading-relaxed text-muted-foreground text-pretty">
+                  {s.desc}
+                </p>
               </div>
-              <div className="mt-8">
-                <h3 className="font-heading text-2xl font-bold text-foreground sm:text-3xl">{s.title}</h3>
-                <p className="mt-2 max-w-[58ch] text-muted-foreground">{s.desc}</p>
-              </div>
+              <div>{s.visual}</div>
             </article>
           ))}
         </div>

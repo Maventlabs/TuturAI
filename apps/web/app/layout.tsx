@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Plus_Jakarta_Sans, Inter, Geist_Mono } from 'next/font/google'
+import { Plus_Jakarta_Sans, Inter_Tight, IBM_Plex_Mono, Newsreader } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
 import { BootSplash } from '@/app/boot-splash'
@@ -19,14 +19,22 @@ const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   display: 'swap',
 })
-const inter = Inter({
-  variable: '--font-inter',
+const interTight = Inter_Tight({
+  variable: '--font-inter-tight',
   subsets: ['latin'],
   display: 'swap',
 })
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const plexMono = IBM_Plex_Mono({
+  variable: '--font-plex-mono',
   subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  display: 'swap',
+})
+const newsreader = Newsreader({
+  variable: '--font-newsreader',
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -81,7 +89,7 @@ export default function RootLayout({
     <html
       lang="id"
       suppressHydrationWarning
-      className={`${jakarta.variable} ${inter.variable} ${geistMono.variable} bg-background`}
+      className={`${jakarta.variable} ${interTight.variable} ${plexMono.variable} ${newsreader.variable} bg-background`}
     >
       <head>
         {/* Preload the splash mark so it paints without waiting on JS. */}

@@ -4,9 +4,11 @@ import { cn } from '@/lib/utils'
 export function Logo({
   className,
   showText = true,
+  textClassName = 'font-heading',
 }: {
   className?: string
   showText?: boolean
+  textClassName?: string
 }) {
   return (
     <span className={cn('flex items-center gap-2', className)}>
@@ -21,7 +23,7 @@ export function Logo({
         />
       </span>
       {showText && (
-        <span className="font-heading text-lg font-extrabold tracking-tight text-foreground">
+        <span className={cn('text-lg font-extrabold tracking-tight text-foreground', textClassName)}>
           Tutur<span className="text-primary">AI</span>
         </span>
       )}

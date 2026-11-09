@@ -1,88 +1,85 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useGSAP } from '@gsap/react'
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, useGSAP)
 
-interface RevealProps {
+/**
+ * Scroll reveal. The tween is only created inside a
+ * `prefers-reduced-motion: no-preference` matchMedia branch, so reduced-motion
+ * users get the final state with no transform ever applied.
+ */
+export function GSAPReveal({
+  children,
+  className,
+  delay = 0,
+  y = 28,
+}: {
   children: React.ReactNode
   className?: string
   delay?: number
   y?: number
-}
-
-/**
- * GSAP reveal wrapper — animates children in when they enter viewport.
- * Honors prefers-reduced-motion (shows content instantly).
- */
-export function GSAPReveal({ children, className, delay = 0, y = 28 }: RevealProps) {
+}) {
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) {
-      gsap.set(el, { clearProps: 'all', opacity: 1, y: 0 })
-      return
-    }
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        el,
-        { opacity: 0, y },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.75,
-          delay,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: el,
-            start: 'top 88%',
-            once: true,
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia()
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.fromTo(
+          ref.current,
+          { opacity: 0, y },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.75,
+            delay,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: ref.current, start: 'top 88%', once: true },
           },
-        },
-      )
-    }, ref)
-    return () => ctx.revert()
-  }, [delay, y])
+        )
+      })
+      return () => mm.revert()
+    },
+    { scope: ref, dependencies: [delay, y] },
+  )
 
-  return <div ref={ref} className={className}>{children}</div>
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  )
 }
 
-/**
- * Headline word/line stagger for H1/H2.
- */
+/** Line-by-line stagger for display headlines. Mark each line with `data-line`. */
 export function GSAPLines({ children, className }: { children: React.ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) return
-    const ctx = gsap.context(() => {
-      const items = el.querySelectorAll('[data-line]')
-      gsap.fromTo(
-        items,
-        { opacity: 0, y: 32 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          ease: 'power3.out',
-          stagger: 0.09,
-          scrollTrigger: {
-            trigger: el,
-            start: 'top 85%',
-            once: true,
+
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia()
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.fromTo(
+          ref.current?.querySelectorAll('[data-line]') ?? [],
+          { opacity: 0, y: 32 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            ease: 'power3.out',
+            stagger: 0.09,
+            scrollTrigger: { trigger: ref.current, start: 'top 85%', once: true },
           },
-        },
-      )
-    }, ref)
-    return () => ctx.revert()
-  }, [])
+        )
+      })
+      return () => mm.revert()
+    },
+    { scope: ref },
+  )
+
   return (
     <div ref={ref} className={className}>
       {children}
