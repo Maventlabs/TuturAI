@@ -11,22 +11,26 @@ type Tile = {
   alt: string
   placement: string
   sizes: string
+  objectClass?: string
 }
 
 const tiles: Tile[] = [
   {
     id: 'speaking',
     label: 'Speaking AI',
-    caption: 'Ngobrol bebas dengan partner AI, dinilai lima dimensi.',
+    caption:
+      'Speaking practice, AI conversation, dan pronunciation lab. Dinilai lima dimensi, bukan satu angka.',
     src: '/hero-student.webp',
     alt: 'Siswa SMA berlatih speaking dengan partner AI TuturAI',
-    placement: 'min-h-[320px] lg:col-start-1 lg:row-start-1 lg:row-span-3 lg:min-h-0',
+    placement: 'min-h-[380px] lg:col-start-1 lg:row-start-1 lg:row-span-3 lg:min-h-0',
     sizes: '(min-width: 1024px) 45vw, 100vw',
+    objectClass: 'object-[center_28%] lg:object-center',
   },
   {
     id: 'dashboard',
     label: 'Dashboard guru',
-    caption: 'Tren kelas, kesalahan umum, siswa yang perlu didampingi.',
+    caption:
+      'Analitik kelas, antrean penilaian, dan rekap kesalahan umum dalam satu layar.',
     src: '/feature-dashboard.png',
     alt: 'Laptop menampilkan dashboard analitik kelas',
     placement: 'min-h-[220px] lg:col-start-2 lg:col-span-2 lg:row-start-1 lg:min-h-0',
@@ -35,7 +39,8 @@ const tiles: Tile[] = [
   {
     id: 'kuis',
     label: 'Kuis per kata',
-    caption: 'Flashcard Easy, Medium, Hard.',
+    caption:
+      'Vocabulary, kuis terpadu, dan tes pedagogis. Tiap kata punya level Easy, Medium, Hard.',
     src: '/feature-flashcards.png',
     alt: 'Tumpukan kartu flashcard di atas meja',
     placement: 'min-h-[200px] lg:col-start-2 lg:row-start-2 lg:min-h-0',
@@ -44,7 +49,8 @@ const tiles: Tile[] = [
   {
     id: 'listening',
     label: 'Listening',
-    caption: 'Audio bertingkat, dari A1 ke C1.',
+    caption:
+      'Mode santai atau baku, tiga level, satu menit audio, delapan soal per set.',
     src: '/feature-listening.png',
     alt: 'Headphone di atas buku catatan',
     placement: 'min-h-[240px] lg:col-start-3 lg:row-start-2 lg:row-span-2 lg:min-h-0',
@@ -53,7 +59,8 @@ const tiles: Tile[] = [
   {
     id: 'adaptive',
     label: 'Adaptive learning',
-    caption: 'Modul PDF sesuai level.',
+    caption:
+      'Jalur belajar dan modul PDF yang menyesuaikan level, plus progres dan pencapaian.',
     src: '/feature-adaptive.png',
     alt: 'Tablet menampilkan modul belajar di atas meja',
     placement: 'min-h-[200px] lg:col-start-2 lg:row-start-3 lg:min-h-0',
@@ -83,38 +90,45 @@ export function Features() {
           </GSAPLines>
           <GSAPReveal delay={0.1}>
             <p className="mt-5 text-muted-foreground text-pretty">
-              Dari partner latihan sampai analitik kelas, dirancang untuk konteks sekolah Indonesia.
+              Latihan speaking dengan partner AI, kuis per kata, listening bertingkat, adaptive
+              learning, sampai analitik kelas dan laporan PDF. Semuanya dalam satu alur, jadi
+              progres tiap siswa langsung terbaca guru tanpa pindah aplikasi.
             </p>
           </GSAPReveal>
         </div>
 
-        <div className="mt-12 grid gap-3 sm:gap-4 lg:h-[620px] lg:grid-cols-[1.6fr_1fr_1fr] lg:grid-rows-3">
-          {tiles.map((tile, index) => (
-            <GSAPReveal key={tile.id} delay={index * 0.05} className={tile.placement}>
-              <article className="group relative h-full overflow-hidden rounded-sm bg-ink-deep">
-                <Image
-                  src={tile.src}
-                  alt={tile.alt}
-                  fill
-                  sizes={tile.sizes}
-                  className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                />
-                <div
-                  aria-hidden
-                  className="absolute inset-0 bg-linear-to-t from-ink-deep/92 via-ink-deep/50 to-ink-deep/5"
-                />
-                <div className="relative flex h-full flex-col justify-end p-5 sm:p-6">
-                  <h3 className="font-heading text-xl font-bold tracking-[-0.01em] text-white sm:text-2xl">
-                    {tile.label}
-                  </h3>
-                  <p className="mt-1.5 max-w-[34ch] text-sm leading-relaxed text-white/75 text-pretty">
-                    {tile.caption}
-                  </p>
-                </div>
-              </article>
-            </GSAPReveal>
-          ))}
-        </div>
+        <GSAPReveal delay={0.15} className="mt-12">
+          <div className="rounded-sm bg-ink-deep p-2.5 sm:p-3.5">
+            <div className="grid gap-2.5 sm:gap-3 lg:h-[620px] lg:grid-cols-[1.6fr_1fr_1fr] lg:grid-rows-3">
+              {tiles.map((tile) => (
+                <article
+                  key={tile.id}
+                  className={`group relative overflow-hidden rounded-sm bg-ink-deep ${tile.placement}`}
+                >
+                  <Image
+                    src={tile.src}
+                    alt={tile.alt}
+                    fill
+                    sizes={tile.sizes}
+                    className={`object-cover transition-transform duration-500 group-hover:scale-[1.03] ${tile.objectClass ?? 'object-center'}`}
+                  />
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 bg-linear-to-t from-ink-deep/92 via-ink-deep/50 to-ink-deep/5"
+                  />
+                  <div className="relative flex h-full flex-col justify-end p-5 sm:p-6">
+                    <h3 className="font-heading text-xl font-bold tracking-[-0.01em] text-white sm:text-2xl">
+                      {tile.label}
+                    </h3>
+                    <p className="mt-1.5 max-w-[38ch] text-sm leading-relaxed text-white/75 text-pretty">
+                      {tile.caption}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </GSAPReveal>
       </div>
     </section>
   )
