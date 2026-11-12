@@ -89,8 +89,8 @@ export function FAQ() {
             return (
               <GSAPReveal key={faq.question} delay={0.05 * (index % 2)}>
                 <div
-                  className={`h-full rounded-[4px] border border-primary/15 transition-colors duration-200 ${
-                    isOpen ? 'bg-primary/[0.11]' : 'bg-primary/[0.06] hover:bg-primary/[0.09]'
+                  className={`h-full rounded-[2px] border border-primary transition-colors duration-200 ${
+                    isOpen ? 'bg-accent' : 'bg-primary hover:bg-accent'
                   }`}
                 >
                   <h3>
@@ -102,12 +102,12 @@ export function FAQ() {
                       onClick={() => setOpenIndex(isOpen ? null : index)}
                       className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left sm:px-6"
                     >
-                      <span className="font-heading text-base font-semibold text-primary-deep text-pretty">
+                      <span className="font-heading text-base font-semibold text-primary-foreground text-pretty">
                         {faq.question}
                       </span>
                       <Plus
                         aria-hidden
-                        className={`h-5 w-5 shrink-0 text-primary-deep transition-transform duration-300 ${
+                        className={`h-5 w-5 shrink-0 text-primary-foreground transition-transform duration-300 ${
                           isOpen ? 'rotate-45' : ''
                         }`}
                       />
@@ -124,7 +124,7 @@ export function FAQ() {
                     }`}
                   >
                     <div className="overflow-hidden">
-                      <p className="px-5 pb-5 text-sm leading-relaxed text-primary-deep text-pretty sm:px-6">
+                      <p className="px-5 pb-5 text-sm leading-relaxed text-primary-foreground text-pretty sm:px-6">
                         {faq.answer}
                       </p>
                     </div>
