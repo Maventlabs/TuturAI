@@ -46,7 +46,7 @@ const plans: Plan[] = [
     unit: 'selamanya',
     note: { bulanan: 'Tanpa kartu kredit', tahunan: 'Tanpa kartu kredit' },
     cta: 'Mulai gratis',
-    href: '/register',
+    href: '/auth/sign-up',
     tone: 'light',
     features: [
       'Partner speaking AI, 3 sesi per hari',
@@ -70,7 +70,7 @@ const plans: Plan[] = [
     unit: 'per siswa / bulan',
     note: { bulanan: 'Ditagih per bulan', tahunan: 'Ditagih per tahun, hemat 20%' },
     cta: 'Ajukan School Plan',
-    href: '/register?plan=school',
+    href: '/auth/sign-up',
     tone: 'primary',
     featured: true,
     features: [
@@ -96,7 +96,7 @@ const plans: Plan[] = [
     unit: 'sesuai kebutuhan',
     note: { bulanan: 'Kontrak tahunan', tahunan: 'Kontrak multi-tahun' },
     cta: 'Hubungi kami',
-    href: '/contact?plan=enterprise',
+    href: 'mailto:hello@tuturai.id?subject=Enterprise%20Plan',
     tone: 'dark',
     features: [
       'Multi-sekolah dan multi-kelas',
