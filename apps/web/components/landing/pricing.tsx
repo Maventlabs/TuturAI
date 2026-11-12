@@ -125,23 +125,23 @@ export function Pricing() {
   const [billing, setBilling] = useState<Billing>('bulanan')
 
   return (
-    <section id="harga" className="scroll-mt-24 bg-secondary px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section id="harga" className="scroll-mt-24 bg-primary px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-2xl text-center">
           <GSAPReveal>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground/70">
               Paket
             </p>
           </GSAPReveal>
           <GSAPLines>
-            <h2 className="mt-4 font-heading text-3xl font-bold leading-[1.08] tracking-[-0.02em] text-foreground text-balance sm:text-4xl lg:text-5xl">
+            <h2 className="mt-4 font-heading text-3xl font-bold leading-[1.08] tracking-[-0.02em] text-primary-foreground text-balance sm:text-4xl lg:text-5xl">
               <span data-line className="block">
                 Berapa biayanya?
               </span>
             </h2>
           </GSAPLines>
           <GSAPReveal delay={0.1}>
-            <p className="mt-5 text-muted-foreground text-pretty">
+            <p className="mt-5 text-primary-foreground/80 text-pretty">
               Pilih paket yang sesuai tujuanmu. Bisa dijeda, diubah, atau diperpanjang kapan saja.
             </p>
           </GSAPReveal>
@@ -151,7 +151,7 @@ export function Pricing() {
           <div
             role="group"
             aria-label="Periode penagihan"
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1"
+            className="inline-flex items-center gap-1 rounded-full border border-primary-foreground/25 bg-primary-foreground/10 p-1"
           >
             {(['bulanan', 'tahunan'] as const).map((option) => (
               <button
@@ -161,8 +161,8 @@ export function Pricing() {
                 aria-pressed={billing === option}
                 className={`inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold capitalize transition-colors ${
                   billing === option
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary-foreground text-primary'
+                    : 'text-primary-foreground/70 hover:text-primary-foreground'
                 }`}
               >
                 {option}
@@ -179,7 +179,7 @@ export function Pricing() {
             <GSAPReveal key={plan.id} delay={index * 0.06} className="h-full">
               <article
                 className={`flex h-full flex-col rounded-sm border bg-card p-6 sm:p-7 ${
-                  plan.featured ? 'border-primary ring-1 ring-primary' : 'border-border'
+                  plan.featured ? 'border-foreground ring-1 ring-foreground' : 'border-border'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -252,7 +252,7 @@ export function Pricing() {
           ))}
         </div>
 
-        <p className="mt-8 text-center font-mono text-[11px] text-muted-foreground">
+        <p className="mt-8 text-center font-mono text-[11px] text-primary-foreground/70">
           Harga dalam Rupiah, belum termasuk PPN. Pembayaran diproses lewat gateway resmi.
         </p>
       </div>

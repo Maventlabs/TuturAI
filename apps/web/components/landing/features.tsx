@@ -22,15 +22,14 @@ const tiles: Tile[] = [
       'Speaking practice, AI conversation, dan pronunciation lab. Dinilai lima dimensi, bukan satu angka.',
     src: '/hero-student.webp',
     alt: 'Siswa SMA berlatih speaking dengan partner AI TuturAI',
-    placement: 'min-h-[380px] lg:col-start-1 lg:row-start-1 lg:row-span-3 lg:min-h-0',
+    placement: 'min-h-[380px] lg:col-start-1 lg:row-start-1 lg:row-span-4 lg:min-h-0',
     sizes: '(min-width: 1024px) 45vw, 100vw',
     objectClass: 'object-[center_28%] lg:object-center',
   },
   {
     id: 'dashboard',
     label: 'Dashboard guru',
-    caption:
-      'Analitik kelas, antrean penilaian, dan rekap kesalahan umum dalam satu layar.',
+    caption: 'Analitik kelas, antrean penilaian, dan rekap kesalahan umum dalam satu layar.',
     src: '/feature-dashboard.png',
     alt: 'Laptop menampilkan dashboard analitik kelas',
     placement: 'min-h-[220px] lg:col-start-2 lg:col-span-2 lg:row-start-1 lg:min-h-0',
@@ -39,8 +38,7 @@ const tiles: Tile[] = [
   {
     id: 'kuis',
     label: 'Kuis per kata',
-    caption:
-      'Vocabulary, kuis terpadu, dan tes pedagogis. Tiap kata punya level Easy, Medium, Hard.',
+    caption: 'Vocabulary, kuis terpadu, dan tes pedagogis. Tiap kata punya level Easy, Medium, Hard.',
     src: '/feature-flashcards.png',
     alt: 'Tumpukan kartu flashcard di atas meja',
     placement: 'min-h-[200px] lg:col-start-2 lg:row-start-2 lg:min-h-0',
@@ -49,21 +47,29 @@ const tiles: Tile[] = [
   {
     id: 'listening',
     label: 'Listening',
-    caption:
-      'Mode santai atau baku, tiga level, satu menit audio, delapan soal per set.',
+    caption: 'Mode santai atau baku, tiga level, satu menit audio, delapan soal per set.',
     src: '/feature-listening.png',
     alt: 'Headphone di atas buku catatan',
-    placement: 'min-h-[240px] lg:col-start-3 lg:row-start-2 lg:row-span-2 lg:min-h-0',
+    placement: 'min-h-[200px] lg:col-start-3 lg:row-start-2 lg:min-h-0',
     sizes: '(min-width: 1024px) 28vw, 100vw',
   },
   {
     id: 'adaptive',
     label: 'Adaptive learning',
-    caption:
-      'Jalur belajar dan modul PDF yang menyesuaikan level, plus progres dan pencapaian.',
+    caption: 'Jalur belajar dan modul PDF yang menyesuaikan level, plus progres dan pencapaian.',
     src: '/feature-adaptive.png',
     alt: 'Tablet menampilkan modul belajar di atas meja',
-    placement: 'min-h-[200px] lg:col-start-2 lg:row-start-3 lg:min-h-0',
+    placement: 'min-h-[220px] lg:col-start-2 lg:row-start-3 lg:row-span-2 lg:min-h-0',
+    sizes: '(min-width: 1024px) 28vw, 100vw',
+  },
+  {
+    id: 'hardware',
+    label: 'Perangkat offline',
+    caption:
+      'Latihan tetap jalan tanpa internet. Hasil tersimpan di perangkat, lalu sinkron otomatis begitu tersambung lagi.',
+    src: '/feature-device.png',
+    alt: 'Perangkat belajar genggam di atas meja kelas',
+    placement: 'min-h-[240px] lg:col-start-3 lg:row-start-3 lg:row-span-2 lg:min-h-0',
     sizes: '(min-width: 1024px) 28vw, 100vw',
   },
 ]
@@ -99,7 +105,7 @@ export function Features() {
 
         <GSAPReveal delay={0.15} className="mt-12">
           <div className="rounded-sm bg-ink-deep p-2.5 sm:p-3.5">
-            <div className="grid gap-2.5 sm:gap-3 lg:h-[620px] lg:grid-cols-[1.6fr_1fr_1fr] lg:grid-rows-3">
+            <div className="grid gap-2.5 sm:gap-3 lg:h-[800px] lg:grid-cols-[1.6fr_1fr_1fr] lg:grid-rows-4">
               {tiles.map((tile) => (
                 <article
                   key={tile.id}

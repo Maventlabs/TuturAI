@@ -7,10 +7,8 @@ const columns = [
     title: 'Produk',
     links: [
       { label: 'Fitur', href: '#fitur' },
-      { label: 'Cara Kerja', href: '#cara-kerja' },
-      { label: 'Untuk Siswa', href: '#untuk-siapa' },
-      { label: 'Untuk Guru', href: '#untuk-siapa' },
       { label: 'Perangkat Offline', href: '#offline' },
+      { label: 'Harga', href: '#harga' },
     ],
   },
   {

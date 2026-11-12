@@ -2,8 +2,6 @@ import { SiteHeader } from '@/components/landing/site-header'
 import { Hero } from '@/components/landing/hero'
 import { Problem } from '@/components/landing/problem'
 import { Features } from '@/components/landing/features'
-import { HowItWorks } from '@/components/landing/how-it-works'
-import { Audience } from '@/components/landing/audience'
 import { OfflineHardware } from '@/components/landing/offline-hardware'
 import { Pricing } from '@/components/landing/pricing'
 import { FAQ } from '@/components/landing/faq'
@@ -42,8 +40,6 @@ export default function HomePage() {
         <Hero />
         <Problem />
         <Features />
-        <HowItWorks />
-        <Audience />
         <OfflineHardware />
         <Pricing />
         <FAQ />

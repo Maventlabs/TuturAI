@@ -67,10 +67,10 @@ export function Hero() {
               <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
             <Link
-              href="#cara-kerja"
+              href="#fitur"
               className="inline-flex h-12 items-center justify-center rounded-lg border border-border px-6 text-base font-semibold text-foreground transition-colors hover:bg-secondary"
             >
-              Lihat Cara Kerja
+              Lihat Fitur
             </Link>
           </div>
         </div>

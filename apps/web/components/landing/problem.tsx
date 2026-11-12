@@ -73,9 +73,9 @@ export function Problem() {
         <div className="mt-12 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           {cards.map((card, index) => (
             <GSAPReveal key={card.id} delay={index * 0.06} className="h-full">
-              <article className="group flex h-full flex-col overflow-hidden rounded-sm border border-border bg-card transition-colors hover:border-primary/40">
-                <div className="flex h-[210px] items-center justify-center border-b border-border bg-secondary p-4">
-                  <div className="h-full w-full max-w-[260px] transition-transform duration-500 group-hover:scale-105">
+              <article className="group flex h-full flex-col overflow-hidden rounded-sm border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40">
+                <div className="flex h-[220px] items-center justify-center border-b border-border bg-secondary p-5">
+                  <div className="h-full w-full max-w-[280px] transition-transform duration-500 group-hover:scale-[1.04]">
                     <card.Illustration />
                   </div>
                 </div>

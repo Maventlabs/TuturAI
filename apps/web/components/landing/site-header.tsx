@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { Menu, X, ChevronDown, ArrowUpRight } from 'lucide-react'
+import { Menu, X, ArrowUpRight } from 'lucide-react'
 import { Logo } from '@/components/logo'
 import { getFirebaseAuth } from '@/lib/firebase/client'
 import { onAuthStateChanged } from 'firebase/auth'
@@ -13,16 +13,9 @@ import { onAuthStateChanged } from 'firebase/auth'
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 const leftItems = [
-  { label: 'Features', href: '#fitur' },
-  { label: 'Why TuturAI', href: '#masalah' },
+  { label: 'Fitur', href: '#fitur' },
+  { label: 'Perangkat', href: '#offline' },
   { label: 'Harga', href: '#harga' },
-]
-
-const productItems = [
-  { label: 'Untuk Siswa', href: '#untuk-siapa', desc: 'Ruang aman untuk bicara' },
-  { label: 'Untuk Guru', href: '#untuk-siapa', desc: 'Dashboard analitik kelas' },
-  { label: 'Perangkat Offline', href: '#offline', desc: 'Konsol genggam ESP32-S3' },
-  { label: 'Cara Kerja', href: '#cara-kerja', desc: 'Tiga langkah mulai' },
 ]
 
 export function SiteHeader() {
@@ -100,28 +93,6 @@ export function SiteHeader() {
               {item.label}
             </a>
           ))}
-          <div className="group relative">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              aria-haspopup="true"
-            >
-              Products
-              <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180" />
-            </button>
-            <div className="invisible absolute left-0 top-full z-50 mt-1 w-64 translate-y-1 rounded-lg border border-border bg-card p-2 opacity-0 shadow-[0_16px_48px_-20px_rgba(29,29,31,0.35)] transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-              {productItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
-                >
-                  <span className="block text-sm font-semibold text-foreground">{item.label}</span>
-                  <span className="block text-xs text-muted-foreground">{item.desc}</span>
-                </a>
-              ))}
-            </div>
-          </div>
         </nav>
 
         <button
@@ -185,19 +156,6 @@ export function SiteHeader() {
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3.5 py-3 text-sm font-medium text-foreground hover:bg-secondary"
-              >
-                {item.label}
-              </a>
-            ))}
-            <p className="px-3.5 pb-1 pt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-              Products
-            </p>
-            {productItems.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3.5 py-3 text-sm text-foreground hover:bg-secondary"
               >
                 {item.label}
               </a>
