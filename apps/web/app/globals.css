@@ -224,3 +224,54 @@
 .animate-pulse-ring {
   animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
+
+/* Problem-section illustrations: slow, low-amplitude loops so they read as
+   diagrams rather than decoration. Disabled entirely under reduced motion. */
+@keyframes illo-bar {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes illo-draw {
+  0% {
+    stroke-dashoffset: 260;
+  }
+  60%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes illo-dot {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes illo-signal {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  45%,
+  65% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .illo-anim {
+    animation: none !important;
+  }
+}
