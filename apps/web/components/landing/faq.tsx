@@ -76,7 +76,7 @@ export function FAQ() {
               Frequently Asked Questions
             </p>
             <p className="mt-5 text-foreground text-pretty">
-              <strong className="font-semibold text-primary-deep">Temukan jawaban</strong> soal cara
+              <strong className="font-semibold text-foreground">Temukan jawaban</strong> soal cara
               kerja TuturAI, penilaian AI, dan pemakaiannya di kelas.
             </p>
           </GSAPReveal>
