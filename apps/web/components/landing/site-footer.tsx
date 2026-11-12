@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Logo } from '@/components/logo'
+import { Globe } from 'lucide-react'
+import { NewsletterForm } from './newsletter-form'
 
 const columns = [
   {
@@ -7,8 +8,9 @@ const columns = [
     links: [
       { label: 'Fitur', href: '#fitur' },
       { label: 'Cara Kerja', href: '#cara-kerja' },
-      { label: 'Untuk Siapa', href: '#untuk-siapa' },
-      { label: 'Offline & Hardware', href: '#offline' },
+      { label: 'Untuk Siswa', href: '#untuk-siapa' },
+      { label: 'Untuk Guru', href: '#untuk-siapa' },
+      { label: 'Perangkat Offline', href: '#offline' },
     ],
   },
   {
@@ -17,6 +19,7 @@ const columns = [
       { label: 'Daftar sebagai Siswa', href: '/auth/sign-up' },
       { label: 'Daftar sebagai Guru', href: '/auth/sign-up' },
       { label: 'Masuk', href: '/auth/login' },
+      { label: 'Dashboard', href: '/dashboard' },
     ],
   },
   {
@@ -24,50 +27,60 @@ const columns = [
     links: [
       { label: 'hello@tuturai.id', href: 'mailto:hello@tuturai.id' },
       { label: 'tuturai-apps.netlify.app', href: 'https://tuturai-apps.netlify.app' },
+      { label: 'Laporan Masalah', href: 'mailto:hello@tuturai.id?subject=Laporan%20Masalah' },
     ],
   },
 ]
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-secondary/50">
-      <div className="mx-auto max-w-[1400px] px-4 py-14 sm:px-6 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
-          <div>
-            <Logo textClassName="font-display text-xl font-semibold tracking-[-0.02em]" />
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground text-pretty">
-              Platform latihan speaking bahasa Inggris berbasis AI untuk siswa SMA/SMK Indonesia.
-            </p>
-            <p className="mt-4 font-mono text-[11px] text-muted-foreground">
-              LIDM VII 2026 · Institut Teknologi Sumatera
+    <footer className="overflow-hidden bg-primary text-primary-foreground">
+      <div className="mx-auto max-w-[1400px] px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8">
+        <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-8">
+          <div className="max-w-sm">
+            <h2 className="font-display text-3xl font-medium leading-[1.1] tracking-[-0.02em] text-balance sm:text-4xl">
+              Tetap terhubung
+            </h2>
+            <NewsletterForm />
+            <p className="mt-4 text-xs leading-relaxed text-pretty">
+              Dengan mendaftar, kamu setuju menerima kabar produk dan tips latihan speaking dari TuturAI.
             </p>
           </div>
 
-          {columns.map((col) => (
-            <div key={col.title}>
-              <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                {col.title}
-              </h3>
-              <ul className="mt-4 space-y-2.5">
-                {col.links.map((link) => (
+          {columns.map((column) => (
+            <nav key={column.title} aria-label={column.title}>
+              <h3 className="font-mono text-[11px] uppercase tracking-[0.18em]">{column.title}</h3>
+              <ul className="mt-5 flex flex-col gap-3">
+                {column.links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-foreground/80 transition-colors hover:text-foreground"
+                      className="font-mono text-[11px] uppercase tracking-[0.12em] transition-opacity hover:opacity-75"
                     >
                       {link.label}
                     </Link>
                   </li>
                 ))}
               </ul>
-            </div>
+            </nav>
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} TuturAI. Semua hak dilindungi.</p>
-          <p>Dibuat untuk pendidikan Indonesia.</p>
+        <div className="mt-16 flex flex-wrap items-center gap-x-6 gap-y-2">
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em]">
+            <Globe className="h-3.5 w-3.5" aria-hidden />
+            Bahasa Indonesia
+          </span>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em]">
+            © {new Date().getFullYear()} TuturAI. Semua hak dilindungi.
+          </p>
         </div>
+      </div>
+
+      <div className="mt-14 h-[13.5vw] overflow-hidden" aria-hidden="true">
+        <span className="block select-none text-center font-heading text-[25.5vw] font-extrabold leading-[0.8] tracking-[-0.05em]">
+          TUTURAI
+        </span>
       </div>
     </footer>
   )

@@ -126,3 +126,26 @@ export function validateTeacherPreferencesInput(input: unknown):
     },
   }
 }
+
+export interface NewsletterInput {
+  email: string
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export function validateNewsletterInput(input: unknown):
+  | { success: true; data: NewsletterInput }
+  | { success: false; issues: ValidationIssue[] } {
+  if (!input || typeof input !== 'object') {
+    return { success: false, issues: [{ path: 'email', message: 'Email is required' }] }
+  }
+
+  const candidate = input as Record<string, unknown>
+  const email = typeof candidate.email === 'string' ? candidate.email.trim().toLowerCase() : ''
+
+  if (email.length < 3 || email.length > 254 || !EMAIL_PATTERN.test(email)) {
+    return { success: false, issues: [{ path: 'email', message: 'Enter a valid email address' }] }
+  }
+
+  return { success: true, data: { email } }
+}

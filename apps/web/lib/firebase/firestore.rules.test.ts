@@ -141,4 +141,16 @@ describe('Firestore security rules', () => {
       joinedAt: Timestamp.now(),
     }))
   })
+
+  it('keeps newsletter subscribers server-only', async () => {
+    const studentDb = testEnv.authenticatedContext(studentUid).firestore()
+    const subscriberRef = doc(collection(studentDb, 'newsletterSubscribers'))
+
+    await assertFails(setDoc(subscriberRef, {
+      email: 'student@example.com',
+      source: 'landing-footer',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    }))
+  })
 })
