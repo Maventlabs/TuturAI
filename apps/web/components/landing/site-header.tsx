@@ -185,11 +185,14 @@ export function SiteHeader() {
   // text, an inverted logo, and tinted button treatments.
   const onTinted = scrolled && navTheme !== 'light'
 
+  // Over the hero the bar is transparent, so the logo and nav links go white.
+  const navInverted = !scrolled || onTinted
+
   return (
     <div
       ref={shellRef}
       className={cn(
-        'sticky top-0 z-50 border-b transition-colors duration-300',
+        'fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300',
         !scrolled && 'border-transparent bg-transparent',
         scrolled && navTheme === 'light' && 'border-border bg-background/85 backdrop-blur-md',
         scrolled &&
@@ -207,7 +210,7 @@ export function SiteHeader() {
       >
         <Link href="/" aria-label="TuturAI beranda" className="shrink-0">
           <Logo
-            inverted={onTinted}
+            inverted={navInverted}
             textClassName="font-heading text-xl font-extrabold tracking-tight"
           />
         </Link>
@@ -225,11 +228,11 @@ export function SiteHeader() {
                   className={cn(
                     'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     openMenu === entry.id
-                      ? onTinted
+                      ? navInverted
                         ? 'bg-white/15 text-primary-foreground'
                         : 'bg-secondary text-foreground'
-                      : onTinted
-                        ? 'text-primary-foreground/70 hover:text-primary-foreground'
+                      : navInverted
+                        ? 'text-primary-foreground/80 hover:text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
@@ -270,8 +273,8 @@ export function SiteHeader() {
                 href={entry.href}
                 className={cn(
                   'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  onTinted
-                    ? 'text-primary-foreground/70 hover:text-primary-foreground'
+                  navInverted
+                    ? 'text-primary-foreground/80 hover:text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
