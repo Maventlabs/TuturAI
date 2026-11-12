@@ -55,13 +55,13 @@ export function FAQ() {
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-3xl text-center">
           <GSAPReveal>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary-deep">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground">
               Ada pertanyaan?
             </p>
           </GSAPReveal>
 
           <GSAPLines>
-            <h2 className="mt-4 font-display text-3xl font-medium leading-[1.08] tracking-[-0.02em] text-primary text-balance sm:text-4xl lg:text-5xl">
+            <h2 className="mt-4 font-heading text-3xl font-bold leading-[1.08] tracking-[-0.02em] text-foreground text-balance sm:text-4xl lg:text-5xl">
               <span data-line className="block">
                 Pertanyaan yang
               </span>
@@ -72,9 +72,12 @@ export function FAQ() {
           </GSAPLines>
 
           <GSAPReveal delay={0.1}>
-            <p className="mt-5 text-primary-deep text-pretty">
-              <strong className="font-semibold">Temukan jawaban</strong> soal cara kerja TuturAI,
-              penilaian AI, dan pemakaiannya di kelas.
+            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/70">
+              Frequently Asked Questions
+            </p>
+            <p className="mt-5 text-foreground text-pretty">
+              <strong className="font-semibold text-primary-deep">Temukan jawaban</strong> soal cara
+              kerja TuturAI, penilaian AI, dan pemakaiannya di kelas.
             </p>
           </GSAPReveal>
         </div>
@@ -86,7 +89,7 @@ export function FAQ() {
             return (
               <GSAPReveal key={faq.question} delay={0.05 * (index % 2)}>
                 <div
-                  className={`h-full rounded-lg border border-primary/15 transition-colors duration-200 ${
+                  className={`h-full rounded-[4px] border border-primary/15 transition-colors duration-200 ${
                     isOpen ? 'bg-primary/[0.11]' : 'bg-primary/[0.06] hover:bg-primary/[0.09]'
                   }`}
                 >

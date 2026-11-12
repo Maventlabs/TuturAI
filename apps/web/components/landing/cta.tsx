@@ -6,37 +6,54 @@ import { GSAPLines, GSAPReveal } from './gsap-helpers'
 
 export function CTA() {
   return (
-    <section className="px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
-      <div className="mx-auto max-w-[1400px]">
-        <div className="rounded-lg bg-primary px-6 py-16 sm:px-12 sm:py-24">
+    <section className="relative overflow-hidden bg-primary px-4 pb-20 sm:px-6 sm:pb-24 lg:px-8">
+      {/* White at the top blends into the FAQ above; primary at the bottom matches the footer. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-48 sm:h-72"
+        style={{
+          backgroundImage:
+            'linear-gradient(to bottom, #ffffff 0%, #ffffff 12%, #cfe0ff 38%, #6f9bf8 68%, var(--primary) 90%)',
+        }}
+      />
+
+      <div className="relative mx-auto max-w-[1400px] pt-48 sm:pt-72">
+        <div className="mx-auto max-w-4xl text-center">
+          <GSAPReveal>
+            <p className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground">
+              Waktunya mulai
+              <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" aria-hidden />
+            </p>
+          </GSAPReveal>
+
           <GSAPLines>
-            <h2 className="max-w-3xl font-display text-4xl font-medium leading-[1.06] tracking-[-0.02em] text-primary-foreground text-balance sm:text-5xl lg:text-6xl">
+            <h2 className="mt-6 font-display text-3xl font-medium leading-[1.1] tracking-[-0.02em] text-primary-foreground text-balance sm:text-4xl lg:text-5xl">
               <span data-line className="block">
-                Berhenti menunda bicara.
+                Keberanian bicara lahir dari
               </span>
               <span data-line className="block">
-                Mulai satu sesi hari ini.
+                percobaan pertama yang tidak dihakimi.
               </span>
             </h2>
           </GSAPLines>
 
           <GSAPReveal delay={0.12}>
-            <p className="mt-6 max-w-xl leading-relaxed text-primary-foreground/80 text-pretty">
+            <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-primary-foreground text-pretty sm:text-base">
               Gratis untuk siswa, tanpa kartu kredit. Guru bisa langsung mendaftarkan kelasnya.
             </p>
-            <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-              <Link
-                href="/auth/sign-up"
-                className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-card px-7 text-base font-semibold text-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Mulai Latihan Gratis
-                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-              </Link>
+
+            <div className="mt-10 flex justify-center">
               <Link
                 href="/auth/login"
-                className="text-sm font-semibold text-primary-foreground/85 underline decoration-primary-foreground/30 underline-offset-4 transition-colors hover:text-primary-foreground"
+                className="group inline-flex items-center gap-3 rounded-full bg-card py-2 pl-7 pr-2 text-sm font-semibold uppercase tracking-[0.12em] text-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
               >
-                Sudah punya akun? Masuk
+                Coba Sekarang
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background">
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </span>
               </Link>
             </div>
           </GSAPReveal>
