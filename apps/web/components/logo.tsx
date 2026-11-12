@@ -12,16 +12,14 @@ export function Logo({
 }) {
   return (
     <span className={cn('flex items-center gap-2', className)}>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg">
-        <Image
-          src="/brand/logo-icon.png"
-          alt="Logo TuturAI"
-          width={36}
-          height={36}
-          className="h-9 w-9 object-cover"
-          priority
-        />
-      </span>
+      <Image
+        src="/brand/logo-mark-blue.png"
+        alt="Logo TuturAI"
+        width={36}
+        height={38}
+        className="h-9 w-auto shrink-0"
+        priority
+      />
       {showText && (
         <span className={cn('text-lg font-extrabold tracking-tight text-foreground', textClassName)}>
           Tutur<span className="text-primary">AI</span>

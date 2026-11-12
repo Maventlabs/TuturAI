@@ -68,6 +68,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.2.6",
+    "pngjs": "^7.0.0",
     "postcss": "^8.5.18",
     "shadcn": "^4.8.0",
     "tailwindcss": "^4.2.0",

@@ -6,21 +6,9 @@ import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import {
   ArrowUpRight,
-  Building2,
   ChevronDown,
-  Cpu,
-  GraduationCap,
-  HeartPulse,
-  HelpCircle,
-  Layers,
-  LineChart,
   Menu,
-  Mic,
-  RefreshCw,
-  Tag,
-  Users,
   X,
-  type LucideIcon,
 } from 'lucide-react'
 import { Logo } from '@/components/logo'
 import { getFirebaseAuth } from '@/lib/firebase/client'
@@ -31,9 +19,7 @@ gsap.registerPlugin(useGSAP)
 
 type PanelItem = {
   label: string
-  description: string
   href: string
-  icon: LucideIcon
 }
 
 type NavEntry = {
@@ -50,30 +36,10 @@ const navEntries: NavEntry[] = [
     label: 'Produk',
     href: '#fitur',
     panel: [
-      {
-        label: 'Latihan Speaking AI',
-        description: 'Percakapan real-time dengan feedback lima dimensi.',
-        href: '#fitur',
-        icon: Mic,
-      },
-      {
-        label: 'Perangkat Offline',
-        description: 'Latihan luring di perangkat ESP32-S3.',
-        href: '#offline',
-        icon: Cpu,
-      },
-      {
-        label: 'Analitik Guru',
-        description: 'Tren kelas, penguasaan skill, dan error umum.',
-        href: '#fitur',
-        icon: LineChart,
-      },
-      {
-        label: 'Sinkron Luring',
-        description: 'Antrean mutasi diputar ulang saat koneksi kembali.',
-        href: '#offline',
-        icon: RefreshCw,
-      },
+      { label: 'Latihan Speaking AI', href: '#fitur' },
+      { label: 'Perangkat Offline', href: '#offline' },
+      { label: 'Analitik Guru', href: '#fitur' },
+      { label: 'Sinkron Luring', href: '#offline' },
     ],
   },
   {
@@ -81,30 +47,10 @@ const navEntries: NavEntry[] = [
     label: 'Solusi',
     href: '#fitur',
     panel: [
-      {
-        label: 'Untuk Siswa',
-        description: 'Latihan mandiri, streak, dan leaderboard kelas.',
-        href: '#fitur',
-        icon: GraduationCap,
-      },
-      {
-        label: 'Untuk Guru',
-        description: 'Penugasan, penilaian, dan laporan PDF.',
-        href: '#fitur',
-        icon: Users,
-      },
-      {
-        label: 'Untuk Sekolah',
-        description: 'Lisensi kelas dan monitoring perangkat.',
-        href: '#harga',
-        icon: Building2,
-      },
-      {
-        label: 'Kecemasan Berbicara',
-        description: 'Latihan bertahap untuk menurunkan rasa malu.',
-        href: '#masalah',
-        icon: HeartPulse,
-      },
+      { label: 'Untuk Siswa', href: '#fitur' },
+      { label: 'Untuk Guru', href: '#fitur' },
+      { label: 'Untuk Sekolah', href: '#harga' },
+      { label: 'Kecemasan Berbicara', href: '#masalah' },
     ],
   },
   {
@@ -112,30 +58,10 @@ const navEntries: NavEntry[] = [
     label: 'Sumber Daya',
     href: '#faq',
     panel: [
-      {
-        label: 'FAQ',
-        description: 'Pertanyaan umum seputar TuturAI.',
-        href: '#faq',
-        icon: HelpCircle,
-      },
-      {
-        label: 'Harga & Paket',
-        description: 'Dari gratis untuk siswa sampai lisensi sekolah.',
-        href: '#harga',
-        icon: Tag,
-      },
-      {
-        label: 'Cara Kerja',
-        description: 'Empat komponen AI di balik setiap penilaian.',
-        href: '#fitur',
-        icon: Layers,
-      },
-      {
-        label: 'Mulai Sekarang',
-        description: 'Buat akun siswa atau guru dalam satu menit.',
-        href: '/auth/sign-up',
-        icon: ArrowUpRight,
-      },
+      { label: 'FAQ', href: '#faq' },
+      { label: 'Harga & Paket', href: '#harga' },
+      { label: 'Cara Kerja', href: '#fitur' },
+      { label: 'Mulai Sekarang', href: '/auth/sign-up' },
     ],
   },
   { id: 'harga', label: 'Harga', href: '#harga' },
@@ -245,29 +171,51 @@ export function SiteHeader() {
         <nav className="hidden items-center justify-center gap-1 lg:flex" aria-label="Navigasi utama">
           {navEntries.map((entry) =>
             entry.panel ? (
-              <button
-                key={entry.id}
-                type="button"
-                aria-expanded={openMenu === entry.id}
-                aria-controls={`nav-panel-${entry.id}`}
-                onMouseEnter={() => canHover && setOpenMenu(entry.id)}
-                onClick={() => setOpenMenu((current) => (current === entry.id ? null : entry.id))}
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  openMenu === entry.id
-                    ? 'bg-secondary text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {entry.label}
-                <ChevronDown
-                  aria-hidden
+              <div key={entry.id} className="relative">
+                <button
+                  type="button"
+                  aria-expanded={openMenu === entry.id}
+                  aria-controls={`nav-panel-${entry.id}`}
+                  onMouseEnter={() => canHover && setOpenMenu(entry.id)}
+                  onClick={() => setOpenMenu((current) => (current === entry.id ? null : entry.id))}
                   className={cn(
-                    'h-4 w-4 transition-transform duration-200',
-                    openMenu === entry.id && 'rotate-180',
+                    'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    openMenu === entry.id
+                      ? 'bg-secondary text-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
                   )}
-                />
-              </button>
+                >
+                  {entry.label}
+                  <ChevronDown
+                    aria-hidden
+                    className={cn(
+                      'h-4 w-4 transition-transform duration-200',
+                      openMenu === entry.id && 'rotate-180',
+                    )}
+                  />
+                </button>
+
+                {openMenu === entry.id && (
+                  <div
+                    id={`nav-panel-${entry.id}`}
+                    className="absolute left-0 top-full pt-2"
+                  >
+                    <ul className="flex w-56 flex-col rounded-xl border border-border bg-card p-1.5 shadow-[0_24px_60px_-32px_rgba(29,29,31,0.35)]">
+                      {entry.panel.map((item) => (
+                        <li key={item.label}>
+                          <Link
+                            href={item.href}
+                            onClick={() => setOpenMenu(null)}
+                            className="block rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+                          >
+                            {item.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             ) : (
               <a
                 key={entry.id}
@@ -319,56 +267,6 @@ export function SiteHeader() {
           </button>
         </div>
 
-        {navEntries.map((entry) =>
-          entry.panel && openMenu === entry.id ? (
-            <div
-              key={entry.id}
-              id={`nav-panel-${entry.id}`}
-              className="absolute left-1/2 top-full hidden w-[min(46rem,calc(100vw-2rem))] -translate-x-1/2 pt-3 lg:block"
-            >
-              <div className="rounded-xl border border-border bg-card p-2 shadow-[0_24px_60px_-32px_rgba(29,29,31,0.35)]">
-                <ul className="grid grid-cols-2 gap-1">
-                  {entry.panel.map((item) => (
-                    <li key={item.label}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setOpenMenu(null)}
-                        className="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-secondary"
-                      >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary transition-colors group-hover:bg-card">
-                          <item.icon className="h-5 w-5" aria-hidden />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-sm font-semibold text-foreground">{item.label}</span>
-                          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                            {item.description}
-                          </span>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-2 flex gap-2 border-t border-border pt-3">
-                  <Link
-                    href="/auth/sign-up"
-                    onClick={() => setOpenMenu(null)}
-                    className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    Coba Gratis
-                    <ArrowUpRight className="h-4 w-4" aria-hidden />
-                  </Link>
-                  <Link
-                    href="#harga"
-                    onClick={() => setOpenMenu(null)}
-                    className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
-                  >
-                    Lihat Harga
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ) : null,
-        )}
       </header>
 
       {open && (
@@ -401,12 +299,9 @@ export function SiteHeader() {
                             <Link
                               href={item.href}
                               onClick={closeAll}
-                              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
+                              className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
                             >
-                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
-                                <item.icon className="h-4 w-4" aria-hidden />
-                              </span>
-                              <span className="text-sm font-medium text-foreground">{item.label}</span>
+                              {item.label}
                             </Link>
                           </li>
                         ))}
