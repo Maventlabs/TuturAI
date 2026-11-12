@@ -26,7 +26,7 @@ const columns = [
     title: 'Kontak',
     links: [
       { label: 'hello@tuturai.id', href: 'mailto:hello@tuturai.id' },
-      { label: 'tuturai-apps.netlify.app', href: 'https://tuturai-apps.netlify.app' },
+      { label: 'Aplikasi Web', href: 'https://tuturai-apps.netlify.app' },
       { label: 'Laporan Masalah', href: 'mailto:hello@tuturai.id?subject=Laporan%20Masalah' },
     ],
   },
@@ -36,7 +36,7 @@ export function SiteFooter() {
   return (
     <footer className="overflow-hidden bg-primary text-primary-foreground">
       <div className="mx-auto max-w-[1400px] px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8">
-        <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-8">
+        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:gap-6 lg:gap-8">
           <div className="max-w-sm">
             <h2 className="font-display text-3xl font-medium leading-[1.1] tracking-[-0.02em] text-balance sm:text-4xl">
               Tetap terhubung
@@ -71,7 +71,7 @@ export function SiteFooter() {
             <Globe className="h-3.5 w-3.5" aria-hidden />
             Bahasa Indonesia
           </span>
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em]">
+          <p className="font-mono text-[11px] tracking-[0.12em]">
             © {new Date().getFullYear()} TuturAI. Semua hak dilindungi.
           </p>
         </div>

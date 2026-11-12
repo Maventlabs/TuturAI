@@ -35,6 +35,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-deep: var(--primary-deep);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -83,6 +84,8 @@
   /* Primary - TuturAI blue */
   --primary: #2f6df5;
   --primary-foreground: #ffffff;
+  /* Deeper blue for small text on light surfaces: #2f6df5 only reaches 4.3:1 on white. */
+  --primary-deep: #1d4ed8;
 
   /* Secondary - soft blue-tinted surface */
   --secondary: #eceff6;
@@ -138,6 +141,7 @@
   --popover-foreground: #f5f5f7;
   --primary: #5b8cff;
   --primary-foreground: #101014;
+  --primary-deep: #a8c2ff;
   --secondary: #26262e;
   --secondary-foreground: #f5f5f7;
   --muted: #26262e;
