@@ -36,6 +36,7 @@ export function OfflineHardware() {
   return (
     <section
       id="offline"
+      data-nav-theme="dark"
       className="scroll-mt-24 bg-ink-deep px-4 py-20 text-background sm:px-6 sm:py-28 lg:px-8"
     >
       <div className="mx-auto grid max-w-[1400px] gap-14 lg:grid-cols-2 lg:items-center lg:gap-20">

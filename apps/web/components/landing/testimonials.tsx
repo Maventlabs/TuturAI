@@ -82,7 +82,7 @@ const thirdColumn = testimonials.slice(6, 9)
 
 export function Testimonials() {
   return (
-    <section id="testimoni" className="scroll-mt-24 bg-background px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section id="testimoni" data-nav-theme="light" className="scroll-mt-24 bg-background px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-3xl text-center">
           <GSAPReveal>

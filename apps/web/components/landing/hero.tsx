@@ -38,6 +38,7 @@ export function Hero() {
     <section
       ref={sectionRef}
       id="hero"
+      data-nav-theme="light"
       className="relative flex min-h-[calc(100dvh-4rem)] items-center overflow-hidden bg-background lg:min-h-[calc(100dvh-4.5rem)]"
     >
       <div className="mx-auto grid w-full max-w-[1400px] items-center gap-12 px-4 pb-12 pt-10 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-8 lg:pt-14">

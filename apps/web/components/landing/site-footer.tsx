@@ -32,7 +32,7 @@ const columns = [
 
 export function SiteFooter() {
   return (
-    <footer className="overflow-hidden bg-primary text-primary-foreground">
+    <footer data-nav-theme="blue" className="overflow-hidden bg-primary text-primary-foreground">
       <div className="mx-auto max-w-[1400px] px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8">
         <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:gap-6 lg:gap-8">
           <div className="max-w-sm">

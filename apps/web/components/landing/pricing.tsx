@@ -125,7 +125,7 @@ export function Pricing() {
   const [billing, setBilling] = useState<Billing>('bulanan')
 
   return (
-    <section id="harga" className="scroll-mt-24 bg-primary px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section id="harga" data-nav-theme="blue" className="scroll-mt-24 bg-primary px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-2xl text-center">
           <GSAPReveal>

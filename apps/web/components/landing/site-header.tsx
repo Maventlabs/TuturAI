@@ -73,6 +73,7 @@ export function SiteHeader() {
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [authed, setAuthed] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [navTheme, setNavTheme] = useState<'light' | 'dark' | 'blue'>('light')
   const [canHover, setCanHover] = useState(false)
   const shellRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
@@ -88,11 +89,40 @@ export function SiteHeader() {
     return () => unsub?.()
   }, [])
 
+  // Transparent over the hero at the top; once scrolled, the bar adapts to
+  // whichever section currently sits behind it (see `data-nav-theme` on each
+  // landing section). rAF-throttled so the probe runs at most once per frame.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8)
-    onScroll()
+    let raf = 0
+
+    const update = () => {
+      raf = 0
+      setScrolled(window.scrollY > 8)
+
+      // Probe a point just below the header bar (h-16 mobile / h-18 desktop).
+      const probeY = 80
+      let theme: 'light' | 'dark' | 'blue' = 'light'
+      document.querySelectorAll<HTMLElement>('[data-nav-theme]').forEach((section) => {
+        const rect = section.getBoundingClientRect()
+        if (rect.top <= probeY && rect.bottom > probeY) {
+          theme = (section.dataset.navTheme as 'light' | 'dark' | 'blue') ?? 'light'
+        }
+      })
+      setNavTheme(theme)
+    }
+
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update)
+    }
+
+    update()
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    window.addEventListener('resize', onScroll)
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
   }, [])
 
   // Hover-to-open only where a real pointer exists, so a tap on touch devices
@@ -151,12 +181,23 @@ export function SiteHeader() {
     setOpenGroup(null)
   }
 
+  // True when the bar sits over a dark or blue section and needs inverted
+  // text, an inverted logo, and tinted button treatments.
+  const onTinted = scrolled && navTheme !== 'light'
+
   return (
     <div
       ref={shellRef}
       className={cn(
-        'sticky top-0 z-50 border-b bg-background transition-colors duration-200',
-        scrolled ? 'border-border' : 'border-transparent',
+        'sticky top-0 z-50 border-b transition-colors duration-300',
+        !scrolled && 'border-transparent bg-transparent',
+        scrolled && navTheme === 'light' && 'border-border bg-background/85 backdrop-blur-md',
+        scrolled &&
+          navTheme === 'dark' &&
+          'border-white/10 bg-ink-deep/85 text-background backdrop-blur-md',
+        scrolled &&
+          navTheme === 'blue' &&
+          'border-white/15 bg-primary/95 text-primary-foreground backdrop-blur-md',
       )}
     >
       <header
@@ -165,7 +206,10 @@ export function SiteHeader() {
         className="relative mx-auto flex h-16 w-full max-w-[1400px] items-center gap-2 px-4 sm:px-6 lg:grid lg:h-18 lg:grid-cols-[1fr_auto_1fr] lg:px-8"
       >
         <Link href="/" aria-label="TuturAI beranda" className="shrink-0">
-          <Logo textClassName="font-heading text-xl font-extrabold tracking-tight" />
+          <Logo
+            inverted={onTinted}
+            textClassName="font-heading text-xl font-extrabold tracking-tight"
+          />
         </Link>
 
         <nav className="hidden items-center justify-center gap-1 lg:flex" aria-label="Navigasi utama">
@@ -181,8 +225,12 @@ export function SiteHeader() {
                   className={cn(
                     'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     openMenu === entry.id
-                      ? 'bg-secondary text-foreground'
-                      : 'text-muted-foreground hover:text-foreground',
+                      ? onTinted
+                        ? 'bg-white/15 text-primary-foreground'
+                        : 'bg-secondary text-foreground'
+                      : onTinted
+                        ? 'text-primary-foreground/70 hover:text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {entry.label}
@@ -220,7 +268,12 @@ export function SiteHeader() {
               <a
                 key={entry.id}
                 href={entry.href}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className={cn(
+                  'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  onTinted
+                    ? 'text-primary-foreground/70 hover:text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
               >
                 {entry.label}
               </a>
@@ -232,7 +285,12 @@ export function SiteHeader() {
           {authed ? (
             <Link
               href="/dashboard"
-              className="hidden h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98] lg:inline-flex"
+              className={cn(
+                'hidden h-10 items-center gap-1.5 rounded-lg px-4 text-sm font-semibold transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98] lg:inline-flex',
+                onTinted && navTheme === 'blue'
+                  ? 'bg-primary-foreground text-primary'
+                  : 'bg-primary text-primary-foreground',
+              )}
             >
               Dashboard
               <ArrowUpRight className="h-4 w-4" aria-hidden />
@@ -241,13 +299,23 @@ export function SiteHeader() {
             <>
               <Link
                 href="/auth/login"
-                className="hidden h-10 items-center rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-secondary lg:inline-flex"
+                className={cn(
+                  'hidden h-10 items-center rounded-lg border px-4 text-sm font-semibold transition-colors lg:inline-flex',
+                  onTinted
+                    ? 'border-white/30 bg-white/10 text-primary-foreground hover:bg-white/20'
+                    : 'border-border bg-card text-foreground hover:bg-secondary',
+                )}
               >
                 Masuk
               </Link>
               <Link
                 href="/auth/sign-up"
-                className="hidden h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98] lg:inline-flex"
+                className={cn(
+                  'hidden h-10 items-center gap-1.5 rounded-lg px-4 text-sm font-semibold transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98] lg:inline-flex',
+                  onTinted && navTheme === 'blue'
+                    ? 'bg-primary-foreground text-primary'
+                    : 'bg-primary text-primary-foreground',
+                )}
               >
                 Coba Gratis
                 <ArrowUpRight className="h-4 w-4" aria-hidden />
@@ -261,7 +329,12 @@ export function SiteHeader() {
             aria-label={open ? 'Tutup menu' : 'Buka menu'}
             aria-expanded={open}
             aria-controls="mobile-nav"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-secondary lg:hidden"
+            className={cn(
+              'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition-colors lg:hidden',
+              onTinted
+                ? 'border-white/30 bg-white/10 text-primary-foreground hover:bg-white/20'
+                : 'border-border bg-card text-foreground hover:bg-secondary',
+            )}
           >
             {open ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
           </button>

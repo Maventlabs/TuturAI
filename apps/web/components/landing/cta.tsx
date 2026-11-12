@@ -6,7 +6,7 @@ import { GSAPLines, GSAPReveal } from './gsap-helpers'
 
 export function CTA() {
   return (
-    <section className="relative overflow-hidden bg-primary px-4 pb-20 sm:px-6 sm:pb-24 lg:px-8">
+    <section data-nav-theme="blue" className="relative overflow-hidden bg-primary px-4 pb-20 sm:px-6 sm:pb-24 lg:px-8">
       {/* White at the top blends into the FAQ above; primary at the bottom matches the footer. */}
       <div
         aria-hidden

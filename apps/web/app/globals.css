@@ -192,6 +192,21 @@
   }
 }
 
+/* Testimonial columns: seamless vertical loop. Each child carries its own
+   trailing spacing so the -50% translate lands exactly on the duplicate. */
+@keyframes infinite-scroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-infinite-scroll {
+  animation: infinite-scroll linear infinite;
+}
+
 @keyframes waveform {
   0%, 100% {
     height: 0.5rem;
@@ -396,7 +411,8 @@
   .mock-bar,
   .mock-fill,
   .mock-seg,
-  .animate-pulse-ring {
+  .animate-pulse-ring,
+  .animate-infinite-scroll {
     animation: none !important;
   }
   .mock-fill {
