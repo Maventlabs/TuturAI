@@ -55,7 +55,7 @@ export function Problem() {
           </GSAPReveal>
 
           <GSAPReveal delay={0.18}>
-            <dl className="mt-9 grid grid-cols-3 divide-x divide-border rounded-lg border border-border bg-card">
+            <dl className="mt-9 grid grid-cols-3 divide-x divide-border rounded-sm border border-border bg-card">
               {proof.map((s) => (
                 <div key={s.l} className="px-3 py-4 text-center">
                   <dt className="sr-only">{s.l}</dt>

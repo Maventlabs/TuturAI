@@ -34,7 +34,7 @@ const steps = [
     title: 'Bicara dengan AI',
     desc: 'Tekan mikrofon dan mulai bicara. AI merespons natural dalam bahasa Inggris, tanpa menghakimi.',
     visual: (
-      <div className="rounded-lg border border-border bg-secondary p-4">
+          <div className="rounded-sm border border-border bg-secondary p-4">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary" />
           <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -137,7 +137,7 @@ export function HowItWorks() {
           {steps.map((s, i) => (
             <article
               key={s.n}
-              className="how-card sticky mb-6 grid gap-8 rounded-lg border border-border bg-card p-7 shadow-[0_8px_40px_-24px_rgba(29,29,31,0.28)] sm:p-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center"
+              className="how-card sticky mb-6 grid gap-8 rounded-sm border border-border bg-card p-7 shadow-[0_8px_40px_-24px_rgba(29,29,31,0.28)] sm:p-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center"
               style={{ top: `${STACK_TOP + i * STACK_STEP}px`, zIndex: i + 1 }}
             >
               <div>

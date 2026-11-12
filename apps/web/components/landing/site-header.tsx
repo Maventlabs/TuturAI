@@ -15,6 +15,7 @@ gsap.registerPlugin(ScrollTrigger, useGSAP)
 const leftItems = [
   { label: 'Features', href: '#fitur' },
   { label: 'Why TuturAI', href: '#masalah' },
+  { label: 'Harga', href: '#harga' },
 ]
 
 const productItems = [

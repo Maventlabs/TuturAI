@@ -45,7 +45,7 @@ export function Features() {
         <div className="mt-12 grid gap-5 md:grid-cols-6">
           {/* Photo cell — the largest surface on the page */}
           <GSAPReveal className="md:col-span-4 md:row-span-2">
-            <article className="relative h-full min-h-[340px] overflow-hidden rounded-lg border border-border">
+            <article className="relative h-full min-h-[340px] overflow-hidden rounded-sm border border-border">
               <Image
                 src="/hero-student.webp"
                 alt="Siswa SMA berlatih speaking dengan partner AI TuturAI"
@@ -85,7 +85,7 @@ export function Features() {
 
           {/* Solid primary — real chart bars */}
           <GSAPReveal delay={0.06} className="md:col-span-2">
-            <article className="flex h-full flex-col rounded-lg bg-primary p-7 text-primary-foreground">
+            <article className="flex h-full flex-col rounded-sm bg-primary p-7 text-primary-foreground">
               <h3 className="font-display text-xl font-medium tracking-[-0.01em]">Feedback 5 dimensi</h3>
               <p className="mt-2 text-sm leading-relaxed text-primary-foreground/80 text-pretty">
                 Skor keluar langsung setelah kamu selesai bicara.
@@ -111,7 +111,7 @@ export function Features() {
 
           {/* Solid dark — offline queue mini-UI */}
           <GSAPReveal delay={0.1} className="md:col-span-2">
-            <article className="flex h-full flex-col rounded-lg bg-ink-deep p-7 text-background">
+            <article className="flex h-full flex-col rounded-sm bg-ink-deep p-7 text-background">
               <span className="inline-flex w-fit items-center gap-2 rounded-lg bg-white/10 px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-background/80">
                 <WifiOff className="h-3.5 w-3.5" />
                 Offline-first
@@ -138,7 +138,7 @@ export function Features() {
 
           {/* Card with a real dashboard crop */}
           <GSAPReveal delay={0.04} className="md:col-span-3">
-            <article className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card">
+            <article className="flex h-full flex-col overflow-hidden rounded-sm border border-border bg-card">
               <div className="relative aspect-video overflow-hidden bg-secondary">
                 <Image
                   src="/teacher-dashboard.webp"
@@ -165,7 +165,7 @@ export function Features() {
 
           {/* Tinted card — streak mini-UI */}
           <GSAPReveal delay={0.08} className="md:col-span-3">
-            <article className="flex h-full flex-col rounded-lg border border-border bg-secondary p-7">
+            <article className="flex h-full flex-col rounded-sm border border-border bg-secondary p-7">
               <span className="inline-flex w-fit items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                 <Flame className="h-3.5 w-3.5" />
                 Progres
@@ -177,7 +177,7 @@ export function Features() {
                 Setiap sesi menambah XP. Jaga streak harian dan naik di leaderboard kelas.
               </p>
 
-              <div className="mt-6 flex flex-1 flex-col justify-center rounded-lg border border-border bg-card p-4">
+              <div className="mt-6 flex flex-1 flex-col justify-center rounded-sm border border-border bg-card p-4">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                     Minggu ini

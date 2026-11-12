@@ -5,6 +5,7 @@ import { Features } from '@/components/landing/features'
 import { HowItWorks } from '@/components/landing/how-it-works'
 import { Audience } from '@/components/landing/audience'
 import { OfflineHardware } from '@/components/landing/offline-hardware'
+import { Pricing } from '@/components/landing/pricing'
 import { FAQ } from '@/components/landing/faq'
 import { CTA } from '@/components/landing/cta'
 import { SiteFooter } from '@/components/landing/site-footer'
@@ -44,6 +45,7 @@ export default function HomePage() {
         <HowItWorks />
         <Audience />
         <OfflineHardware />
+        <Pricing />
         <FAQ />
         <CTA />
       </main>

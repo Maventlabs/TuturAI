@@ -54,7 +54,7 @@ export function Audience() {
         <div className="mt-12 grid gap-5 lg:grid-cols-2">
           {/* Siswa — image-led, airy */}
           <GSAPReveal>
-            <article className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card">
+            <article className="flex h-full flex-col overflow-hidden rounded-sm border border-border bg-card">
               <div className="relative aspect-video overflow-hidden">
                 <Image
                   src="/hero-student.webp"
@@ -92,7 +92,7 @@ export function Audience() {
 
           {/* Guru — dark, data-dense */}
           <GSAPReveal delay={0.08}>
-            <article className="flex h-full flex-col overflow-hidden rounded-lg bg-ink-deep text-background">
+            <article className="flex h-full flex-col overflow-hidden rounded-sm bg-ink-deep text-background">
               <div className="border-b border-white/10 p-7 sm:p-9">
                 <span className="rounded-lg bg-white/10 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-background/80">
                   Untuk guru

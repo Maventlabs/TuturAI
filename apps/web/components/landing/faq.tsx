@@ -86,7 +86,7 @@ export function FAQ() {
             return (
               <GSAPReveal key={faq.question} delay={0.05 * (index % 2)}>
                 <div
-                  className={`h-full rounded-[2px] border border-primary transition-colors duration-200 ${
+                  className={`h-full rounded-sm border border-primary transition-colors duration-200 ${
                     isOpen ? 'bg-accent' : 'bg-primary hover:bg-accent'
                   }`}
                 >
