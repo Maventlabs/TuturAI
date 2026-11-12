@@ -373,6 +373,20 @@
   animation: mock-fill 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
 }
 
+@keyframes mock-seg {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.mock-seg {
+  transform-origin: left;
+  animation: mock-seg 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .illo-anim,
   .mock-shimmer,
@@ -380,10 +394,15 @@
   .mock-ripple,
   .mock-scan,
   .mock-bar,
-  .mock-fill {
+  .mock-fill,
+  .mock-seg,
+  .animate-pulse-ring {
     animation: none !important;
   }
   .mock-fill {
     width: 42%;
+  }
+  .mock-seg {
+    transform: none;
   }
 }

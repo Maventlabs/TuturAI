@@ -11,7 +11,7 @@ const cards = [
     label: 'Pola bicara',
     title: 'Mute English',
     desc: 'Paham pasif, tapi diam saat harus bicara. Salah sedikit langsung terasa seperti gagal.',
-    image: '/problem-mute.png',
+    image: '/problem-red.png',
     Icon: Volume2,
     Mockup: MuteMockup,
   },
@@ -20,7 +20,7 @@ const cards = [
     label: 'Rasa aman',
     title: 'Speaking anxiety',
     desc: 'Foreign Language Speaking Anxiety membuat siswa menghindari partisipasi aktif di kelas.',
-    image: '/problem-anxiety.png',
+    image: '/problem-orange.png',
     Icon: Activity,
     Mockup: AnxietyMockup,
   },
@@ -29,7 +29,7 @@ const cards = [
     label: 'Skala kelas',
     title: 'Kelas padat',
     desc: 'Satu guru untuk 35 siswa. Latihan bicara satu per satu tidak pernah sempat.',
-    image: '/problem-crowded.png',
+    image: '/problem-yellow.png',
     Icon: Users,
     Mockup: CrowdedMockup,
   },
@@ -38,7 +38,7 @@ const cards = [
     label: 'Akses jaringan',
     title: 'Offline masih sulit',
     desc: 'Solusi yang bergantung penuh pada internet tidak sampai ke sekolah di wilayah 3T.',
-    image: '/problem-offline.png',
+    image: '/problem-blue.png',
     Icon: WifiOff,
     Mockup: OfflineMockup,
   },
@@ -105,11 +105,11 @@ export function Problem() {
             />
 
             <div className="overflow-hidden">
-              <div className="-mb-px -mr-px grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="-mb-px -mr-px grid auto-rows-fr grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                 {cards.map((card) => (
                   <article
                     key={card.id}
-                    className="group flex flex-col border-b border-r border-border"
+                    className="group flex h-full flex-col border-b border-r border-border"
                   >
                     <div className="p-3 sm:p-4">
                       <div
@@ -131,7 +131,7 @@ export function Problem() {
                               'radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.16), transparent 72%)',
                           }}
                         />
-                        <div className="relative flex h-full flex-col justify-center gap-2 p-3">
+                        <div className="relative flex h-full flex-col justify-center p-3">
                           <card.Mockup />
                         </div>
                       </div>

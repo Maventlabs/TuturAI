@@ -86,3 +86,52 @@ export function GSAPLines({ children, className }: { children: React.ReactNode; 
     </div>
   )
 }
+
+/**
+ * Cascading reveal for a group of elements marked with `data-stagger`.
+ * Elements animate in DOM order, so nested rows naturally follow their panel.
+ */
+export function GSAPStagger({
+  children,
+  className,
+  y = 12,
+  stagger = 0.05,
+  delay = 0,
+}: {
+  children: React.ReactNode
+  className?: string
+  y?: number
+  stagger?: number
+  delay?: number
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia()
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.fromTo(
+          ref.current?.querySelectorAll('[data-stagger]') ?? [],
+          { opacity: 0, y },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.55,
+            ease: 'power3.out',
+            stagger,
+            delay,
+            scrollTrigger: { trigger: ref.current, start: 'top 92%', once: true },
+          },
+        )
+      })
+      return () => mm.revert()
+    },
+    { scope: ref, dependencies: [y, stagger, delay] },
+  )
+
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  )
+}
