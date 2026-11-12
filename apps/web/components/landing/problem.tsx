@@ -1,37 +1,46 @@
 'use client'
 
+import Image from 'next/image'
+import { Activity, Users, Volume2, WifiOff } from 'lucide-react'
 import { GSAPLines, GSAPReveal } from './gsap-helpers'
-import {
-  AnxietyIllustration,
-  CrowdedIllustration,
-  MuteIllustration,
-  OfflineIllustration,
-} from './problem-illustrations'
+import { AnxietyMockup, CrowdedMockup, MuteMockup, OfflineMockup } from './problem-mockups'
 
 const cards = [
   {
     id: 'mute',
+    label: 'Pola bicara',
     title: 'Mute English',
     desc: 'Paham pasif, tapi diam saat harus bicara. Salah sedikit langsung terasa seperti gagal.',
-    Illustration: MuteIllustration,
+    image: '/problem-mute.png',
+    Icon: Volume2,
+    Mockup: MuteMockup,
   },
   {
     id: 'anxiety',
+    label: 'Rasa aman',
     title: 'Speaking anxiety',
     desc: 'Foreign Language Speaking Anxiety membuat siswa menghindari partisipasi aktif di kelas.',
-    Illustration: AnxietyIllustration,
+    image: '/problem-anxiety.png',
+    Icon: Activity,
+    Mockup: AnxietyMockup,
   },
   {
     id: 'padat',
+    label: 'Skala kelas',
     title: 'Kelas padat',
     desc: 'Satu guru untuk 35 siswa. Latihan bicara satu per satu tidak pernah sempat.',
-    Illustration: CrowdedIllustration,
+    image: '/problem-crowded.png',
+    Icon: Users,
+    Mockup: CrowdedMockup,
   },
   {
     id: 'offline',
+    label: 'Akses jaringan',
     title: 'Offline masih sulit',
     desc: 'Solusi yang bergantung penuh pada internet tidak sampai ke sekolah di wilayah 3T.',
-    Illustration: OfflineIllustration,
+    image: '/problem-offline.png',
+    Icon: WifiOff,
+    Mockup: OfflineMockup,
   },
 ]
 
@@ -70,27 +79,66 @@ export function Problem() {
           </GSAPReveal>
         </div>
 
-        <div className="mt-12 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-          {cards.map((card, index) => (
-            <GSAPReveal key={card.id} delay={index * 0.06} className="h-full">
-              <article className="group flex h-full flex-col overflow-hidden rounded-sm border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40">
-                <div className="flex h-[220px] items-center justify-center border-b border-border bg-secondary p-5">
-                  <div className="h-full w-full max-w-[280px] transition-transform duration-500 group-hover:scale-[1.04]">
-                    <card.Illustration />
-                  </div>
-                </div>
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="font-heading text-lg font-bold tracking-[-0.01em] text-foreground">
-                    {card.title}
-                  </h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground text-pretty">
-                    {card.desc}
-                  </p>
-                </div>
-              </article>
-            </GSAPReveal>
-          ))}
-        </div>
+        <GSAPReveal delay={0.15} className="mt-12">
+          <div className="relative border border-border">
+            <span
+              aria-hidden
+              className="absolute -left-1.5 -top-1.5 size-3 border-l border-t border-foreground/25"
+            />
+            <span
+              aria-hidden
+              className="absolute -right-1.5 -top-1.5 size-3 border-r border-t border-foreground/25"
+            />
+            <span
+              aria-hidden
+              className="absolute -bottom-1.5 -left-1.5 size-3 border-b border-l border-foreground/25"
+            />
+            <span
+              aria-hidden
+              className="absolute -bottom-1.5 -right-1.5 size-3 border-b border-r border-foreground/25"
+            />
+
+            <div className="overflow-hidden">
+              <div className="-mb-px -mr-px grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+                {cards.map((card) => (
+                  <article
+                    key={card.id}
+                    className="group flex flex-col border-b border-r border-border"
+                  >
+                    <div className="p-3 sm:p-4">
+                      <div className="relative aspect-square overflow-hidden border border-border bg-ink-deep">
+                        <Image
+                          src={card.image}
+                          alt=""
+                          fill
+                          sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                        <div aria-hidden className="absolute inset-0 bg-ink-deep/25" />
+                        <div className="relative flex h-full flex-col justify-center gap-2 p-3">
+                          <card.Mockup />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-1 flex-col px-4 pb-6 pt-1 sm:px-5">
+                      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                        <card.Icon className="size-3.5 shrink-0" strokeWidth={1.5} />
+                        {card.label}
+                      </div>
+                      <h3 className="mt-4 font-heading text-lg font-semibold tracking-[-0.01em] text-foreground">
+                        {card.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-pretty">
+                        {card.desc}
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        </GSAPReveal>
 
         <GSAPReveal delay={0.2} className="mt-10">
           <dl className="mx-auto grid max-w-3xl grid-cols-3 divide-x divide-border rounded-sm border border-border bg-card">
