@@ -92,12 +92,12 @@ export default function RootLayout({
       className={`${jakarta.variable} ${interTight.variable} ${plexMono.variable} ${newsreader.variable} bg-background`}
     >
       <head>
-        {/* Preload the splash mark so it paints without waiting on JS. */}
+        {/* Preload the header mark so it paints without waiting on JS. */}
         <link
           rel="preload"
           as="image"
           href="/brand/logo-icon.png"
-          // Mobile data: the splash must never wait on a 200 KB asset.
+          // Mobile data: the header must never wait on a 200 KB asset.
           media="(min-width: 768px)"
         />
       </head>
