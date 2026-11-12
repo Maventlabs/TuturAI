@@ -1,16 +1,32 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRef } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ArrowRight } from 'lucide-react'
-import { Device3D } from './device-3d'
+import {
+  SiEspressif,
+  SiFirebase,
+  SiGooglegemini,
+  SiGooglecloud,
+  SiNextdotjs,
+  SiReact,
+  SiTailwindcss,
+  SiTypescript,
+} from 'react-icons/si'
+import LogoLoop from '@/components/ui/logo-loop'
 
-const feedback = [
-  { label: 'Pronunciation', value: 86 },
-  { label: 'Fluency', value: 78 },
-  { label: 'Grammar', value: 82 },
+const stackLogos = [
+  { node: <SiNextdotjs />, title: 'Next.js', hoverColor: '#ffffff' },
+  { node: <SiTypescript />, title: 'TypeScript', hoverColor: '#3178c6' },
+  { node: <SiReact />, title: 'React', hoverColor: '#61dafb' },
+  { node: <SiTailwindcss />, title: 'Tailwind CSS', hoverColor: '#38bdf8' },
+  { node: <SiFirebase />, title: 'Firebase', hoverColor: '#ffca28' },
+  { node: <SiGooglegemini />, title: 'Gemini', hoverColor: '#8e75ff' },
+  { node: <SiGooglecloud />, title: 'Google Cloud', hoverColor: '#4285f4' },
+  { node: <SiEspressif />, title: 'ESP32', hoverColor: '#ff5a4f' },
 ]
 
 export function Hero() {
@@ -28,6 +44,7 @@ export function Hero() {
         )
           .fromTo('[data-hero-sub]', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.5')
           .fromTo('[data-hero-cta]', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.55 }, '-=0.4')
+          .fromTo('[data-hero-marquee]', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.3')
       })
       return () => mm.revert()
     },
@@ -38,73 +55,85 @@ export function Hero() {
     <section
       ref={sectionRef}
       id="hero"
-      data-nav-theme="light"
-      className="relative flex min-h-[calc(100dvh-4rem)] items-center overflow-hidden bg-background lg:min-h-[calc(100dvh-4.5rem)]"
+      data-nav-theme="blue"
+      className="relative flex h-dvh min-h-[640px] flex-col overflow-hidden bg-ink-deep"
     >
-      <div className="mx-auto grid w-full max-w-[1400px] items-center gap-12 px-4 pb-12 pt-10 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-8 lg:pt-14">
-        <div className="max-w-2xl">
-          <h1 className="font-display text-[2.6rem] font-medium leading-[1.04] tracking-[-0.03em] text-foreground text-balance sm:text-6xl lg:text-[4.25rem]">
-            <span data-hero-line className="block">
-              Bicara Inggris
-            </span>
-            <span data-hero-line className="block">
-              tanpa <em className="italic text-primary">rasa malu</em>.
-            </span>
-          </h1>
+      {/* Full-viewport background illustration */}
+      <div className="absolute inset-0" aria-hidden>
+        <Image
+          src="/landing/hero-bg.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+      </div>
 
-          <p
-            data-hero-sub
-            className="mt-6 max-w-[46ch] text-base leading-relaxed text-muted-foreground text-pretty sm:text-lg"
+      {/* Top scrim keeps the transparent navbar legible over the sky */}
+      <div
+        className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-ink-deep/45 via-ink-deep/15 to-transparent"
+        aria-hidden
+      />
+
+      {/* White gradient transition into the next section */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-b from-transparent via-background/60 to-background sm:h-44"
+        aria-hidden
+      />
+
+      {/* Centered headline, subheadline and CTAs */}
+      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 pt-16 text-center sm:px-6">
+        <h1 className="font-display text-[2.6rem] font-medium leading-[1.05] tracking-[-0.03em] text-balance drop-shadow-[0_2px_16px_rgba(16,20,40,0.35)] sm:text-6xl lg:text-[4.25rem]">
+          <span data-hero-line className="block text-white/70">
+            Bicara Bahasa Inggris,
+          </span>
+          <span data-hero-line className="block text-white">
+            tanpa <em className="italic">takut salah</em>.
+          </span>
+        </h1>
+
+        <p
+          data-hero-sub
+          className="mt-6 max-w-[52ch] text-base leading-relaxed text-white/85 text-pretty drop-shadow-[0_1px_10px_rgba(16,20,40,0.4)] sm:text-lg"
+        >
+          TuturAI adalah partner latihan speaking berbasis AI untuk siswa SMA/SMK — penilaian lima dimensi,
+          umpan balik personal, dan progres yang terukur.
+        </p>
+
+        <div data-hero-cta className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Link
+            href="/auth/sign-up"
+            className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary-foreground px-7 text-base font-semibold text-primary shadow-lg shadow-ink-deep/25 transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
           >
-            Partner AI yang sabar, feedback lima dimensi, dan tantangan harian untuk siswa SMA/SMK.
-          </p>
-
-          <div data-hero-cta className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link
-              href="/auth/sign-up"
-              className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-base font-semibold text-primary-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Mulai Latihan Gratis
-              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-            </Link>
-            <Link
-              href="#fitur"
-              className="inline-flex h-12 items-center justify-center rounded-lg border border-border px-6 text-base font-semibold text-foreground transition-colors hover:bg-secondary"
-            >
-              Lihat Fitur
-            </Link>
-          </div>
+            Mulai Sekarang
+            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+          </Link>
+          <Link
+            href="mailto:hello@tuturai.id"
+            className="inline-flex h-12 items-center justify-center rounded-lg border border-white/35 bg-white/10 px-7 text-base font-semibold text-white backdrop-blur-sm transition-colors duration-150 hover:bg-white/20"
+          >
+            Hubungi Kami
+          </Link>
         </div>
+      </div>
 
-        <div className="w-full">
-          <Device3D />
-
-          <div className="mx-auto mt-6 max-w-md rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                Contoh feedback
-              </p>
-              <span className="rounded-lg bg-primary/10 px-2 py-0.5 font-mono text-[11px] font-semibold text-primary">
-                5 dimensi
-              </span>
-            </div>
-            <div className="mt-3 space-y-2">
-              {feedback.map((r) => (
-                <div key={r.label} className="flex items-center gap-3">
-                  <span className="w-28 text-xs text-muted-foreground">{r.label}</span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-lg bg-secondary">
-                    <div className="h-full rounded-lg bg-primary" style={{ width: `${r.value}%` }} />
-                  </div>
-                  <span className="font-mono text-xs font-bold text-foreground">{r.value}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 border-t border-border pt-2.5 text-[11px] leading-relaxed text-muted-foreground">
-              &ldquo;Good job! Coba pelafalan <span className="font-semibold text-foreground">th</span> di
-              &lsquo;think&rsquo;, ya.&rdquo;
-            </p>
-          </div>
-        </div>
+      {/* Technology logo marquee */}
+      <div
+        data-hero-marquee
+        className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-40 sm:px-6 sm:pb-48"
+      >
+        <p className="mb-4 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-white/65">
+          Dibangun dengan teknologi
+        </p>
+        <LogoLoop
+          logos={stackLogos}
+          speed={80}
+          logoHeight={26}
+          gap={48}
+          ariaLabel="Teknologi di balik TuturAI"
+          className="text-white/85 drop-shadow-[0_1px_8px_rgba(16,20,40,0.35)]"
+        />
       </div>
     </section>
   )
