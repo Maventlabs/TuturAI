@@ -1,3 +1,4 @@
+import Script from 'next/script'
 import { SiteHeader } from '@/components/landing/site-header'
 import { Hero } from '@/components/landing/hero'
 import { Problem } from '@/components/landing/problem'
@@ -34,7 +35,11 @@ const jsonLd = {
 export default function HomePage() {
   return (
     <div className="theme-light flex min-h-screen flex-col bg-background text-foreground">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <Script
+        id="ld-json-software-application"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SiteHeader />
       <main className="flex-1">
         <Hero />

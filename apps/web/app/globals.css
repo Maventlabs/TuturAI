@@ -280,8 +280,110 @@
   }
 }
 
+/* Problem-card UI panels: small, purposeful loops that read as live product
+   state (pending rows, a listening meter, a queue filling up). */
+@keyframes mock-shimmer {
+  0% {
+    background-position: -140% 0;
+  }
+  100% {
+    background-position: 240% 0;
+  }
+}
+
+.mock-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--shimmer, rgba(0, 0, 0, 0.1)) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: mock-shimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes mock-blink {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.mock-blink {
+  animation: mock-blink 1.6s ease-in-out infinite;
+}
+
+@keyframes mock-ripple {
+  0%,
+  100% {
+    opacity: 0.16;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+}
+
+.mock-ripple {
+  animation: mock-ripple 2.6s ease-in-out infinite;
+}
+
+@keyframes mock-scan {
+  0% {
+    transform: translateY(-120%);
+  }
+  100% {
+    transform: translateY(320%);
+  }
+}
+
+.mock-scan {
+  animation: mock-scan 3.2s ease-in-out infinite;
+}
+
+@keyframes mock-bar {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.mock-bar {
+  animation: mock-bar 1.1s ease-in-out infinite;
+}
+
+@keyframes mock-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 42%;
+  }
+}
+
+.mock-fill {
+  animation: mock-fill 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .illo-anim {
+  .illo-anim,
+  .mock-shimmer,
+  .mock-blink,
+  .mock-ripple,
+  .mock-scan,
+  .mock-bar,
+  .mock-fill {
     animation: none !important;
+  }
+  .mock-fill {
+    width: 42%;
   }
 }

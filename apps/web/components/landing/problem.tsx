@@ -44,6 +44,12 @@ const cards = [
   },
 ]
 
+function trackSpotlight(event: React.PointerEvent<HTMLDivElement>) {
+  const rect = event.currentTarget.getBoundingClientRect()
+  event.currentTarget.style.setProperty('--mx', `${event.clientX - rect.left}px`)
+  event.currentTarget.style.setProperty('--my', `${event.clientY - rect.top}px`)
+}
+
 const proof = [
   { v: '110,0 → 83,6', l: 'Skor FLSA turun' },
   { v: '+15 poin', l: 'Kemampuan speaking' },
@@ -106,15 +112,25 @@ export function Problem() {
                     className="group flex flex-col border-b border-r border-border"
                   >
                     <div className="p-3 sm:p-4">
-                      <div className="relative aspect-square overflow-hidden border border-border bg-ink-deep">
+                      <div
+                        onPointerMove={trackSpotlight}
+                        className="relative aspect-4/5 overflow-hidden border border-border bg-ink-deep"
+                      >
                         <Image
                           src={card.image}
                           alt=""
                           fill
                           sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
-                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          className="object-cover"
                         />
-                        <div aria-hidden className="absolute inset-0 bg-ink-deep/25" />
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                          style={{
+                            background:
+                              'radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.16), transparent 72%)',
+                          }}
+                        />
                         <div className="relative flex h-full flex-col justify-center gap-2 p-3">
                           <card.Mockup />
                         </div>

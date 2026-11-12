@@ -1,29 +1,21 @@
 'use client'
 
-import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTheme } from '@/components/theme-provider'
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
+  const { resolvedTheme, setTheme } = useTheme()
 
   return (
     <Button
       variant="ghost"
       size="icon"
       aria-label="Ganti tema terang/gelap"
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
       className="text-muted-foreground"
     >
-      {mounted && theme === 'dark' ? (
-        <Sun className="h-5 w-5" />
-      ) : (
-        <Moon className="h-5 w-5" />
-      )}
+      {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </Button>
   )
 }

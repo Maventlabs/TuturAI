@@ -1,20 +1,22 @@
-import { Clock, Eye, FileText, Mic } from 'lucide-react'
+import { Clock, Eye, FileText, Mic, WifiOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+type Tone = 'light' | 'dark'
 
 function Panel({
   tone = 'light',
   className,
   children,
 }: {
-  tone?: 'light' | 'dark'
+  tone?: Tone
   className?: string
   children: React.ReactNode
 }) {
   return (
     <div
       className={cn(
-        'relative z-10 rounded-[3px] border shadow-[0_10px_30px_-16px_rgba(0,0,0,0.45)]',
-        tone === 'dark' ? 'border-white/15 bg-ink-deep' : 'border-border bg-card',
+        'relative z-10 rounded-[3px] border shadow-[0_12px_32px_-18px_rgba(0,0,0,0.55)] backdrop-blur-sm',
+        tone === 'dark' ? 'border-white/15 bg-ink-deep/92' : 'border-border bg-card/95',
         className,
       )}
     >
@@ -23,12 +25,12 @@ function Panel({
   )
 }
 
-function PanelLabel({
+function Head({
   tone = 'light',
   right,
   children,
 }: {
-  tone?: 'light' | 'dark'
+  tone?: Tone
   right?: React.ReactNode
   children: React.ReactNode
 }) {
@@ -47,7 +49,20 @@ function PanelLabel({
   )
 }
 
-function Pill({ tone = 'light', children }: { tone?: 'light' | 'dark'; children: React.ReactNode }) {
+function Foot({ tone = 'light', children }: { tone?: Tone; children: React.ReactNode }) {
+  return (
+    <p
+      className={cn(
+        'mt-2.5 border-t pt-2 font-mono text-[9px] uppercase tracking-[0.1em]',
+        tone === 'dark' ? 'border-white/10 text-white/35' : 'border-border text-muted-foreground/70',
+      )}
+    >
+      {children}
+    </p>
+  )
+}
+
+function Pill({ tone = 'light', children }: { tone?: Tone; children: React.ReactNode }) {
   return (
     <span
       className={cn(
@@ -60,52 +75,84 @@ function Pill({ tone = 'light', children }: { tone?: 'light' | 'dark'; children:
   )
 }
 
+function Shimmer({ tone = 'light', className }: { tone?: Tone; className?: string }) {
+  return (
+    <span
+      className={cn(
+        'mock-shimmer block h-1.5 rounded-full',
+        tone === 'dark' ? 'bg-white/10' : 'bg-muted-foreground/15',
+        className,
+      )}
+      style={
+        {
+          '--shimmer': tone === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(29,29,31,0.10)',
+        } as React.CSSProperties
+      }
+    />
+  )
+}
+
 export function MuteMockup() {
   return (
     <>
       <Panel className="p-3.5">
-        <PanelLabel right={<Mic className="size-3 text-primary" strokeWidth={1.5} />}>
+        <Head
+          right={
+            <span className="flex size-5 items-center justify-center rounded-[3px] bg-primary/10">
+              <Mic className="size-3 text-primary" strokeWidth={1.75} />
+            </span>
+          }
+        >
           Sesi speaking
-        </PanelLabel>
-        <p className="mt-2 text-sm font-medium leading-snug text-foreground">
+        </Head>
+        <p className="mt-2.5 text-sm font-medium leading-snug text-foreground">
           Ceritakan harimu
         </p>
-        <div className="mt-2 flex items-center gap-1.5">
+        <div className="mt-2 flex items-center gap-2">
           <span className="font-mono text-[9px] text-muted-foreground">[2 MENIT]</span>
+          <span className="h-2.5 w-px bg-border" />
           <div className="flex items-center gap-1">
             {[0, 1, 2].map((i) => (
               <span key={i} className="size-2 rounded-full bg-muted-foreground/25" />
             ))}
           </div>
+          <span className="font-mono text-[9px] text-muted-foreground">3 soal</span>
         </div>
+        <div className="mt-3 flex items-center gap-1.5">
+          <span className="mock-blink size-1.5 rounded-full bg-primary" />
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-secondary" />
+        </div>
+        <Foot>Belum dimulai</Foot>
       </Panel>
 
       <Panel tone="dark" className="p-3.5">
-        <PanelLabel
+        <Head
           tone="dark"
           right={
             <Pill tone="dark">
-              <span className="size-1 rounded-full bg-white/60" />
+              <span className="mock-blink size-1 rounded-full bg-white/70" />
               Menunggu
             </Pill>
           }
         >
           Catatan
-        </PanelLabel>
-        <div className="mt-2 flex flex-col gap-1.5">
+        </Head>
+        <div className="mt-2.5 flex flex-col gap-2">
           {['Paham semua soal', 'Tahu jawabannya', 'Tidak keluar suara'].map((line) => (
-            <div key={line} className="flex items-center gap-1.5">
+            <div key={line} className="flex items-center gap-2">
               <span className="size-1 shrink-0 rounded-full bg-white/30" />
               <span className="text-[11px] leading-tight text-white/70">{line}</span>
+              <Shimmer tone="dark" className="ml-auto w-6" />
             </div>
           ))}
         </div>
+        <Foot tone="dark">0 dari 3 terisi</Foot>
       </Panel>
     </>
   )
 }
 
-const flatWave = [3, 4, 3, 5, 3, 4, 3, 3, 4, 3, 5, 3, 4, 3, 3, 4, 3, 5, 3, 4, 3, 3, 4, 3]
+const wave = [4, 6, 3, 8, 5, 3, 7, 4, 3, 6, 4, 9, 5, 3, 6, 4, 3, 7, 5, 3, 6, 4, 8, 3]
 
 export function AnxietyMockup() {
   return (
@@ -124,6 +171,7 @@ export function AnxietyMockup() {
             <div className="absolute inset-0 flex items-center justify-center">
               <Eye className="size-4 text-white/35" strokeWidth={1.5} />
             </div>
+            <span className="mock-scan absolute inset-x-0 top-0 h-1/2 bg-linear-to-b from-transparent via-white/20 to-transparent" />
             <span className="absolute left-1 top-1 rounded-[2px] bg-white/15 px-1 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-white/80">
               Dinilai
             </span>
@@ -132,17 +180,22 @@ export function AnxietyMockup() {
       </Panel>
 
       <Panel tone="dark" className="p-3.5">
-        <PanelLabel tone="dark">Terdengar</PanelLabel>
-        <div className="mt-2 flex h-6 items-end gap-[3px]">
-          {flatWave.map((h, i) => (
+        <Head
+          tone="dark"
+          right={<span className="font-mono text-[9px] text-white/40">0:00</span>}
+        >
+          Terdengar
+        </Head>
+        <div className="mt-2 flex h-7 items-end gap-[3px]">
+          {wave.map((h, i) => (
             <span
               key={i}
-              className="w-[2px] rounded-full bg-white/25"
-              style={{ height: `${h}px` }}
+              className="mock-bar w-[2px] origin-bottom rounded-full bg-white/30"
+              style={{ height: `${h}px`, animationDelay: `${i * 0.07}s` }}
             />
           ))}
         </div>
-        <p className="mt-2 font-mono text-[9px] text-white/40">0 kata terdeteksi</p>
+        <Foot tone="dark">0 kata terdeteksi</Foot>
       </Panel>
     </>
   )
@@ -152,35 +205,40 @@ export function CrowdedMockup() {
   return (
     <>
       <Panel className="p-3.5">
-        <PanelLabel right={<span className="font-mono text-[9px] text-foreground">36 siswa</span>}>
+        <Head right={<span className="font-mono text-[9px] text-foreground">36 siswa</span>}>
           Kelas 11-A
-        </PanelLabel>
-        <div className="mt-2 grid grid-cols-12 gap-1.5">
-          {Array.from({ length: 36 }, (_, i) => (
-            <span
-              key={i}
-              className={cn(
-                'aspect-square rounded-full',
-                i === 0 ? 'bg-primary' : 'bg-muted-foreground/20',
-              )}
-            />
-          ))}
+        </Head>
+        <div className="mt-2.5 grid grid-cols-12 gap-1.5">
+          {Array.from({ length: 36 }, (_, i) =>
+            i === 0 ? (
+              <span key={i} className="relative aspect-square">
+                <span className="absolute inset-0 rounded-full bg-primary" />
+                <span className="animate-pulse-ring absolute inset-0 rounded-full bg-primary/40" />
+              </span>
+            ) : (
+              <span
+                key={i}
+                className="mock-ripple aspect-square rounded-full bg-muted-foreground"
+                style={{ animationDelay: `${(i % 12) * 0.09 + Math.floor(i / 12) * 0.14}s` }}
+              />
+            ),
+          )}
         </div>
+        <Foot>1 guru</Foot>
       </Panel>
 
       <Panel tone="dark" className="p-3.5">
-        <PanelLabel tone="dark">Antrean umpan balik</PanelLabel>
-        <div className="mt-2 flex flex-col gap-1.5">
+        <Head tone="dark">Antrean umpan balik</Head>
+        <div className="mt-2.5 flex flex-col gap-2">
           {['Siswa 01', 'Siswa 02', 'Siswa 03'].map((name) => (
-            <div key={name} className="flex items-center gap-1.5">
+            <div key={name} className="flex items-center gap-2">
               <FileText className="size-2.5 shrink-0 text-white/35" strokeWidth={1.5} />
               <span className="text-[11px] leading-tight text-white/70">{name}</span>
-              <span className="ml-auto font-mono text-[8px] uppercase tracking-[0.1em] text-white/30">
-                belum
-              </span>
+              <Shimmer tone="dark" className="ml-auto w-8" />
             </div>
           ))}
         </div>
+        <Foot tone="dark">36 menunggu</Foot>
       </Panel>
     </>
   )
@@ -190,26 +248,46 @@ export function OfflineMockup() {
   return (
     <>
       <Panel className="p-3.5">
-        <PanelLabel right={<Pill>Offline</Pill>}>Latihan</PanelLabel>
-        <p className="mt-2 text-sm font-medium leading-snug text-foreground">
+        <Head
+          right={
+            <Pill>
+              <WifiOff className="size-2" strokeWidth={2} />
+              Offline
+            </Pill>
+          }
+        >
+          Latihan
+        </Head>
+        <p className="mt-2.5 text-sm font-medium leading-snug text-foreground">
           Speaking — set 3
         </p>
-        <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-secondary">
-          <div className="h-full w-[42%] rounded-full bg-primary" />
+        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-secondary">
+          <div className="mock-fill h-full rounded-full bg-primary" />
         </div>
+        <Foot>3 dari 8 soal</Foot>
       </Panel>
 
       <Panel tone="dark" className="p-3.5">
-        <PanelLabel tone="dark">Tersimpan lokal</PanelLabel>
-        <div className="mt-2 flex flex-col gap-1.5">
+        <Head tone="dark" right={<span className="font-mono text-[9px] text-white/40">3 file</span>}>
+          Tersimpan lokal
+        </Head>
+        <div className="mt-2.5 flex flex-col gap-2">
           {['Rekaman 1', 'Rekaman 2', 'Rekaman 3'].map((name) => (
-            <div key={name} className="flex items-center gap-1.5">
+            <div key={name} className="flex items-center gap-2">
               <Clock className="size-2.5 shrink-0 text-white/35" strokeWidth={1.5} />
               <span className="text-[11px] leading-tight text-white/70">{name}</span>
+              <span className="ml-auto font-mono text-[8px] uppercase tracking-[0.1em] text-white/30">
+                ok
+              </span>
             </div>
           ))}
         </div>
-        <p className="mt-2 font-mono text-[9px] text-white/40">Menunggu sinyal</p>
+        <Foot tone="dark">
+          <span className="inline-flex items-center gap-1">
+            <span className="mock-blink size-1 rounded-full bg-white/60" />
+            Menunggu sinyal
+          </span>
+        </Foot>
       </Panel>
     </>
   )
