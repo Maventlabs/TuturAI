@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { Activity, Users, Volume2, WifiOff } from 'lucide-react'
-import { GSAPLines, GSAPReveal } from './gsap-helpers'
+import { GSAPLines, GSAPReveal, GSAPStagger } from './gsap-helpers'
 import { AnxietyMockup, CrowdedMockup, MuteMockup, OfflineMockup } from './problem-mockups'
 
 const cards = [
@@ -137,18 +137,31 @@ export function Problem() {
                       </div>
                     </div>
 
-                    <div className="flex flex-1 flex-col px-4 pb-6 pt-1 sm:px-5">
-                      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                    <GSAPStagger
+                      className="flex flex-1 flex-col px-4 pb-6 pt-1 sm:px-5"
+                      y={10}
+                      stagger={0.06}
+                    >
+                      <div
+                        data-stagger
+                        className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+                      >
                         <card.Icon className="size-3.5 shrink-0" strokeWidth={1.5} />
                         {card.label}
                       </div>
-                      <h3 className="mt-4 font-heading text-lg font-semibold tracking-[-0.01em] text-foreground">
+                      <h3
+                        data-stagger
+                        className="mt-4 font-heading text-lg font-semibold tracking-[-0.01em] text-foreground"
+                      >
                         {card.title}
                       </h3>
-                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-pretty">
+                      <p
+                        data-stagger
+                        className="mt-2 text-sm leading-relaxed text-muted-foreground text-pretty"
+                      >
                         {card.desc}
                       </p>
-                    </div>
+                    </GSAPStagger>
                   </article>
                 ))}
               </div>

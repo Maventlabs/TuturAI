@@ -9,7 +9,7 @@ type Tone = 'light' | 'dark'
 /** Fixed-height stage so all four cards show identically sized panels. */
 function Stack({ children }: { children: React.ReactNode }) {
   return (
-    <GSAPStagger className="flex w-full flex-col gap-2" y={14} stagger={0.05}>
+    <GSAPStagger className="flex w-full flex-col gap-2" y={18} scale={0.97} stagger={0.07}>
       {children}
     </GSAPStagger>
   )
@@ -237,18 +237,18 @@ export function CrowdedMockup() {
         <Head right={<span className="font-mono text-[9px] text-foreground">36 siswa</span>}>
           Kelas 11-A
         </Head>
-        <div className="mt-2.5 grid flex-1 grid-cols-[repeat(18,minmax(0,1fr))] content-center gap-1.5">
+        <div className="mt-2.5 grid flex-1 grid-cols-[repeat(12,minmax(0,1fr))] content-center gap-1.5">
           {Array.from({ length: 36 }, (_, i) =>
             i === 0 ? (
-              <span key={i} className="relative aspect-square">
+              <span key={i} className="relative aspect-square w-full max-w-4 justify-self-center">
                 <span className="absolute inset-0 rounded-full bg-primary" />
                 <span className="animate-pulse-ring absolute inset-0 rounded-full bg-primary/40" />
               </span>
             ) : (
               <span
                 key={i}
-                className="mock-ripple aspect-square rounded-full bg-muted-foreground"
-                style={{ animationDelay: `${(i % 18) * 0.07 + Math.floor(i / 18) * 0.16}s` }}
+                className="mock-ripple aspect-square w-full max-w-4 justify-self-center rounded-full bg-muted-foreground"
+                style={{ animationDelay: `${(i % 12) * 0.08 + Math.floor(i / 12) * 0.16}s` }}
               />
             ),
           )}

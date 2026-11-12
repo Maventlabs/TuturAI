@@ -95,12 +95,14 @@ export function GSAPStagger({
   children,
   className,
   y = 12,
+  scale = 1,
   stagger = 0.05,
   delay = 0,
 }: {
   children: React.ReactNode
   className?: string
   y?: number
+  scale?: number
   stagger?: number
   delay?: number
 }) {
@@ -112,11 +114,12 @@ export function GSAPStagger({
       mm.add('(prefers-reduced-motion: no-preference)', () => {
         gsap.fromTo(
           ref.current?.querySelectorAll('[data-stagger]') ?? [],
-          { opacity: 0, y },
+          { opacity: 0, y, scale },
           {
             opacity: 1,
             y: 0,
-            duration: 0.55,
+            scale: 1,
+            duration: 0.6,
             ease: 'power3.out',
             stagger,
             delay,
@@ -126,7 +129,7 @@ export function GSAPStagger({
       })
       return () => mm.revert()
     },
-    { scope: ref, dependencies: [y, stagger, delay] },
+    { scope: ref, dependencies: [y, scale, stagger, delay] },
   )
 
   return (
