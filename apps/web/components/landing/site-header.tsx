@@ -72,7 +72,7 @@ export function SiteHeader() {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [authed, setAuthed] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+  const [overHero, setOverHero] = useState(true)
   const [navTheme, setNavTheme] = useState<'light' | 'dark' | 'blue'>('light')
   const [canHover, setCanHover] = useState(false)
   const shellRef = useRef<HTMLDivElement>(null)
@@ -97,7 +97,10 @@ export function SiteHeader() {
 
     const update = () => {
       raf = 0
-      setScrolled(window.scrollY > 8)
+
+      // Stay transparent for as long as the hero still sits behind the bar.
+      const hero = document.getElementById('hero')
+      setOverHero(hero ? hero.getBoundingClientRect().bottom > 80 : false)
 
       // Probe a point just below the header bar (h-16 mobile / h-18 desktop).
       const probeY = 80
@@ -183,22 +186,22 @@ export function SiteHeader() {
 
   // True when the bar sits over a dark or blue section and needs inverted
   // text, an inverted logo, and tinted button treatments.
-  const onTinted = scrolled && navTheme !== 'light'
+  const onTinted = !overHero && navTheme !== 'light'
 
   // Over the hero the bar is transparent, so the logo and nav links go white.
-  const navInverted = !scrolled || onTinted
+  const navInverted = overHero || onTinted
 
   return (
     <div
       ref={shellRef}
       className={cn(
         'fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300',
-        !scrolled && 'border-transparent bg-transparent',
-        scrolled && navTheme === 'light' && 'border-border bg-background/85 backdrop-blur-md',
-        scrolled &&
+        overHero && 'border-transparent bg-transparent',
+        !overHero && navTheme === 'light' && 'border-border bg-background/85 backdrop-blur-md',
+        !overHero &&
           navTheme === 'dark' &&
           'border-white/10 bg-ink-deep/85 text-background backdrop-blur-md',
-        scrolled &&
+        !overHero &&
           navTheme === 'blue' &&
           'border-white/15 bg-primary/95 text-primary-foreground backdrop-blur-md',
       )}

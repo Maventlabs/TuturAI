@@ -90,12 +90,12 @@ export function Hero() {
 
       {/* Centered headline, subheadline and CTAs */}
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 pt-24 text-center sm:px-6">
-        <h1 className="font-display text-[2.6rem] font-medium leading-[1.05] tracking-[-0.03em] text-balance text-white sm:text-6xl lg:text-[4.25rem]">
-          <span data-hero-line className="block text-white/70">
-            Bicara Bahasa Inggris,
+        <h1 className="font-display text-[2.6rem] font-bold leading-[1.05] tracking-[-0.03em] text-balance text-white sm:text-6xl lg:text-[4.25rem]">
+          <span data-hero-line className="block text-white">
+            Berani Berbicara
           </span>
           <span data-hero-line className="block">
-            tanpa <em className="italic">takut salah</em>.
+            Tumbuh <em className="italic">Percaya Diri</em>
           </span>
         </h1>
 
@@ -103,8 +103,8 @@ export function Hero() {
           data-hero-sub
           className="mt-6 max-w-[52ch] text-base leading-relaxed text-white/85 text-pretty sm:text-lg"
         >
-          TuturAI adalah partner latihan speaking berbasis AI untuk siswa SMA/SMK — penilaian lima dimensi,
-          umpan balik personal, dan progres yang terukur.
+          Partner latihan speaking berbasis AI untuk siswa SMA/SMK — umpan balik personal,
+          progres terukur.
         </p>
 
         <div data-hero-cta className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
