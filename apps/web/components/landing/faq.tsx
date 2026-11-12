@@ -63,18 +63,15 @@ export function FAQ() {
           <GSAPLines>
             <h2 className="mt-4 font-heading text-3xl font-bold leading-[1.08] tracking-[-0.02em] text-foreground text-balance sm:text-4xl lg:text-5xl">
               <span data-line className="block">
-                Pertanyaan yang
+                Frequently Asked
               </span>
               <span data-line className="block">
-                sering diajukan
+                Questions
               </span>
             </h2>
           </GSAPLines>
 
           <GSAPReveal delay={0.1}>
-            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/70">
-              Frequently Asked Questions
-            </p>
             <p className="mt-5 text-foreground text-pretty">
               <strong className="font-semibold text-foreground">Temukan jawaban</strong> soal cara
               kerja TuturAI, penilaian AI, dan pemakaiannya di kelas.
@@ -102,7 +99,7 @@ export function FAQ() {
                       onClick={() => setOpenIndex(isOpen ? null : index)}
                       className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left sm:px-6"
                     >
-                      <span className="font-heading text-base font-semibold text-primary-foreground text-pretty">
+                      <span className="font-heading text-base font-bold text-primary-foreground text-pretty">
                         {faq.question}
                       </span>
                       <Plus
