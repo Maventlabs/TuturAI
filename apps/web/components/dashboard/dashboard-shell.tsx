@@ -109,40 +109,36 @@ export function DashboardShell({
       >
         <div
           className={cn(
-            'flex h-16 items-center border-b border-sidebar-border px-5',
-            collapsed && 'justify-center px-0',
+            'flex h-16 items-center border-b border-sidebar-border',
+            collapsed ? 'justify-center px-0' : 'justify-between gap-2 px-4',
           )}
         >
-          <Link href={role === 'student' ? '/siswa' : '/guru'}>
-            {collapsed ? (
-              <Logo showText={false} />
-            ) : (
+          {!collapsed && (
+            <Link
+              href={role === 'student' ? '/siswa' : '/guru'}
+              className="min-w-0 rounded-md outline-none ring-ring focus-visible:ring-2"
+            >
               <Logo />
-            )}
-          </Link>
-        </div>
-        <div className="flex-1 overflow-y-auto py-4">
-          <SidebarNav items={nav} collapsed={collapsed} />
-        </div>
-        <div className="border-t border-sidebar-border p-3">
+            </Link>
+          )}
           <Button
             variant="ghost"
-            size="sm"
+            size="icon-sm"
             onClick={() => setCollapsed((c) => !c)}
-            className={cn(
-              'w-full gap-2 text-muted-foreground',
-              collapsed && 'justify-center px-0',
-            )}
+            aria-label={collapsed ? 'Buka sidebar' : 'Ciutkan sidebar'}
+            aria-expanded={!collapsed}
+            title={collapsed ? 'Buka sidebar' : 'Ciutkan sidebar'}
+            className="shrink-0 text-muted-foreground hover:text-foreground"
           >
             {collapsed ? (
               <PanelLeft className="h-4 w-4" />
             ) : (
-              <>
-                <PanelLeftClose className="h-4 w-4" />
-                <span>Ciutkan</span>
-              </>
+              <PanelLeftClose className="h-4 w-4" />
             )}
           </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto py-4">
+          <SidebarNav items={nav} collapsed={collapsed} />
         </div>
       </aside>
 
