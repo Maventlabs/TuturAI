@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  Home,
   LayoutDashboard,
   Mic,
   MessageSquare,
@@ -44,6 +45,19 @@ export const studentNav: NavItem[] = [
   { label: 'Progress', href: '/siswa/progress', icon: TrendingUp },
   { label: 'Leaderboard', href: '/siswa/leaderboard', icon: Trophy },
   { label: 'Pencapaian', href: '/siswa/achievements', icon: Award },
+  { label: 'Profil', href: '/siswa/profil', icon: User },
+]
+
+/**
+ * The five destinations the student dock carries. Everything else in
+ * `studentNav` stays reachable from the menu sheet, so the dock can stay a
+ * fixed-width instrument instead of growing with the feature list.
+ */
+export const studentDockNav: NavItem[] = [
+  { label: 'Beranda', href: '/siswa', icon: Home },
+  { label: 'Tugas', href: '/siswa/penugasan', icon: ClipboardCheck },
+  { label: 'Latihan', href: '/siswa/speaking', icon: Mic },
+  { label: 'Progress', href: '/siswa/progress', icon: TrendingUp },
   { label: 'Profil', href: '/siswa/profil', icon: User },
 ]
 

@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Menu, PanelLeftClose, PanelLeft, Search, Bell, LogOut } from 'lucide-react'
 import { studentNav, teacherNav } from '@/lib/navigation'
 import { Logo } from '@/components/logo'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
+import { StudentDock } from '@/components/dashboard/student-dock'
 import { ThemeToggle } from '@/components/dashboard/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
@@ -57,7 +58,6 @@ export function DashboardShell({
   const [search, setSearch] = useState('')
   const [logoutError, setLogoutError] = useState<string | null>(null)
   const router = useRouter()
-  const pathname = usePathname()
   const nav = role === 'student' ? studentNav : teacherNav
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -102,12 +102,10 @@ export function DashboardShell({
     router.push(role === 'student' ? `/siswa/quiz?search=${encodeURIComponent(query)}` : `/guru/siswa?search=${encodeURIComponent(query)}`)
   }
 
-  // Bottom nav for students on mobile (first 5 items)
-  const bottomItems = role === 'student' ? nav.slice(0, 5) : []
-
   return (
     <div className="min-h-screen bg-secondary/40">
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — teachers only. Students navigate from the dock. */}
+      {role === 'teacher' && (
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 lg:flex',
@@ -122,7 +120,7 @@ export function DashboardShell({
         >
           {!collapsed && (
             <Link
-              href={role === 'student' ? '/siswa' : '/guru'}
+              href="/guru"
               className="min-w-0 rounded-md outline-none ring-ring focus-visible:ring-2"
             >
               <Logo />
@@ -148,20 +146,22 @@ export function DashboardShell({
           <SidebarNav items={nav} collapsed={collapsed} />
         </div>
       </aside>
+      )}
 
       {/* Main column */}
       <div
         className={cn(
           'flex min-h-screen flex-col transition-all duration-300',
-          collapsed ? 'lg:pl-[76px]' : 'lg:pl-64',
+          role === 'teacher' && (collapsed ? 'lg:pl-[76px]' : 'lg:pl-64'),
         )}
       >
         {/* Topbar — a ruled instrument rail: every zone is a cell divided by a
             hairline, so state reads as a gauge instead of a row of pills. */}
         <header className="sticky top-0 z-20 border-b border-rule bg-card/90 backdrop-blur-xl">
           <div className="flex h-16 items-stretch">
-            {/* Mobile menu */}
-            <div className="flex items-center pl-3 lg:hidden">
+            {/* Menu sheet — the only way to reach the full student route list,
+                so it stays available at every width for students. */}
+            <div className={cn('flex items-center pl-3', role === 'teacher' && 'lg:hidden')}>
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger
                   render={
@@ -312,39 +312,18 @@ export function DashboardShell({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:pb-8">
+        <main
+          className={cn(
+            'flex-1 px-4 py-6 sm:px-6 lg:px-8',
+            role === 'student' ? 'pb-28' : 'pb-6 lg:pb-8',
+          )}
+        >
           {logoutError && <p role="alert" className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{logoutError}</p>}
           {children}
         </main>
       </div>
 
-      {/* Mobile bottom nav (students) */}
-      {bottomItems.length > 0 && (
-        <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-background/95 px-2 py-1.5 backdrop-blur-md lg:hidden">
-          {bottomItems.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href !== '/siswa' && pathname.startsWith(item.href))
-            const Icon = item.icon
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5 text-[10px] font-medium transition-colors',
-                  active ? 'text-primary' : 'text-muted-foreground',
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="max-w-full truncate">
-                  {item.label.split(' ')[0]}
-                </span>
-              </Link>
-            )
-          })}
-        </nav>
-      )}
+      {role === 'student' && <StudentDock />}
     </div>
   )
 }
