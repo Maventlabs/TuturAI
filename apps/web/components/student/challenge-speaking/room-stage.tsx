@@ -58,7 +58,7 @@ export function RoomStage({
   const emptySlots = Math.max(0, maxParticipants - display.length)
 
   return (
-    <div className="mx-auto max-w-4xl space-y-3">
+    <div className="mx-auto max-w-3xl space-y-3">
       <div className="border border-rule bg-card">
         <div className="flex items-center justify-between gap-3 border-b border-rule bg-secondary/50 px-4 py-2">
           <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -94,7 +94,7 @@ export function RoomStage({
         </div>
       )}
 
-      <div className="border border-ink-deep bg-ink-deep">
+      <div className="border border-ink-deep bg-ink-deep dark:border-white/10">
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-2.5">
           <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-foreground">
             <span className="relative flex h-1.5 w-1.5">
@@ -158,17 +158,16 @@ export function RoomStage({
             </div>
           ))}
 
-          {mode === 'private' &&
-            Array.from({ length: emptySlots }).map((_, index) => (
-              <div
-                key={`empty-${index}`}
-                className="flex aspect-video items-center justify-center border border-dashed border-white/15"
-              >
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted">
-                  Menunggu peserta
-                </span>
-              </div>
-            ))}
+          {Array.from({ length: emptySlots }).map((_, index) => (
+            <div
+              key={`empty-${index}`}
+              className="flex aspect-video items-center justify-center border border-dashed border-white/15"
+            >
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted">
+                Menunggu peserta
+              </span>
+            </div>
+          ))}
         </div>
 
         <div className="flex items-center justify-center gap-2 border-t border-white/10 p-3">

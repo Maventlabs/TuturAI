@@ -48,30 +48,14 @@ const MODE_LABELS: Record<MatchMode, string> = {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function ChallengeSpeakingPage() {
-  const [pageState, setPageState] = useState<PageState>('room')
+  const [pageState, setPageState] = useState<PageState>('menu')
   const [matchMode, setMatchMode] = useState<MatchMode>('1v1')
   const [gameModel, setGameModel] = useState<GameModel>('instruction')
   const [lobbyTimer, setLobbyTimer] = useState(15)
   const [roomCode, setRoomCode] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [copied, setCopied] = useState(false)
-  const [roomData, setRoomData] = useState<ChallengeRoom | null>({
-    id: 'demo-room',
-    mode: 'group',
-    gameModel: 'instruction',
-    topic: 'Discuss the impact of technology on education',
-    hostId: 'demo-user',
-    hostName: 'Nadia Putri',
-    participants: {
-      'demo-user': { uid: 'demo-user', name: 'Nadia Putri', role: 'speaker_1', joinedAt: 0, isMuted: false, isCameraOff: false },
-      p2: { uid: 'p2', name: 'Rizky Aditya', role: 'speaker_2', joinedAt: 0, isMuted: true, isCameraOff: false },
-      p3: { uid: 'p3', name: 'Salsabila Putri', role: 'speaker_3', joinedAt: 0, isMuted: false, isCameraOff: true },
-    },
-    maxParticipants: 4,
-    status: 'active',
-    createdAt: 0,
-    code: 'AB12CD',
-  })
+  const [roomData, setRoomData] = useState<ChallengeRoom | null>(null)
   const [myRole, setMyRole] = useState<string>('speaker_1')
   const [topic, setTopic] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -305,8 +289,8 @@ export default function ChallengeSpeakingPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
-          <div className="min-w-0 flex-1 space-y-3">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4">
+          <div className="min-w-0 flex-1 space-y-3 md:sticky md:top-20">
             <MatchStage
               state="standby"
               name={currentUser?.name ?? 'Kamu'}
@@ -334,7 +318,7 @@ export default function ChallengeSpeakingPage() {
             <PresenceStrip users={presence.users} error={presence.error} />
           </div>
 
-          <div className="w-full space-y-3 lg:w-[380px] lg:shrink-0">
+          <div className="w-full space-y-3 md:w-[320px] md:shrink-0 lg:w-[380px]">
             <SettingsConsole
               gameModel={gameModel}
               onGameModelChange={setGameModel}

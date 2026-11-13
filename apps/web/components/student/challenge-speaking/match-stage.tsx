@@ -93,7 +93,7 @@ export function MatchStage({
   const scanning = state === 'scanning'
 
   return (
-    <section className="relative overflow-hidden border border-ink-deep bg-ink-deep text-ink-foreground">
+    <section       className="relative overflow-hidden border border-ink-deep bg-ink-deep text-ink-foreground dark:border-white/10">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -260,6 +260,9 @@ export function PresenceStrip({ users, error }: PresenceStripProps) {
         )}
         {users.length === 0 && (
           <span className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <span aria-hidden className="mr-2 text-rule">
+              /
+            </span>
             {error ?? 'Menunggu siswa lain'}
           </span>
         )}
