@@ -12,6 +12,8 @@ export interface PracticeMode {
   action: string
   image: string
   imageAlt: string
+  /** Set on the first plate so the above-the-fold photograph is not deferred. */
+  priority?: boolean
 }
 
 /**
@@ -19,9 +21,9 @@ export interface PracticeMode {
  * mode's number, and the reason to open it.
  *
  * The photograph sits in a blue duotone at rest so six unrelated images read as
- * one printed set; hovering (or focusing) restores full colour and lifts the
- * plate. The scrim is a real gradient rather than a flat overlay so the copy
- * keeps its contrast at every crop.
+ * one printed set; hovering restores full colour and lifts the plate. The scrim
+ * is a real gradient rather than a flat overlay so the copy keeps its contrast
+ * at every crop.
  */
 export function PracticeCard({ mode }: { mode: PracticeMode }) {
   const Icon = mode.icon
@@ -29,13 +31,14 @@ export function PracticeCard({ mode }: { mode: PracticeMode }) {
   return (
     <Link
       href={mode.href}
-      className="group relative isolate flex aspect-4/5 flex-col justify-between overflow-hidden rounded-sm bg-ink-deep p-5 outline-none ring-1 ring-ink-foreground/10 ring-inset transition-shadow duration-300 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:aspect-3/4"
+      className="group relative isolate flex aspect-4/5 flex-col justify-between overflow-hidden rounded-sm bg-ink-deep p-5 outline-none ring-1 ring-ink-foreground/10 ring-inset focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:aspect-3/4"
     >
       <Image
         src={mode.image}
         alt={mode.imageAlt}
         fill
-        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+        priority={mode.priority}
+        sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
         className="-z-10 object-cover grayscale transition-[filter,transform] duration-700 ease-out group-hover:scale-[1.04] group-hover:grayscale-0 motion-reduce:transition-none"
       />
       <div
@@ -65,7 +68,7 @@ export function PracticeCard({ mode }: { mode: PracticeMode }) {
         <p className="font-mono text-[10px] uppercase leading-none tracking-[0.18em] text-accent-glow">
           {mode.meta}
         </p>
-        <h2 className="mt-2.5 text-balance font-display text-[1.55rem] leading-[1.08] tracking-[-0.01em] text-ink-foreground">
+        <h2 className="mt-2.5 text-balance font-display text-[1.4rem] leading-[1.08] tracking-[-0.01em] text-ink-foreground lg:text-[1.6rem]">
           {mode.label}
         </h2>
         <p className="mt-2 text-pretty text-[13px] leading-relaxed text-ink-foreground/70">

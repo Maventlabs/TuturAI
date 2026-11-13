@@ -17,6 +17,7 @@ const MODES: PracticeMode[] = [
     action: 'Mulai rekaman',
     image: '/learning/speaking.webp',
     imageAlt: 'Mikrofon kondensor di dalam studio rekaman',
+    priority: true,
   },
   {
     index: '02',
@@ -97,7 +98,7 @@ export default function LearningHubPage() {
         </div>
       </header>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
         {MODES.map((mode) => (
           <PracticeCard key={mode.href} mode={mode} />
         ))}
