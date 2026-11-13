@@ -21,7 +21,7 @@ export function FleetActivity({ series, deviceCount }: FleetActivityProps) {
   const axisIndexes = [0, 6, 12, 18, lastIndex]
 
   return (
-    <div className="border-t border-rule bg-ink-deep px-4 pb-4 pt-4 sm:px-6">
+    <div className="border-t border-rule bg-ink-deep px-4 pt-4 pb-4 sm:px-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted">Aktivitas heartbeat · 24 jam</p>
         <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-muted/70">
