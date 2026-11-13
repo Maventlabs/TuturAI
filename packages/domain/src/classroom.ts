@@ -1,11 +1,34 @@
-import type { RecordStatus, UserRole } from './types'
+import type { ClassroomLevel, RecordStatus, UserRole } from './types'
 
 const joinKeyPattern = /^[A-Z0-9]{8}$/
+
+export const CLASSROOM_LEVELS: ReadonlyArray<{ value: ClassroomLevel; label: string }> = [
+  { value: 'kelas-1', label: 'Kelas 1' },
+  { value: 'kelas-2', label: 'Kelas 2' },
+  { value: 'kelas-3', label: 'Kelas 3' },
+  { value: 'kelas-4', label: 'Kelas 4' },
+  { value: 'kelas-5', label: 'Kelas 5' },
+  { value: 'kelas-6', label: 'Kelas 6' },
+  { value: 'kelas-7', label: 'Kelas 7' },
+  { value: 'kelas-8', label: 'Kelas 8' },
+  { value: 'kelas-9', label: 'Kelas 9' },
+  { value: 'kelas-10', label: 'Kelas 10' },
+  { value: 'kelas-11', label: 'Kelas 11' },
+  { value: 'kelas-12', label: 'Kelas 12' },
+  { value: 'mahasiswa', label: 'Mahasiswa' },
+  { value: 'umum', label: 'Umum' },
+]
+
+export function classroomLevelLabel(level: ClassroomLevel | null): string | null {
+  if (!level) return null
+  return CLASSROOM_LEVELS.find((item) => item.value === level)?.label ?? null
+}
 
 export interface ClassroomInput {
   name: string
   description: string | null
   school: string | null
+  level: ClassroomLevel | null
 }
 
 export function validateClassroomInput(input: unknown):
@@ -34,8 +57,17 @@ export function validateClassroomInput(input: unknown):
 
   const description = optionalText('description', 500)
   const school = optionalText('school', 160)
+
+  const rawLevel = value.level
+  let level: ClassroomLevel | null = null
+  if (rawLevel !== undefined && rawLevel !== null && rawLevel !== '') {
+    const match = CLASSROOM_LEVELS.find((item) => item.value === rawLevel)
+    if (!match) issues.push({ path: 'level', message: 'level must be a supported classroom level' })
+    else level = match.value
+  }
+
   if (issues.length > 0) return { success: false, issues }
-  return { success: true, data: { name, description, school } }
+  return { success: true, data: { name, description, school, level } }
 }
 
 export function validateJoinKey(input: unknown):

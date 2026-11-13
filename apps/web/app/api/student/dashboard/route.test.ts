@@ -58,7 +58,7 @@ describe('GET /api/student/dashboard', () => {
       isDemo: false,
     })
     mockedClassrooms.mockResolvedValue([
-      { id: 'class-1', teacherId: 'teacher-1', name: 'Speaking XI', description: null, school: null, status: 'active', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'class-1', teacherId: 'teacher-1', name: 'Speaking XI', description: null, school: null, level: null, status: 'active', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
     ])
     mockedLeaderboard.mockResolvedValue([{ rank: 1, studentId: 'student-1', name: 'Student', xp: 40 }])
     mockedAssignments.mockResolvedValue([

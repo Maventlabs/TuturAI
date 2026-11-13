@@ -58,7 +58,6 @@ try {
 
   await assertRoute('/guru', 'Dashboard Guru')
   await assertRoute('/guru/kelas', 'Kelas Saya')
-  await assertRoute('/guru/penugasan', 'Penugasan')
   await assertRoute('/guru/siswa', 'Daftar Siswa')
   await assertRoute('/guru/penilaian', 'Penilaian Speaking')
   await assertRoute('/guru/analitik', 'Analitik Mendalam')
@@ -67,7 +66,7 @@ try {
   const dashboardResponse = await page.request.get(`${baseURL}/api/teacher/analytics?classroomId=${encodeURIComponent(classroomId)}&period=7d`)
   if (dashboardResponse.status() !== 200) throw new Error(`Expected teacher analytics 200, received ${dashboardResponse.status()}`)
 
-  console.log(JSON.stringify({ ok: true, classroomId, routes: ['dashboard', 'classes', 'assignments', 'students', 'speaking-review', 'analytics', 'leaderboard'], wrongClassStatus: unauthorizedClassroom.status() }))
+  console.log(JSON.stringify({ ok: true, classroomId, routes: ['dashboard', 'classes', 'students', 'speaking-review', 'analytics', 'leaderboard'], wrongClassStatus: unauthorizedClassroom.status() }))
 } finally {
   await context.close()
   await browser.close()

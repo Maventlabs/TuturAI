@@ -1,8 +1,8 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import type { Classroom } from '@tuturai/domain'
-import { Copy, GraduationCap, Plus } from 'lucide-react'
+import { CLASSROOM_LEVELS, type Classroom } from '@tuturai/domain'
+import { ChevronDown, Copy, GraduationCap, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -24,6 +24,7 @@ export default function ClassesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
   const [school, setSchool] = useState('')
+  const [level, setLevel] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -39,13 +40,14 @@ export default function ClassesPage() {
       const response = await fetch('/api/classrooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, school }),
+        body: JSON.stringify({ name, description, school, level: level || null }),
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error?.message ?? 'Gagal membuat kelas')
       setCreated(payload.data)
       setName('')
       setSchool('')
+      setLevel('')
       setDescription('')
       setCreateOpen(false)
       reload()
@@ -106,6 +108,7 @@ export default function ClassesPage() {
           name: classroom.name,
           description: classroom.description,
           school: classroom.school,
+          level: classroom.level,
           status: nextStatus,
         }),
       })
@@ -203,6 +206,28 @@ export default function ClassesPage() {
                 placeholder="Contoh: Kelas X IPA 1"
                 className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-ring focus:ring-2"
               />
+            </label>
+            <label className="text-sm font-medium text-foreground">
+              Jenjang
+              <div className="relative mt-1">
+                <select
+                  required
+                  value={level}
+                  onChange={(event) => setLevel(event.target.value)}
+                  className="h-10 w-full appearance-none rounded-lg border border-border bg-background pl-3 pr-9 text-sm text-foreground outline-none ring-ring focus:ring-2"
+                >
+                  <option value="">Pilih jenjang</option>
+                  {CLASSROOM_LEVELS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                />
+              </div>
             </label>
             <label className="text-sm font-medium text-foreground">
               Sekolah (opsional)

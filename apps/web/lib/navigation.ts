@@ -50,7 +50,6 @@ export const studentNav: NavItem[] = [
 export const teacherNav: NavItem[] = [
   { label: 'Dashboard', href: '/guru', icon: LayoutDashboard },
   { label: 'Kelas', href: '/guru/kelas', icon: GraduationCap },
-  { label: 'Penugasan', href: '/guru/penugasan', icon: ClipboardCheck },
   { label: 'Submission', href: '/guru/penilaian', icon: Inbox },
   { label: 'Siswa', href: '/guru/siswa', icon: Users },
   { label: 'Analitik', href: '/guru/analitik', icon: BarChart3 },

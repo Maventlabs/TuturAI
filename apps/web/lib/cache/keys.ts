@@ -17,6 +17,8 @@ export const CACHE_TTL = {
   members: 15,
   /** Assignment lists: invalidated on create/publish/attachment changes. */
   assignments: 15,
+  /** Material lists: invalidated on create. */
+  materials: 15,
   /** Review queue: invalidated on submit and review. */
   reviewQueue: 10,
   /** Aggregate analytics: recomputed from attempts and assessments. */
@@ -38,6 +40,7 @@ export const CACHE_NAMESPACES = {
   classroomMembers: (classroomId: string) => buildCacheKey('members', classroomId),
   classroomLeaderboard: (classroomId: string) => buildCacheKey('members:leaderboard', classroomId),
   classroomAssignments: (classroomId: string) => buildCacheKey('assignments', classroomId),
+  classroomMaterials: (classroomId: string) => buildCacheKey('materials', classroomId),
   reviewQueue: (teacherId: string) => buildCacheKey('reviewQueue', teacherId),
   teacherAnalytics: (teacherId: string, period: string) => buildCacheKey('analytics', teacherId, period),
   teacherLeaderboard: (teacherId: string) => buildCacheKey('analytics:leaderboard', teacherId),
