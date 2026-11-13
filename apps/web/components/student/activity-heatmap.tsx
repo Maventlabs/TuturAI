@@ -11,11 +11,12 @@ export type ActivityDay = {
 
 const DAY_MS = 86_400_000
 const WEEKDAY_LABELS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
-/** Only three weekday labels are drawn; seven would crowd the 12px rows. */
+/** Only three weekday labels are drawn; seven would crowd the rows. */
 const WEEKDAY_ROWS = [0, 2, 4]
 
-/** 53 columns of 16px cells fill the panel at desktop width, like GitHub's graph. */
+/** A full year of weeks. Narrow screens drop to half a year so cells stay legible. */
 const WEEKS = 53
+const WEEKS_COMPACT = 26
 
 const LEVEL_CLASS = ['bg-secondary', 'bg-primary/25', 'bg-primary/45', 'bg-primary/70', 'bg-primary']
 
@@ -125,31 +126,55 @@ interface ActivityHeatmapProps {
  * A contribution-style ledger of practice days: one square per day, weeks as
  * columns, four accent tints for how busy a day was. It answers "did I keep the
  * rhythm?" — the week matrix above it answers "what did I do this week?".
+ *
+ * The grid is sized by the panel, not by a fixed cell width, so a full year
+ * always fits without a sideways scroll that hides the older months.
  */
 export function ActivityHeatmap({ days, loading = false, error = false }: ActivityHeatmapProps) {
   const [tip, setTip] = useState<{ index: number; left: number; top: number } | null>(null)
   const [focusIndex, setFocusIndex] = useState<number | null>(null)
+  const [visibleWeeks, setVisibleWeeks] = useState(WEEKS)
   const gridRef = useRef<HTMLDivElement>(null)
-  const scrollerRef = useRef<HTMLDivElement>(null)
 
   const model = useMemo(() => (days && days.length ? buildModel(days, WEEKS) : null), [days])
 
-  // Narrow screens scroll the grid; the newest weeks are the ones worth seeing,
-  // so the scroller stays pinned to the right edge as the panel resizes.
   useEffect(() => {
-    const scroller = scrollerRef.current
-    if (!scroller) return
-    const pin = () => {
-      scroller.scrollLeft = scroller.scrollWidth
-    }
-    pin()
-    const observer = new ResizeObserver(pin)
-    observer.observe(scroller)
-    return () => observer.disconnect()
-  }, [model])
+    const query = window.matchMedia('(min-width: 640px)')
+    const sync = () => setVisibleWeeks(query.matches ? WEEKS : WEEKS_COMPACT)
+    sync()
+    query.addEventListener('change', sync)
+    return () => query.removeEventListener('change', sync)
+  }, [])
 
-  const activeIndex = focusIndex ?? (model ? model.cells.length - 1 : 0)
-  const tipCell = model && tip ? model.cells[tip.index] : null
+  const view = useMemo(() => {
+    if (!model) return null
+    const startCol = Math.max(0, model.weeks - visibleWeeks)
+    const cells = model.cells.filter((cell) => cell.col >= startCol)
+
+    const marks: Array<{ label: string; start: number }> = [
+      { label: monthFormat.format(new Date(toUtc(cells[0].date))), start: 0 },
+    ]
+    for (const cell of cells) {
+      if (cell.future) continue
+      const date = new Date(toUtc(cell.date))
+      if (date.getUTCDate() !== 1) continue
+      const start = cell.col - startCol
+      if (start - marks[marks.length - 1].start < 3) continue
+      marks.push({ label: monthFormat.format(date), start })
+    }
+
+    return {
+      columns: visibleWeeks,
+      cells,
+      months: marks.map((mark, index) => ({
+        ...mark,
+        span: (marks[index + 1]?.start ?? visibleWeeks) - mark.start,
+      })),
+    }
+  }, [model, visibleWeeks])
+
+  const activeIndex = focusIndex ?? (view ? view.cells.length - 1 : 0)
+  const tipCell = view && tip ? view.cells[tip.index] : null
 
   function showTip(index: number, cell: HTMLElement) {
     const width = gridRef.current?.clientWidth ?? 0
@@ -162,22 +187,27 @@ export function ActivityHeatmap({ days, loading = false, error = false }: Activi
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (!model) return
+    if (!view) return
     const moves: Record<string, number> = {
       ArrowUp: -1,
       ArrowDown: 1,
       ArrowLeft: -7,
       ArrowRight: 7,
       Home: -activeIndex,
-      End: model.cells.length - 1 - activeIndex,
+      End: view.cells.length - 1 - activeIndex,
     }
     const delta = moves[event.key]
     if (delta === undefined) return
     event.preventDefault()
-    const next = Math.min(Math.max(activeIndex + delta, 0), model.cells.length - 1)
+    const next = Math.min(Math.max(activeIndex + delta, 0), view.cells.length - 1)
     setFocusIndex(next)
     gridRef.current?.querySelector<HTMLElement>(`[data-index="${next}"]`)?.focus()
   }
+
+  const columns = view?.columns ?? WEEKS
+  const gridStyle = {
+    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+  } as const
 
   return (
     <section className="border border-rule bg-card">
@@ -186,7 +216,7 @@ export function ActivityHeatmap({ days, loading = false, error = false }: Activi
           Ritme latihan
         </h2>
         <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/60">
-          12 bulan
+          {columns === WEEKS ? '12 bulan' : '6 bulan'}
         </span>
       </header>
 
@@ -195,7 +225,7 @@ export function ActivityHeatmap({ days, loading = false, error = false }: Activi
           <p role="alert" className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive">
             Aktivitas latihan belum dapat dimuat
           </p>
-        ) : loading || !model ? (
+        ) : loading || !model || !view ? (
           <p role="status" className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
             Memuat aktivitas
           </p>
@@ -207,7 +237,7 @@ export function ActivityHeatmap({ days, loading = false, error = false }: Activi
                   {model.total}
                 </span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                  latihan · 12 bulan terakhir
+                  latihan · {columns === WEEKS ? '12' : '6'} bulan terakhir
                 </span>
               </p>
               <dl className="flex items-center gap-5">
@@ -226,87 +256,80 @@ export function ActivityHeatmap({ days, loading = false, error = false }: Activi
               </dl>
             </div>
 
-            <div ref={scrollerRef} className="mt-5 overflow-x-auto pb-1">
-              <div className="inline-flex min-w-full flex-col gap-1.5">
-                <div className="flex gap-1 pl-9" aria-hidden="true">
-                  {Array.from({ length: model.weeks }, (_, col) => {
-                    const month = model.months.find((entry) => entry.col === col)
-                    return (
-                      <div key={col} className="relative h-4 w-4 shrink-0">
-                        {month && (
-                          <span className="absolute left-0 top-0 whitespace-nowrap font-mono text-[9px] uppercase leading-none tracking-[0.08em] text-muted-foreground">
-                            {month.label}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  })}
+            <div className="mt-5">
+              <div className="flex gap-1">
+                <div className="w-8 shrink-0" aria-hidden="true" />
+                <div className="grid flex-1 gap-[2px]" style={gridStyle} aria-hidden="true">
+                  {view.months.map((month) => (
+                    <span
+                      key={`${month.label}-${month.start}`}
+                      style={{ gridColumn: `${month.start + 1} / span ${month.span}` }}
+                      className="truncate font-mono text-[9px] uppercase leading-none tracking-[0.08em] text-muted-foreground"
+                    >
+                      {month.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-1.5 flex gap-1">
+                <div className="flex w-8 shrink-0 flex-col gap-[2px]" aria-hidden="true">
+                  {WEEKDAY_LABELS.map((label, row) => (
+                    <div
+                      key={label}
+                      className="flex flex-1 items-center font-mono text-[9px] uppercase leading-none tracking-[0.06em] text-muted-foreground"
+                    >
+                      {WEEKDAY_ROWS.includes(row) ? label : ''}
+                    </div>
+                  ))}
                 </div>
 
-                <div className="flex gap-1">
-                  <div className="flex w-8 shrink-0 flex-col gap-1" aria-hidden="true">
-                    {WEEKDAY_LABELS.map((label, row) => (
-                      <div
-                        key={label}
-                        className="flex h-4 items-center font-mono text-[9px] uppercase leading-none tracking-[0.06em] text-muted-foreground"
-                      >
-                        {WEEKDAY_ROWS.includes(row) ? label : ''}
-                      </div>
-                    ))}
-                  </div>
+                <div
+                  ref={gridRef}
+                  role="group"
+                  aria-label="Aktivitas latihan harian"
+                  onKeyDown={onKeyDown}
+                  onMouseLeave={() => setTip(null)}
+                  className="relative grid flex-1 gap-[2px]"
+                  style={{ ...gridStyle, gridTemplateRows: 'repeat(7, auto)', gridAutoFlow: 'column' }}
+                >
+                  {view.cells.map((cell) => {
+                    if (cell.future) {
+                      return <div key={cell.date} className="aspect-square w-full" aria-hidden="true" />
+                    }
+                    return (
+                      <button
+                        key={cell.date}
+                        type="button"
+                        data-index={cell.index}
+                        tabIndex={cell.index === activeIndex ? 0 : -1}
+                        aria-label={`${cell.count} latihan pada ${dayFormat.format(new Date(toUtc(cell.date)))}`}
+                        onMouseEnter={(event) => showTip(cell.index, event.currentTarget)}
+                        onFocus={(event) => {
+                          setFocusIndex(cell.index)
+                          showTip(cell.index, event.currentTarget)
+                        }}
+                        onBlur={() => setTip(null)}
+                        className={cn(
+                          'aspect-square w-full rounded-[2px] outline-none transition-[box-shadow] duration-150',
+                          LEVEL_CLASS[cell.level],
+                          'hover:ring-1 hover:ring-foreground/30 focus-visible:ring-2 focus-visible:ring-ring',
+                        )}
+                      />
+                    )
+                  })}
 
-                  <div
-                    ref={gridRef}
-                    role="group"
-                    aria-label="Aktivitas latihan harian"
-                    onKeyDown={onKeyDown}
-                    onMouseLeave={() => setTip(null)}
-                    className="relative flex gap-1"
-                  >
-                    {Array.from({ length: model.weeks }, (_, col) => (
-                      <div key={col} className="flex flex-col gap-1">
-                        {model.cells
-                          .filter((cell) => cell.col === col)
-                          .map((cell) => {
-                            if (cell.future) {
-                              return <div key={cell.date} className="size-4" aria-hidden="true" />
-                            }
-                            return (
-                              <button
-                                key={cell.date}
-                                type="button"
-                                data-index={cell.index}
-                                tabIndex={cell.index === activeIndex ? 0 : -1}
-                                aria-label={`${cell.count} latihan pada ${dayFormat.format(new Date(toUtc(cell.date)))}`}
-                                onMouseEnter={(event) => showTip(cell.index, event.currentTarget)}
-                                onFocus={(event) => {
-                                  setFocusIndex(cell.index)
-                                  showTip(cell.index, event.currentTarget)
-                                }}
-                                onBlur={() => setTip(null)}
-                                className={cn(
-                                  'size-4 rounded-[3px] outline-none transition-[box-shadow,transform] duration-150',
-                                  LEVEL_CLASS[cell.level],
-                                  'hover:ring-1 hover:ring-foreground/30 focus-visible:ring-2 focus-visible:ring-ring',
-                                )}
-                              />
-                            )
-                          })}
-                      </div>
-                    ))}
-
-                    {tip && tipCell && (
-                      <div
-                        role="presentation"
-                        style={{ left: tip.left, top: tip.top }}
-                        className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[calc(100%+6px)] whitespace-nowrap border border-ink-foreground/10 bg-ink-deep px-2 py-1 font-mono text-[10px] leading-none text-ink-foreground"
-                      >
-                        <span className="tabular-nums">{tipCell.count} latihan</span>
-                        <span className="mx-1.5 text-ink-muted">·</span>
-                        <span className="text-ink-muted">{dayFormat.format(new Date(toUtc(tipCell.date)))}</span>
-                      </div>
-                    )}
-                  </div>
+                  {tip && tipCell && (
+                    <div
+                      role="presentation"
+                      style={{ left: tip.left, top: tip.top }}
+                      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[calc(100%+6px)] whitespace-nowrap border border-ink-foreground/10 bg-ink-deep px-2 py-1 font-mono text-[10px] leading-none text-ink-foreground"
+                    >
+                      <span className="tabular-nums">{tipCell.count} latihan</span>
+                      <span className="mx-1.5 text-ink-muted">·</span>
+                      <span className="text-ink-muted">{dayFormat.format(new Date(toUtc(tipCell.date)))}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -315,12 +338,12 @@ export function ActivityHeatmap({ days, loading = false, error = false }: Activi
               <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                 {model.total === 0
                   ? 'Belum ada latihan tercatat. Satu sesi mengisi kotak pertama.'
-                  : `${model.cells.filter((cell) => !cell.future).length} hari terakhir`}
+                  : `${view.cells.filter((cell) => !cell.future).length} hari terakhir`}
               </p>
               <div className="ml-auto flex items-center gap-1.5">
                 <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground">Sedikit</span>
                 {LEVEL_CLASS.map((level) => (
-                  <span key={level} className={cn('size-4 rounded-[3px]', level)} aria-hidden="true" />
+                  <span key={level} className={cn('size-3 rounded-[2px]', level)} aria-hidden="true" />
                 ))}
                 <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground">Banyak</span>
               </div>

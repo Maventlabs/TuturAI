@@ -16,13 +16,16 @@ interface UseMicrophoneResult {
   levels: number[]
   /** Overall input volume 0..1, useful for a pulsing ring. */
   volume: number
+  /** Same value as `volume`, but readable inside an animation frame without re-rendering. */
+  volumeRef: { current: number }
   /** Seconds elapsed in the current recording. */
   seconds: number
   /** Blob URL of the last completed recording, or null. */
   audioUrl: string | null
   audioBlob: Blob | null
   errorMessage: string | null
-  start: () => Promise<void>
+  /** Resolves true only when the microphone is actually recording. */
+  start: () => Promise<boolean>
   stop: () => void
   reset: () => void
 }
@@ -37,6 +40,7 @@ export function useMicrophone(): UseMicrophoneResult {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const volumeRef = useRef(0)
 
   const streamRef = useRef<MediaStream | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
@@ -89,6 +93,7 @@ export function useMicrophone(): UseMicrophoneResult {
     }
     setLevels(next)
     setVolume(sum / BAR_COUNT)
+    volumeRef.current = sum / BAR_COUNT
     rafRef.current = requestAnimationFrame(() => tickRef.current?.())
   }, [])
 
@@ -109,7 +114,7 @@ export function useMicrophone(): UseMicrophoneResult {
     ) {
       setStatus('unsupported')
       setErrorMessage('Browser kamu tidak mendukung perekaman audio.')
-      return
+      return false
     }
 
     setStatus('requesting')
@@ -153,7 +158,8 @@ export function useMicrophone(): UseMicrophoneResult {
       setSeconds(0)
       timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000)
       setStatus('recording')
-       rafRef.current = requestAnimationFrame(() => tickRef.current?.())
+      rafRef.current = requestAnimationFrame(() => tickRef.current?.())
+      return true
     } catch (err) {
       const e = err as DOMException
       if (e.name === 'NotAllowedError' || e.name === 'SecurityError') {
@@ -169,6 +175,7 @@ export function useMicrophone(): UseMicrophoneResult {
         setErrorMessage('Gagal mengakses mikrofon. Coba lagi.')
       }
       cleanup()
+      return false
     }
   }, [cleanup])
 
@@ -193,6 +200,7 @@ export function useMicrophone(): UseMicrophoneResult {
     analyserRef.current = null
     setLevels(new Array(BAR_COUNT).fill(0))
     setVolume(0)
+    volumeRef.current = 0
     setStatus('idle')
   }, [])
 
@@ -205,6 +213,7 @@ export function useMicrophone(): UseMicrophoneResult {
     setSeconds(0)
     setLevels(new Array(BAR_COUNT).fill(0))
     setVolume(0)
+    volumeRef.current = 0
     setStatus('idle')
     setErrorMessage(null)
   }, [])
@@ -213,6 +222,7 @@ export function useMicrophone(): UseMicrophoneResult {
     status,
     levels,
     volume,
+    volumeRef,
     seconds,
     audioUrl,
     audioBlob,
