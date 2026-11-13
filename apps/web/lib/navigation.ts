@@ -16,6 +16,7 @@ import {
   Users,
   GraduationCap,
   ClipboardCheck,
+  Inbox,
   BarChart3,
   Cpu,
   Settings,
@@ -48,10 +49,10 @@ export const studentNav: NavItem[] = [
 
 export const teacherNav: NavItem[] = [
   { label: 'Dashboard', href: '/guru', icon: LayoutDashboard },
-  { label: 'Kelas Saya', href: '/guru/kelas', icon: GraduationCap },
+  { label: 'Kelas', href: '/guru/kelas', icon: GraduationCap },
   { label: 'Penugasan', href: '/guru/penugasan', icon: ClipboardCheck },
+  { label: 'Submission', href: '/guru/penilaian', icon: Inbox },
   { label: 'Siswa', href: '/guru/siswa', icon: Users },
-  { label: 'Penilaian Speaking', href: '/guru/penilaian', icon: ClipboardCheck },
   { label: 'Analitik', href: '/guru/analitik', icon: BarChart3 },
   { label: 'Leaderboard', href: '/guru/leaderboard', icon: Trophy },
   { label: 'Monitor Perangkat', href: '/guru/perangkat', icon: Cpu },

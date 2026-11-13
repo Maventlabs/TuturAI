@@ -1,51 +1,40 @@
 'use client'
 
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useState } from 'react'
 import type { Classroom } from '@tuturai/domain'
-import { Archive, Copy, Plus, RefreshCw, UserMinus, Users } from 'lucide-react'
-import { Card } from '@/components/ui/card'
+import { Copy, GraduationCap, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/dashboard/page-header'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { ClassCard } from '@/components/guru/class-card'
+import { useClassroomOverview, useTeacherName } from '@/components/guru/use-classroom-overview'
 
 type CreatedClassroom = Classroom & { joinKey: string }
-type ClassroomMember = { studentId: string; name: string; email: string | null; joinedAt: string }
 
 export default function ClassesPage() {
-  const [classrooms, setClassrooms] = useState<Classroom[]>([])
+  const { classrooms, loading, error, reload } = useClassroomOverview()
+  const teacherName = useTeacherName()
+
+  const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
   const [school, setSchool] = useState('')
-  const [created, setCreated] = useState<CreatedClassroom | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null)
-  const [members, setMembers] = useState<ClassroomMember[]>([])
-
-  useEffect(() => {
-    void loadClassrooms()
-  }, [])
-
-  async function loadClassrooms() {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/classrooms', { cache: 'no-store' })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error?.message ?? 'Gagal memuat kelas')
-      setClassrooms(payload.data)
-      setError(null)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Gagal memuat kelas')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [formError, setFormError] = useState<string | null>(null)
+  const [created, setCreated] = useState<CreatedClassroom | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   async function createClassroom(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSaving(true)
-    setError(null)
+    setFormError(null)
     try {
       const response = await fetch('/api/classrooms', {
         method: 'POST',
@@ -56,188 +45,230 @@ export default function ClassesPage() {
       if (!response.ok) throw new Error(payload.error?.message ?? 'Gagal membuat kelas')
       setCreated(payload.data)
       setName('')
+      setSchool('')
       setDescription('')
-      await loadClassrooms()
+      setCreateOpen(false)
+      reload()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Gagal membuat kelas')
+      setFormError(cause instanceof Error ? cause.message : 'Gagal membuat kelas')
     } finally {
       setSaving(false)
     }
   }
 
-  async function updateStatus(classroom: Classroom) {
+  async function regenerateKey(classroom: Classroom) {
+    setBusyId(classroom.id)
+    setActionError(null)
+    try {
+      const response = await fetch(`/api/classrooms/${classroom.id}/join-key`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'regenerate' }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error?.message ?? 'Gagal mengubah kode join')
+      setCreated({ ...classroom, joinKey: payload.data.joinKey })
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Gagal mengubah kode join')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function revokeKey(classroom: Classroom) {
+    setBusyId(classroom.id)
+    setActionError(null)
+    try {
+      const response = await fetch(`/api/classrooms/${classroom.id}/join-key`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revoke' }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error?.message ?? 'Gagal mencabut kode join')
+      setCreated(null)
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Gagal mencabut kode join')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function toggleArchive(classroom: Classroom) {
     const nextStatus = classroom.status === 'active' ? 'archived' : 'active'
-    setActionLoading(`status:${classroom.id}`)
-    setError(null)
+    setBusyId(classroom.id)
+    setActionError(null)
     try {
       const response = await fetch(`/api/classrooms/${classroom.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: classroom.name, description: classroom.description, school: classroom.school, status: nextStatus }),
+        body: JSON.stringify({
+          name: classroom.name,
+          description: classroom.description,
+          school: classroom.school,
+          status: nextStatus,
+        }),
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error?.message ?? 'Gagal mengubah status kelas')
-      await loadClassrooms()
+      reload()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Gagal mengubah status kelas')
+      setActionError(cause instanceof Error ? cause.message : 'Gagal mengubah status kelas')
     } finally {
-      setActionLoading(null)
-    }
-  }
-
-  async function updateJoinKey(classroomId: string, action: 'regenerate' | 'revoke') {
-    setActionLoading(`key:${classroomId}`)
-    setError(null)
-    try {
-      const response = await fetch(`/api/classrooms/${classroomId}/join-key`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error?.message ?? 'Gagal mengubah kode join')
-      if (action === 'regenerate') {
-        const classroom = classrooms.find((item) => item.id === classroomId)
-        if (classroom) setCreated({ ...classroom, joinKey: payload.data.joinKey })
-      } else {
-        setCreated(null)
-      }
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Gagal mengubah kode join')
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  async function loadMembers(classroomId: string) {
-    setActionLoading(`members:${classroomId}`)
-    setError(null)
-    try {
-      const response = await fetch(`/api/classrooms/${classroomId}/members`, { cache: 'no-store' })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error?.message ?? 'Gagal memuat siswa')
-      setSelectedClassroomId(classroomId)
-      setMembers(payload.data)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Gagal memuat siswa')
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  async function removeMember(classroomId: string, studentId: string) {
-    setActionLoading(`remove:${studentId}`)
-    setError(null)
-    try {
-      const response = await fetch(`/api/classrooms/${classroomId}/members/${studentId}`, { method: 'DELETE' })
-      const payload = response.status === 204 ? null : await response.json()
-      if (!response.ok) throw new Error(payload?.error?.message ?? 'Gagal menghapus siswa')
-      setMembers((current) => current.filter((member) => member.studentId !== studentId))
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Gagal menghapus siswa')
-    } finally {
-      setActionLoading(null)
+      setBusyId(null)
     }
   }
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <PageHeader title="Kelas Saya" description="Buat kelas dan bagikan kode join kepada siswa." />
-
-      <Card className="p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <Plus className="h-5 w-5 text-primary" />
-          <h2 className="font-heading text-base font-bold">Buat classroom</h2>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Kelas</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Kelola classroom, siswa, dan penugasan speaking dari satu tempat.
+          </p>
         </div>
-        <form onSubmit={createClassroom} className="grid gap-3 sm:grid-cols-2">
-          <label className="text-sm font-medium">
-            Nama kelas
-            <input required minLength={2} maxLength={120} value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Kelas X IPA 1" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3" />
-          </label>
-          <label className="text-sm font-medium">
-            Sekolah (opsional)
-            <input value={school} onChange={(event) => setSchool(event.target.value)} placeholder="Nama sekolah" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3" />
-          </label>
-          <label className="text-sm font-medium sm:col-span-2">
-            Deskripsi (opsional)
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Deskripsi singkat kelas" className="mt-1 min-h-20 w-full rounded-lg border border-border bg-background px-3 py-2" />
-          </label>
-          <div className="sm:col-span-2">
-            <Button type="submit" disabled={saving}>{saving ? 'Menyimpan...' : 'Buat kelas'}</Button>
-          </div>
-        </form>
-      </Card>
+        <Button onClick={() => setCreateOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Buat kelas
+        </Button>
+      </div>
 
-      {created && (
-        <Card className="border-primary/30 bg-primary/5 p-5">
-          <p className="text-sm font-semibold">Kode join untuk {created.name}</p>
-          <div className="mt-2 flex items-center gap-3">
-            <code className="rounded bg-background px-3 py-2 text-lg font-bold tracking-[0.2em]">{created.joinKey}</code>
-            <Button type="button" variant="outline" size="sm" onClick={() => void navigator.clipboard?.writeText(created.joinKey)}>
-              <Copy className="mr-2 h-4 w-4" /> Salin
-            </Button>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">Kode ini hanya ditampilkan setelah kelas dibuat. Simpan atau bagikan secara aman.</p>
-        </Card>
+      {(error || actionError) && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+        >
+          <span>{actionError ?? error}</span>
+          <Button type="button" size="sm" variant="outline" onClick={reload}>
+            Coba lagi
+          </Button>
+        </div>
       )}
 
-      {error && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy="true">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-56 animate-pulse rounded-xl border border-border bg-card" />
+          ))}
+        </div>
+      ) : classrooms.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-card px-6 py-16 text-center">
+          <GraduationCap className="mx-auto mb-3 h-9 w-9 text-muted-foreground" />
+          <h2 className="font-heading text-lg font-bold text-foreground">Belum ada kelas</h2>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+            Buat kelas pertama, lalu bagikan kode join agar siswa dapat bergabung.
+          </p>
+          <Button onClick={() => setCreateOpen(true)} className="mt-5 gap-2">
+            <Plus className="h-4 w-4" />
+            Buat kelas
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {classrooms.map((classroom) => (
+            <ClassCard
+              key={classroom.id}
+              classroom={classroom}
+              teacherName={teacherName}
+              studentCount={classroom.members.length}
+              assignmentCount={classroom.assignments.length}
+              pendingReview={classroom.pendingReview}
+              busy={busyId === classroom.id}
+              onRegenerateKey={regenerateKey}
+              onRevokeKey={revokeKey}
+              onToggleArchive={toggleArchive}
+            />
+          ))}
+        </div>
+      )}
 
-      <section aria-labelledby="classroom-list-heading">
-         <h2 id="classroom-list-heading" className="mb-3 font-heading text-lg font-bold">Classroom saya</h2>
-        {loading ? <p className="text-sm text-muted-foreground">Memuat classroom...</p> : classrooms.length === 0 ? (
-          <Card className="p-5 text-sm text-muted-foreground">Belum ada classroom. Buat classroom pertama untuk mulai mengundang siswa.</Card>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-             {classrooms.map((classroom) => (
-               <Card key={classroom.id} className="p-5">
-                 <h3 className="font-heading text-lg font-bold">{classroom.name}</h3>
-                 <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground"><Users className="h-4 w-4" /> {classroom.status === 'active' ? 'Classroom aktif' : 'Diarsipkan'}</p>
-                 {classroom.description && <p className="mt-4 text-sm text-muted-foreground">{classroom.description}</p>}
-                 <div className="mt-4 flex flex-wrap gap-2">
-                   <Button type="button" size="sm" variant="outline" onClick={() => void loadMembers(classroom.id)} disabled={actionLoading === `members:${classroom.id}`}>
-                     <Users className="mr-2 h-4 w-4" /> Siswa
-                   </Button>
-                   <Button type="button" size="sm" variant="outline" onClick={() => void updateJoinKey(classroom.id, 'regenerate')} disabled={actionLoading === `key:${classroom.id}`}>
-                     <RefreshCw className="mr-2 h-4 w-4" /> Regenerate key
-                   </Button>
-                   <Button type="button" size="sm" variant="outline" onClick={() => void updateJoinKey(classroom.id, 'revoke')} disabled={actionLoading === `key:${classroom.id}`}>
-                     Cabut key
-                   </Button>
-                   <Button type="button" size="sm" variant="outline" onClick={() => void updateStatus(classroom)} disabled={actionLoading === `status:${classroom.id}`}>
-                     <Archive className="mr-2 h-4 w-4" /> {classroom.status === 'active' ? 'Arsipkan' : 'Aktifkan'}
-                   </Button>
-                 </div>
-               </Card>
-             ))}
-           </div>
-         )}
-       </section>
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Buat kelas</SheetTitle>
+            <SheetDescription>
+              Kode join dibuat otomatis dan ditampilkan sekali setelah kelas tersimpan.
+            </SheetDescription>
+          </SheetHeader>
+          <form onSubmit={createClassroom} className="flex flex-1 flex-col gap-4 px-4">
+            <label className="text-sm font-medium text-foreground">
+              Nama kelas
+              <input
+                required
+                minLength={2}
+                maxLength={120}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Contoh: Kelas X IPA 1"
+                className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-ring focus:ring-2"
+              />
+            </label>
+            <label className="text-sm font-medium text-foreground">
+              Sekolah (opsional)
+              <input
+                value={school}
+                onChange={(event) => setSchool(event.target.value)}
+                placeholder="Nama sekolah"
+                className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-ring focus:ring-2"
+              />
+            </label>
+            <label className="text-sm font-medium text-foreground">
+              Deskripsi (opsional)
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Deskripsi singkat kelas"
+                className="mt-1 min-h-24 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2"
+              />
+            </label>
+            {formError && (
+              <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                {formError}
+              </p>
+            )}
+            <SheetFooter className="px-0">
+              <Button type="submit" disabled={saving} className="w-full">
+                {saving ? 'Menyimpan...' : 'Buat kelas'}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
 
-       {selectedClassroomId && (
-         <Card className="p-5">
-           <div className="flex items-center justify-between gap-3">
-             <div>
-               <h2 className="font-heading text-lg font-bold">Siswa di {classrooms.find((item) => item.id === selectedClassroomId)?.name ?? 'classroom'}</h2>
-               <p className="text-sm text-muted-foreground">Hapus membership hanya dari classroom yang Anda miliki.</p>
-             </div>
-             <span className="text-sm text-muted-foreground">{members.length} siswa</span>
-           </div>
-           <div className="mt-4 divide-y divide-border rounded-lg border border-border">
-             {members.length === 0 ? <p className="p-4 text-sm text-muted-foreground">Belum ada siswa aktif.</p> : members.map((member) => (
-               <div key={member.studentId} className="flex items-center justify-between gap-3 p-4">
-                 <div>
-                   <p className="text-sm font-semibold">{member.name}</p>
-                   {member.email && <p className="text-xs text-muted-foreground">{member.email}</p>}
-                 </div>
-                 <Button type="button" size="sm" variant="outline" onClick={() => void removeMember(selectedClassroomId, member.studentId)} disabled={actionLoading === `remove:${member.studentId}`}>
-                   <UserMinus className="mr-2 h-4 w-4" /> Hapus
-                 </Button>
-               </div>
-             ))}
-           </div>
-         </Card>
-       )}
-     </div>
+      <Sheet open={created !== null} onOpenChange={(open) => { if (!open) setCreated(null) }}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Kode join kelas</SheetTitle>
+            <SheetDescription>
+              Bagikan kode ini kepada siswa. Kode hanya ditampilkan sekali, simpan sebelum menutup panel.
+            </SheetDescription>
+          </SheetHeader>
+          {created && (
+            <div className="space-y-4 px-4">
+              <p className="text-sm font-semibold text-foreground">{created.name}</p>
+              <div className="flex items-center gap-3">
+                <code className="rounded-lg border border-border bg-secondary px-4 py-3 font-mono text-xl font-bold tracking-[0.25em] text-foreground">
+                  {created.joinKey}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void navigator.clipboard?.writeText(created.joinKey)}
+                  className="gap-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  Salin
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Kode dapat dibuat ulang kapan saja dari menu kartu kelas.
+              </p>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
   )
 }

@@ -8,6 +8,7 @@ import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
 const ASSIGNMENTS_COLLECTION = 'assignments'
 const CLASSROOMS_COLLECTION = 'classrooms'
 const MEMBERSHIPS_COLLECTION = 'classMemberships'
+const USERS_COLLECTION = 'users'
 export const SUBMISSIONS_COLLECTION = 'submissions'
 
 export interface TeacherReviewQueueItem {
@@ -177,6 +178,94 @@ export async function listTeacherReviewQueue(teacherId: string): Promise<Teacher
     },
   })
   return value
+}
+
+export interface AssignmentStudentRow {
+  studentId: string
+  name: string
+  email: string | null
+  submission: Submission | null
+  assessment: Assessment | null
+}
+
+export interface AssignmentSubmissions {
+  assignment: Assignment
+  classId: string
+  className: string
+  students: AssignmentStudentRow[]
+}
+
+/**
+ * Every active member of the assignment's classroom, joined with their
+ * submission (if any). Students who never submitted still appear so the
+ * teacher sees the full roster instead of only the ones who turned work in.
+ */
+export async function listAssignmentSubmissions(
+  assignmentId: string,
+  teacherId: string,
+): Promise<AssignmentSubmissions> {
+  const db = getAdminDb()
+  const assignmentSnapshot = await db.collection(ASSIGNMENTS_COLLECTION).doc(assignmentId).get()
+  if (!assignmentSnapshot.exists) throw new Error('ASSIGNMENT_NOT_FOUND')
+  const assignment = assignmentFromSnapshot(assignmentSnapshot)
+
+  const classroomSnapshot = await db.collection(CLASSROOMS_COLLECTION).doc(assignment.classId).get()
+  if (!classroomSnapshot.exists || classroomSnapshot.data()?.teacherId !== teacherId) {
+    throw new Error('ASSIGNMENT_NOT_FOUND')
+  }
+  const classroomData = classroomSnapshot.data() ?? {}
+  const className = typeof classroomData.name === 'string' ? classroomData.name : assignment.classId
+
+  const memberships = await db.collection(MEMBERSHIPS_COLLECTION)
+    .where('classId', '==', assignment.classId)
+    .where('status', '==', 'active')
+    .get()
+  const userReferences = memberships.docs.map((membership) =>
+    db.collection(USERS_COLLECTION).doc(membership.data().studentId),
+  )
+  const users = userReferences.length > 0 ? await db.getAll(...userReferences) : []
+  const usersById = new Map(users.map((user) => [user.id, user.data() ?? {}]))
+
+  const submissionSnapshots = await db.collection(SUBMISSIONS_COLLECTION)
+    .where('assignmentId', '==', assignmentId)
+    .get()
+  const submissionsByStudent = new Map(
+    submissionSnapshots.docs.map((snapshot) => [
+      snapshot.data().studentId as string,
+      submissionFromSnapshot(snapshot),
+    ]),
+  )
+
+  const students = await Promise.all(
+    memberships.docs.map(async (membership): Promise<AssignmentStudentRow> => {
+      const studentId = membership.data().studentId as string
+      const user = usersById.get(studentId) ?? {}
+      const submission = submissionsByStudent.get(studentId) ?? null
+      let assessment: Assessment | null = null
+      if (submission) {
+        const assessments = await db.collection('assessments').where('studentId', '==', studentId).limit(100).get()
+        assessment = assessments.docs
+          .map((snapshot) => assessmentFromData(snapshot.data()))
+          .filter((item): item is Assessment => item !== null)
+          .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0] ?? null
+      }
+      return {
+        studentId,
+        name: typeof user.displayName === 'string'
+          ? user.displayName
+          : typeof user.full_name === 'string'
+            ? user.full_name
+            : 'Siswa',
+        email: typeof user.email === 'string' ? user.email : null,
+        submission,
+        assessment,
+      }
+    }),
+  )
+
+  students.sort((left, right) => left.name.localeCompare(right.name, 'id'))
+
+  return { assignment, classId: assignment.classId, className, students }
 }
 
 async function assertTeacherOwnsAssignment(assignmentId: string, teacherId: string, transaction: FirebaseFirestore.Transaction) {
