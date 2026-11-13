@@ -408,6 +408,22 @@
   animation: mock-seg 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/*
+ * Vertical rhythm for the marketing page. Every full-width section shares this
+ * one scale so the page reads as a single system instead of per-section margins.
+ */
+@utility section-y {
+  padding-block: 5rem;
+
+  @media (width >= 40rem) {
+    padding-block: 7rem;
+  }
+
+  @media (width >= 64rem) {
+    padding-block: 9rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .illo-anim,
   .mock-shimmer,

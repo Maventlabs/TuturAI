@@ -58,7 +58,7 @@ const proof = [
 
 export function Problem() {
   return (
-    <section id="masalah" data-nav-theme="light" className="scroll-mt-24 bg-background px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section id="masalah" data-nav-theme="light" className="section-y scroll-mt-24 bg-background px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-2xl text-center">
           <GSAPReveal>
@@ -87,7 +87,7 @@ export function Problem() {
           </GSAPLines>
         </div>
 
-        <GSAPReveal delay={0.15} className="mt-12">
+        <GSAPReveal delay={0.15} className="mt-12 sm:mt-16">
           <div className="relative border border-border">
             <span
               aria-hidden

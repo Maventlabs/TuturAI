@@ -6,7 +6,10 @@ import { GSAPLines, GSAPReveal } from './gsap-helpers'
 
 export function CTA() {
   return (
-    <section data-nav-theme="blue" className="relative overflow-hidden bg-primary px-4 pb-20 sm:px-6 sm:pb-24 lg:px-8">
+    <section
+      data-nav-theme="blue"
+      className="relative overflow-hidden bg-primary px-4 pb-32 sm:px-6 sm:pb-40 lg:px-8 lg:pb-48"
+    >
       {/* White at the top blends into the FAQ above; primary at the bottom matches the footer. */}
       <div
         aria-hidden
@@ -42,7 +45,7 @@ export function CTA() {
               Gratis untuk siswa, tanpa kartu kredit. Guru bisa langsung mendaftarkan kelasnya.
             </p>
 
-            <div className="mt-10 flex justify-center">
+            <div className="mt-12 flex justify-center">
               <Link
                 href="/auth/login"
                 className="group inline-flex items-center gap-3 rounded-full bg-card py-2 pl-7 pr-2 text-sm font-semibold uppercase tracking-[0.12em] text-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"

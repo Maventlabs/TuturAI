@@ -82,7 +82,7 @@ const thirdColumn = testimonials.slice(6, 9)
 
 export function Testimonials() {
   return (
-    <section id="testimoni" data-nav-theme="light" className="scroll-mt-24 bg-background px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section id="testimoni" data-nav-theme="light" className="section-y scroll-mt-24 bg-background px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-3xl text-center">
           <GSAPReveal>
@@ -103,7 +103,7 @@ export function Testimonials() {
         </GSAPLines>
 
           <GSAPReveal delay={0.1}>
-            <p className="mt-5 text-foreground text-pretty">
+            <p className="mt-6 text-foreground text-pretty">
               <strong className="font-semibold text-foreground">Catatan jujur</strong> dari siswa
               dan guru yang memakainya setiap hari.
             </p>
@@ -111,7 +111,7 @@ export function Testimonials() {
         </div>
 
         <div
-          className="mx-auto mt-12 flex max-h-[36rem] justify-center gap-4 sm:gap-6"
+          className="mx-auto mt-12 flex max-h-[36rem] justify-center gap-4 sm:mt-16 sm:gap-6"
           style={{
             maskImage:
               'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)',

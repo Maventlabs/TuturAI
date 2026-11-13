@@ -125,7 +125,7 @@ export function Pricing() {
   const [billing, setBilling] = useState<Billing>('bulanan')
 
   return (
-    <section id="harga" data-nav-theme="blue" className="scroll-mt-24 bg-primary px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section id="harga" data-nav-theme="blue" className="section-y scroll-mt-24 bg-primary px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-2xl text-center">
           <GSAPReveal>
@@ -141,14 +141,14 @@ export function Pricing() {
             </h2>
           </GSAPLines>
           <GSAPReveal delay={0.1}>
-            <p className="mt-5 text-primary-foreground/80 text-pretty">
+            <p className="mt-6 text-primary-foreground/80 text-pretty">
               Siswa mulai gratis. Sekolah membayar per siswa, dan paketnya bisa dijeda atau diubah
               kapan saja.
             </p>
           </GSAPReveal>
         </div>
 
-        <GSAPReveal delay={0.15} className="mt-10 flex justify-center">
+          <GSAPReveal delay={0.15} className="mt-12 flex justify-center sm:mt-16">
           <div
             role="group"
             aria-label="Periode penagihan"
@@ -175,7 +175,7 @@ export function Pricing() {
           </div>
         </GSAPReveal>
 
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+          <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {plans.map((plan, index) => (
             <GSAPReveal key={plan.id} delay={index * 0.06} className="h-full">
               <article

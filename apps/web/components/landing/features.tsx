@@ -76,7 +76,7 @@ const tiles: Tile[] = [
 
 export function Features() {
   return (
-    <section id="fitur" data-nav-theme="light" className="scroll-mt-24 bg-background px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section id="fitur" data-nav-theme="light" className="section-y scroll-mt-24 bg-background px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-2xl text-center">
           <GSAPReveal>
@@ -104,7 +104,7 @@ export function Features() {
           </GSAPLines>
         </div>
 
-        <GSAPReveal delay={0.15} className="mt-12">
+        <GSAPReveal delay={0.15} className="mt-12 sm:mt-16">
           <div className="rounded-sm bg-ink-deep p-2.5 sm:p-3.5">
             <div className="grid gap-2.5 sm:gap-3 lg:h-[800px] lg:grid-cols-[1.6fr_1fr_1fr] lg:grid-rows-4">
               {tiles.map((tile) => (

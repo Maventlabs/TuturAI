@@ -51,7 +51,7 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <section id="faq" data-nav-theme="light" className="scroll-mt-24 bg-card px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section id="faq" data-nav-theme="light" className="section-y scroll-mt-24 bg-card px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-3xl text-center">
           <GSAPReveal>
@@ -69,14 +69,14 @@ export function FAQ() {
         </GSAPLines>
 
           <GSAPReveal delay={0.1}>
-            <p className="mt-5 text-foreground text-pretty">
+            <p className="mt-6 text-foreground text-pretty">
               <strong className="font-semibold text-foreground">Soal cara kerja</strong>, cara
               menilai, dan cara memakainya di kelas.
             </p>
           </GSAPReveal>
         </div>
 
-        <div className="mx-auto mt-12 grid max-w-5xl gap-3 md:grid-cols-2 md:gap-4">
+          <div className="mx-auto mt-12 grid max-w-5xl gap-3 sm:mt-16 md:grid-cols-2 md:gap-4">
           {faqs.map((faq, index) => {
             const isOpen = openIndex === index
 

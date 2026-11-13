@@ -109,7 +109,7 @@ export function OfflineHardware() {
     <section
       id="offline"
       data-nav-theme="light"
-      className="scroll-mt-24 bg-card px-4 py-20 sm:px-6 sm:py-28 lg:px-8"
+      className="section-y scroll-mt-24 bg-card px-4 sm:px-6 lg:px-8"
     >
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-2xl text-center">
@@ -119,13 +119,13 @@ export function OfflineHardware() {
           <h2 className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-balance text-foreground sm:text-4xl lg:text-5xl">
             Tanpa <span className="text-primary">internet</span>. Tanpa ponsel pribadi.
           </h2>
-          <p className="mt-4 leading-relaxed text-muted-foreground text-pretty">
+          <p className="mt-6 leading-relaxed text-muted-foreground text-pretty">
             Satu konsol untuk seluruh kelas, tanpa kuota. Penilaian berjalan di perangkat, bukan di
             cloud.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.5fr)_minmax(0,0.85fr)] lg:items-start">
+        <div className="mt-12 grid gap-6 sm:mt-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.5fr)_minmax(0,0.85fr)] lg:items-start">
           <div className="order-2 flex flex-col gap-4 lg:order-1">
             {features.map((feature) => (
               <article
