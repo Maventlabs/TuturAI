@@ -442,6 +442,29 @@
   }
 }
 
+/* Matchmaking stage: one scan line sweeping the self-preview frame while the
+   queue searches for a partner. */
+@keyframes tutur-scan {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.tutur-scan-line {
+  animation: tutur-scan 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .illo-anim,
   .mock-shimmer,
@@ -452,7 +475,8 @@
   .mock-fill,
   .mock-seg,
   .animate-pulse-ring,
-  .animate-infinite-scroll {
+  .animate-infinite-scroll,
+  .tutur-scan-line {
     animation: none !important;
   }
   .mock-fill {
