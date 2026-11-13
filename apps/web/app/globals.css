@@ -46,6 +46,11 @@
   --color-background: var(--background);
   --color-ink-deep: var(--ink-deep);
 
+  /* Hairlines for the teacher instrument sheet: --rule divides panels,
+     --grid draws chart gridlines one step lighter than --rule. */
+  --color-rule: var(--rule);
+  --color-grid: var(--grid);
+
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
@@ -118,6 +123,8 @@
   --border: #d2d2d7;
   --input: #d2d2d7;
   --ring: #2f6df5;
+  --rule: #e4e4e9;
+  --grid: #eeeef2;
 
   /* Charts: brand blues, amber, emerald, rose, violet */
   --chart-1: #2f6df5;
@@ -164,6 +171,8 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: #5b8cff;
+  --rule: oklch(1 0 0 / 10%);
+  --grid: oklch(1 0 0 / 6%);
   --chart-1: #5b8cff;
   --chart-2: #3b95f0;
   --chart-3: #f5b445;
