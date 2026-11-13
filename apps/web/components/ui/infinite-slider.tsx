@@ -18,9 +18,9 @@ export function InfiniteSlider({
   className?: string
 }) {
   return (
-    <div className={cn('group/slider overflow-hidden', className)}>
+    <div className={cn('overflow-hidden', className)}>
       <div
-        className="flex flex-col animate-infinite-scroll group-hover/slider:[animation-play-state:paused]"
+        className="flex flex-col animate-infinite-scroll"
         style={{
           animationDuration: `${speed}s`,
           animationDirection: reverse ? 'reverse' : 'normal',

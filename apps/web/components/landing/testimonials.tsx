@@ -119,19 +119,19 @@ export function Testimonials() {
               'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)',
           }}
         >
-          <InfiniteSlider speed={48} className="w-full max-w-xs">
+          <InfiniteSlider speed={42} className="w-full max-w-xs">
             {firstColumn.map((testimonial) => (
               <TestimonialCard key={testimonial.name} testimonial={testimonial} />
             ))}
           </InfiniteSlider>
 
-          <InfiniteSlider speed={64} className="hidden w-full max-w-xs md:block">
+          <InfiniteSlider speed={52} reverse className="hidden w-full max-w-xs md:block">
             {secondColumn.map((testimonial) => (
               <TestimonialCard key={testimonial.name} testimonial={testimonial} />
             ))}
           </InfiniteSlider>
 
-          <InfiniteSlider speed={54} className="hidden w-full max-w-xs lg:block">
+          <InfiniteSlider speed={46} className="hidden w-full max-w-xs lg:block">
             {thirdColumn.map((testimonial) => (
               <TestimonialCard key={testimonial.name} testimonial={testimonial} />
             ))}
