@@ -39,30 +39,16 @@ export function HardwareStatus() {
       <DropdownMenuTrigger
         render={
           <Button
-            variant="outline"
-            className="h-9 gap-2 border-border px-2.5 sm:px-3"
+            variant="ghost"
+            className="h-7 gap-1.5 rounded-full px-2.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
             aria-label="Status perangkat"
           />
         }
       >
-        <span className="relative flex h-2 w-2">
-            <span
-              className={cn(
-                'absolute inline-flex h-full w-full rounded-full opacity-75',
-                online ? 'animate-ping bg-success' : 'bg-muted-foreground',
-              )}
-            />
-            <span
-              className={cn(
-                'relative inline-flex h-2 w-2 rounded-full',
-                online ? 'bg-success' : 'bg-muted-foreground',
-              )}
-            />
-          </span>
-          <Cpu className="h-4 w-4 text-muted-foreground" />
-          <span className="hidden text-xs font-semibold sm:inline">
-            {unavailable ? 'Belum tersedia' : online ? 'Terhubung' : 'Offline'}
-          </span>
+        <Cpu className={cn('size-3.5', online ? 'text-success' : 'text-muted-foreground')} />
+        <span className="hidden sm:inline">
+          {unavailable ? 'Belum tersedia' : online ? 'Terhubung' : 'Offline'}
+        </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72 p-0">
         <div className="border-b border-border p-4">

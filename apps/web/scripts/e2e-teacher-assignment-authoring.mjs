@@ -29,7 +29,7 @@ try {
   if (!classroomId) throw new Error('Teacher fixture returned no classroom')
 
   const title = `E2E authored assignment ${Date.now()}`
-  await page.goto(`${baseURL}/guru/kelas/${classroomId}?tab=classwork`)
+  await page.goto(`${baseURL}/guru/kelas/${classroomId}/classwork`)
   await page.getByRole('heading', { name: 'Classwork', exact: true }).waitFor()
   await page.getByRole('button', { name: /Buat/ }).click()
   await page.getByRole('menuitem', { name: /Penugasan/ }).click()

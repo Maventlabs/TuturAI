@@ -91,7 +91,7 @@ export default function SubmissionListPage() {
                   {classroom.name}
                 </h2>
                 <Link
-                  href={`/guru/kelas/${classroom.id}?tab=classwork`}
+                  href={`/guru/kelas/${classroom.id}/classwork`}
                   className="text-xs font-semibold text-primary-deep hover:underline"
                 >
                   Buka kelas

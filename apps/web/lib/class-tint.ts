@@ -1,7 +1,7 @@
 // Fixed band colors: these carry white text in both light and dark themes, so
 // they cannot use theme tokens (--primary lightens in dark mode and would drop
 // below the 4.5:1 contrast that white body text needs).
-const CLASS_BANDS = ['#1d4ed8', '#0b6bcb', '#1a7a4c', '#5b48c4'] as const
+const CLASS_BANDS = ['#1d4ed8', '#0b6bcb', '#1a7a4c', '#0f6e63'] as const
 
 export function classBandColor(id: string) {
   let hash = 0

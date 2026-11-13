@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -16,7 +16,6 @@ import {
 import { studentNav, teacherNav } from '@/lib/navigation'
 import { Logo } from '@/components/logo'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
-import { HardwareStatus } from '@/components/dashboard/hardware-status'
 import { ThemeToggle } from '@/components/dashboard/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
@@ -33,7 +32,7 @@ import {
 import { signOut } from 'firebase/auth'
 import { getFirebaseAuth } from '@/lib/firebase/client'
 import { cn } from '@/lib/utils'
-import { OfflineStatus } from '@/components/pwa/offline-status'
+import { SystemStatus } from '@/components/dashboard/system-status'
 
 interface DashboardUser {
   name: string
@@ -68,6 +67,22 @@ export function DashboardShell({
   const router = useRouter()
   const pathname = usePathname()
   const nav = role === 'student' ? studentNav : teacherNav
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    function focusSearch(event: KeyboardEvent) {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) {
+        return
+      }
+      event.preventDefault()
+      searchRef.current?.focus()
+    }
+
+    window.addEventListener('keydown', focusSearch)
+    return () => window.removeEventListener('keydown', focusSearch)
+  }, [])
 
   async function handleLogout() {
     setLogoutError(null)
@@ -150,15 +165,15 @@ export function DashboardShell({
         )}
       >
         {/* Topbar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border/70 bg-background/75 px-4 backdrop-blur-xl sm:px-6">
           {/* Mobile menu */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
               render={
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="lg:hidden"
+                  size="icon-lg"
+                  className="rounded-full lg:hidden"
                   aria-label="Buka menu"
                 />
               }
@@ -177,45 +192,53 @@ export function DashboardShell({
           </Sheet>
 
           {/* Search */}
-          <form onSubmit={handleSearch} className="relative hidden max-w-xs flex-1 sm:block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <form onSubmit={handleSearch} className="relative hidden w-full max-w-sm sm:block">
+            <Search
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
             <input
+              ref={searchRef}
               type="search"
               placeholder="Cari..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               aria-label="Cari di aplikasi"
-              className="h-9 w-full rounded-lg border border-border bg-secondary/60 pl-9 pr-3 text-sm outline-none ring-ring placeholder:text-muted-foreground focus:ring-2"
+              className="peer h-9 w-full rounded-full border border-transparent bg-secondary/70 pl-10 pr-10 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-border focus:bg-card focus:ring-2 focus:ring-ring/25 [&::-webkit-search-cancel-button]:appearance-none"
             />
+            <kbd
+              aria-hidden="true"
+              className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none text-muted-foreground transition-opacity peer-focus:opacity-0 lg:block"
+            >
+              /
+            </kbd>
           </form>
 
           <div className="flex flex-1 items-center justify-end gap-1.5 sm:gap-2">
             {/* Student gamification chips */}
             {studentStats && (
-              <div className="mr-1 hidden items-center gap-2 md:flex">
-                <span className="flex items-center gap-1.5 rounded-lg bg-brand/15 px-2.5 py-1.5 text-xs font-bold text-brand-foreground">
-                  <Star className="h-3.5 w-3.5 text-brand" />
-                  Lv {studentStats.level}
+              <div className="mr-1 hidden items-center gap-1.5 md:flex">
+                <span className="flex h-9 items-center gap-1.5 rounded-full bg-brand/15 px-3 text-xs font-semibold text-brand-foreground">
+                  <Star className="h-3.5 w-3.5 text-brand" aria-hidden="true" />
+                  Lv <span className="font-mono tabular-nums">{studentStats.level}</span>
                 </span>
-                <span className="flex items-center gap-1.5 rounded-lg bg-secondary px-2.5 py-1.5 text-xs font-bold text-foreground">
-                  {studentStats.xp.toLocaleString('id-ID')} XP
+                <span className="flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-semibold text-foreground">
+                  <span className="font-mono tabular-nums">{studentStats.xp.toLocaleString('id-ID')}</span> XP
                 </span>
-                <span className="flex items-center gap-1.5 rounded-lg bg-destructive/10 px-2.5 py-1.5 text-xs font-bold text-foreground">
-                  <Flame className="h-3.5 w-3.5 text-destructive" />
-                  {studentStats.streak}
+                <span className="flex h-9 items-center gap-1.5 rounded-full bg-destructive/10 px-3 text-xs font-semibold text-foreground">
+                  <Flame className="h-3.5 w-3.5 text-destructive" aria-hidden="true" />
+                  <span className="font-mono tabular-nums">{studentStats.streak}</span>
                 </span>
               </div>
             )}
 
-            {role === 'teacher' && <HardwareStatus />}
-
-            <OfflineStatus />
+            <SystemStatus showDevice={role === 'teacher'} />
 
             <Button
               variant="ghost"
-              size="icon"
+              size="icon-lg"
               aria-label="Notifikasi"
-              className="relative text-muted-foreground"
+              className="relative rounded-full text-muted-foreground"
               onClick={() => router.push(role === 'teacher' ? '/guru/penilaian' : '/siswa/penugasan')}
             >
               <Bell className="h-5 w-5" />

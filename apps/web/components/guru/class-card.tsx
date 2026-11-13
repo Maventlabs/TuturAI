@@ -76,12 +76,12 @@ export function ClassCard({
 
       <div className="flex items-center justify-end gap-0.5 border-t border-border px-2 py-1">
         <Button asChild variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
-          <Link href={`${href}?tab=people`} aria-label={`Siswa di ${classroom.name}`}>
+          <Link href={`${href}/people`} aria-label={`Siswa di ${classroom.name}`}>
             <Users className="h-4 w-4" />
           </Link>
         </Button>
         <Button asChild variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
-          <Link href={`${href}?tab=classwork`} aria-label={`Penugasan ${classroom.name}`}>
+          <Link href={`${href}/classwork`} aria-label={`Penugasan ${classroom.name}`}>
             <ClipboardList className="h-4 w-4" />
           </Link>
         </Button>

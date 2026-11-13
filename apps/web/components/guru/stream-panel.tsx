@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import type { Assignment, Classroom } from '@tuturai/domain'
-import { CalendarClock, ClipboardList, FileText, Plus } from 'lucide-react'
+import { ArrowRight, CalendarClock, ClipboardList, FileText, Plus, Repeat2 } from 'lucide-react'
 import { classInitials } from '@/lib/class-tint'
 import { Button } from '@/components/ui/button'
 
@@ -20,14 +20,14 @@ export function StreamPanel({
   classroom,
   assignments,
   band,
-  teacherName,
-  onCompose,
+  composeHref,
+  classworkHref,
 }: {
   classroom: Classroom
   assignments: Assignment[]
   band: string
-  teacherName: string
-  onCompose: () => void
+  composeHref: string
+  classworkHref: string
 }) {
   const published = assignments.filter((assignment) => assignment.status === 'published')
   const upcoming = published
@@ -36,99 +36,123 @@ export function StreamPanel({
     .slice(0, 4)
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+    <div className="grid items-start gap-5 lg:grid-cols-[264px_1fr]">
       <aside className="space-y-3">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h2 className="font-heading text-sm font-bold text-foreground">Tenggat terdekat</h2>
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="font-heading text-sm font-bold text-foreground">Tenggat terdekat</h2>
+          </div>
           {upcoming.length === 0 ? (
-            <p className="mt-2 text-xs text-muted-foreground">Tidak ada tenggat terdekat.</p>
+            <p className="px-4 py-5 text-xs leading-relaxed text-muted-foreground">
+              Belum ada tenggat. Penugasan yang dipublish akan muncul di sini.
+            </p>
           ) : (
-            <ul className="mt-3 space-y-3">
+            <ul className="divide-y divide-border">
               {upcoming.map((assignment) => (
                 <li key={assignment.id}>
                   <Link
                     href={`/guru/penilaian/${assignment.id}`}
-                    className="block text-xs font-medium text-foreground hover:text-primary-deep"
+                    className="block px-4 py-3 transition-colors hover:bg-secondary/50"
                   >
-                    {assignment.title}
+                    <span className="block truncate text-xs font-semibold text-foreground">{assignment.title}</span>
+                    <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <CalendarClock className="h-3 w-3" aria-hidden="true" />
+                      {formatDateTime(assignment.dueAt)}
+                    </span>
                   </Link>
-                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <CalendarClock className="h-3 w-3" aria-hidden="true" />
-                    {formatDateTime(assignment.dueAt)}
-                  </p>
                 </li>
               ))}
             </ul>
           )}
+          <Link
+            href={classworkHref}
+            className="flex items-center justify-between border-t border-border px-4 py-2.5 text-xs font-semibold text-primary-deep transition-colors hover:bg-secondary/50"
+          >
+            Lihat semua
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
         </div>
-        <Button variant="outline" onClick={onCompose} className="w-full justify-start gap-2">
-          <Plus className="h-4 w-4" />
-          Buat penugasan
+
+        <Button asChild variant="outline" className="w-full justify-start gap-2">
+          <Link href={composeHref}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Buat penugasan
+          </Link>
         </Button>
       </aside>
 
       <section aria-label="Aktivitas kelas" className="space-y-3">
         {published.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">
             <ClipboardList className="mx-auto mb-3 h-8 w-8 text-muted-foreground" aria-hidden="true" />
             <h2 className="font-heading text-base font-bold text-foreground">Belum ada penugasan</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mx-auto mt-1 max-w-sm text-pretty text-sm text-muted-foreground">
               Penugasan yang dipublish akan muncul di stream kelas ini.
             </p>
-            <Button onClick={onCompose} className="mt-4 gap-2">
-              <Plus className="h-4 w-4" />
-              Buat penugasan
+            <Button asChild className="mt-4 gap-2">
+              <Link href={composeHref}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Buat penugasan
+              </Link>
             </Button>
           </div>
         ) : (
           published.map((assignment) => (
-            <article key={assignment.id} className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-start gap-3">
+            <article key={assignment.id} className="rounded-xl border border-border bg-card">
+              <div className="flex items-start gap-3 px-4 pt-4">
                 <span
                   aria-hidden="true"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
                   style={{ backgroundColor: band }}
                 >
                   {classInitials(classroom.name)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                     <h3 className="text-sm font-semibold text-foreground">{assignment.title}</h3>
-                    <p className="text-xs text-muted-foreground">{formatDate(assignment.createdAt)}</p>
+                    <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                      {formatDate(assignment.createdAt)}
+                    </p>
                   </div>
-                  <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+                  <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                     {assignment.instructions}
                   </p>
-                  {assignment.attachments?.length ? (
-                    <ul className="mt-3 flex flex-wrap gap-2">
-                      {assignment.attachments.map((file) => (
-                        <li key={file.id}>
-                          <a
-                            href={file.webViewLink ?? undefined}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
-                          >
-                            <FileText className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                            {file.name}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
-                    <Link
-                      href={`/guru/penilaian/${assignment.id}`}
-                      className="font-semibold text-primary-deep hover:underline"
-                    >
-                      Lihat submission
-                    </Link>
-                    <span className="text-muted-foreground">
-                      {assignment.dueAt ? `Tenggat ${formatDateTime(assignment.dueAt)}` : 'Tanpa tenggat'}
-                    </span>
-                    <span className="text-muted-foreground">{assignment.maxAttempts} attempt</span>
-                  </div>
                 </div>
+              </div>
+
+              {assignment.attachments?.length ? (
+                <ul className="mt-3 flex flex-wrap gap-2 px-4">
+                  {assignment.attachments.map((file) => (
+                    <li key={file.id}>
+                      <a
+                        href={file.webViewLink ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+                      >
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                        {file.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border px-4 py-2.5 text-[11px]">
+                <Link
+                  href={`/guru/penilaian/${assignment.id}`}
+                  className="font-semibold text-primary-deep hover:underline"
+                >
+                  Lihat submission
+                </Link>
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <CalendarClock className="h-3 w-3" aria-hidden="true" />
+                  {assignment.dueAt ? formatDateTime(assignment.dueAt) : 'Tanpa tenggat'}
+                </span>
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <Repeat2 className="h-3 w-3" aria-hidden="true" />
+                  {assignment.maxAttempts} attempt
+                </span>
               </div>
             </article>
           ))
