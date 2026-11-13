@@ -20,6 +20,7 @@
     "e2e:teacher-core": "node scripts/e2e-teacher-core.mjs",
     "e2e:teacher-assignment-authoring": "node scripts/e2e-teacher-assignment-authoring.mjs",
     "e2e:teacher-integrations": "node scripts/e2e-teacher-integrations.mjs",
+    "e2e:device-monitoring": "node scripts/e2e-device-monitoring.mjs",
     "e2e:student-voice-gate": "node scripts/e2e-student-voice-gate.mjs",
     "e2e:adaptive-completion": "node scripts/e2e-adaptive-completion.mjs",
     "e2e:pronunciation-unavailable": "node scripts/e2e-pronunciation-unavailable.mjs",

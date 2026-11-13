@@ -79,8 +79,8 @@ try {
   }
 
   await page.goto(`${baseURL}/guru/perangkat`)
-  await page.getByRole('heading', { name: 'Perangkat TuturAI', exact: true }).waitFor()
-  await page.getByText('Belum ada perangkat yang terdaftar.', { exact: true }).waitFor()
+  await page.getByText('Armada Perangkat', { exact: false }).first().waitFor()
+  await page.getByText('Belum ada perangkat terdaftar', { exact: false }).first().waitFor()
   const deviceList = await page.request.get(`${baseURL}/api/teacher/devices`)
   if (deviceList.status() !== 200) throw new Error(`Expected teacher device list 200, received ${deviceList.status()}`)
   const devicePayload = await readJSON(deviceList)
