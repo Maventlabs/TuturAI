@@ -3,16 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
-  Menu,
-  PanelLeftClose,
-  PanelLeft,
-  Search,
-  Bell,
-  LogOut,
-  Flame,
-  Star,
-} from 'lucide-react'
+import { Menu, PanelLeftClose, PanelLeft, Search, Bell, LogOut } from 'lucide-react'
 import { studentNav, teacherNav } from '@/lib/navigation'
 import { Logo } from '@/components/logo'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
@@ -33,6 +24,7 @@ import { signOut } from 'firebase/auth'
 import { getFirebaseAuth } from '@/lib/firebase/client'
 import { cn } from '@/lib/utils'
 import { SystemStatus } from '@/components/dashboard/system-status'
+import { RailReadout, RailValue } from '@/components/dashboard/rail-readout'
 
 interface DashboardUser {
   name: string
@@ -164,134 +156,158 @@ export function DashboardShell({
           collapsed ? 'lg:pl-[76px]' : 'lg:pl-64',
         )}
       >
-        {/* Topbar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border/70 bg-background/75 px-4 backdrop-blur-xl sm:px-6">
-          {/* Mobile menu */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-lg"
-                  className="rounded-full lg:hidden"
-                  aria-label="Buka menu"
+        {/* Topbar — a ruled instrument rail: every zone is a cell divided by a
+            hairline, so state reads as a gauge instead of a row of pills. */}
+        <header className="sticky top-0 z-20 border-b border-rule bg-card/90 backdrop-blur-xl">
+          <div className="flex h-16 items-stretch">
+            {/* Mobile menu */}
+            <div className="flex items-center pl-3 lg:hidden">
+              <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                <SheetTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label="Buka menu"
+                      className="flex size-9 items-center justify-center rounded-sm border border-rule text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                    />
+                  }
+                >
+                  <Menu className="size-4" />
+                </SheetTrigger>
+                <SheetContent side="left" className="w-72 p-0">
+                  <SheetTitle className="sr-only">Menu navigasi</SheetTitle>
+                  <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+                    <Logo />
+                  </div>
+                  <div className="py-4">
+                    <SidebarNav items={nav} onNavigate={() => setMobileOpen(false)} />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* Search — a recessed command field, not a floating pill */}
+            <form onSubmit={handleSearch} className="flex min-w-0 flex-1 items-center px-3 sm:px-4">
+              <div className="relative w-full max-w-[280px] md:max-w-[380px] lg:max-w-[300px] xl:max-w-[400px]">
+                <Search
+                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
                 />
-              }
-            >
-              <Menu className="h-5 w-5" />
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
-              <SheetTitle className="sr-only">Menu navigasi</SheetTitle>
-              <div className="flex h-16 items-center border-b border-sidebar-border px-5">
-                <Logo />
-              </div>
-              <div className="py-4">
-                <SidebarNav items={nav} onNavigate={() => setMobileOpen(false)} />
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          {/* Search */}
-          <form onSubmit={handleSearch} className="relative hidden w-full max-w-sm sm:block">
-            <Search
-              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <input
-              ref={searchRef}
-              type="search"
-              placeholder="Cari..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              aria-label="Cari di aplikasi"
-              className="peer h-9 w-full rounded-full border border-transparent bg-secondary/70 pl-10 pr-10 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-border focus:bg-card focus:ring-2 focus:ring-ring/25 [&::-webkit-search-cancel-button]:appearance-none"
-            />
-            <kbd
-              aria-hidden="true"
-              className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none text-muted-foreground transition-opacity peer-focus:opacity-0 lg:block"
-            >
-              /
-            </kbd>
-          </form>
-
-          <div className="flex flex-1 items-center justify-end gap-1.5 sm:gap-2">
-            {/* Student gamification chips */}
-            {studentStats && (
-              <div className="mr-1 hidden items-center gap-1.5 md:flex">
-                <span className="flex h-9 items-center gap-1.5 rounded-full bg-brand/15 px-3 text-xs font-semibold text-brand-foreground">
-                  <Star className="h-3.5 w-3.5 text-brand" aria-hidden="true" />
-                  Lv <span className="font-mono tabular-nums">{studentStats.level}</span>
-                </span>
-                <span className="flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-semibold text-foreground">
-                  <span className="font-mono tabular-nums">{studentStats.xp.toLocaleString('id-ID')}</span> XP
-                </span>
-                <span className="flex h-9 items-center gap-1.5 rounded-full bg-destructive/10 px-3 text-xs font-semibold text-foreground">
-                  <Flame className="h-3.5 w-3.5 text-destructive" aria-hidden="true" />
-                  <span className="font-mono tabular-nums">{studentStats.streak}</span>
-                </span>
-              </div>
-            )}
-
-            <SystemStatus showDevice={role === 'teacher'} />
-
-            <Button
-              variant="ghost"
-              size="icon-lg"
-              aria-label="Notifikasi"
-              className="relative rounded-full text-muted-foreground"
-              onClick={() => router.push(role === 'teacher' ? '/guru/penilaian' : '/siswa/penugasan')}
-            >
-              <Bell className="h-5 w-5" />
-            </Button>
-
-            <ThemeToggle />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label="Menu profil"
-                className="flex items-center gap-2 rounded-full outline-none ring-ring focus-visible:ring-2"
-              >
-                <Avatar className="h-9 w-9 border border-border">
-                  <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
-                    {user.initials}
-                  </AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>
-                    <p className="text-sm font-semibold text-foreground">
-                      {user.name}
-                    </p>
-                    <p className="text-xs font-normal text-muted-foreground">
-                      {user.meta}
-                    </p>
-                  </DropdownMenuLabel>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem className="cursor-pointer p-0">
-                    <Link
-                      href={role === 'student' ? '/siswa/profil' : '/guru/pengaturan'}
-                      className="flex w-full items-center px-1.5 py-1"
-                    >
-                      Profil &amp; Pengaturan
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="cursor-pointer"
-                    variant="destructive"
+                <input
+                  ref={searchRef}
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  aria-label="Cari di aplikasi"
+                  className="peer h-9 w-full rounded-sm border border-rule bg-background pl-8 pr-11 text-[13px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15 [&::-webkit-search-cancel-button]:appearance-none"
+                />
+                {/* The hint is a real element so the narrow mobile field can show a
+                    short label instead of clipping a long placeholder mid-word. */}
+                {search.length === 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground/80 peer-focus:hidden"
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Keluar
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    <span className="sm:hidden">Cari…</span>
+                    <span className="hidden sm:inline">
+                      {role === 'student' ? 'Cari materi atau kuis' : 'Cari siswa atau kelas'}
+                    </span>
+                  </span>
+                )}
+                <kbd
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center rounded-[3px] border border-rule bg-card px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground transition-opacity peer-focus:opacity-0 lg:flex"
+                >
+                  /
+                </kbd>
+              </div>
+            </form>
+
+            {/* Right rail */}
+            <div className="flex items-stretch">
+              {studentStats && (
+                <div className="hidden items-stretch xl:flex">
+                  <RailReadout label="Level">
+                    <RailValue>{String(studentStats.level)}</RailValue>
+                  </RailReadout>
+                  <span className="my-3 w-px bg-rule" aria-hidden="true" />
+                  <RailReadout label="XP">
+                    <RailValue>{studentStats.xp.toLocaleString('id-ID')}</RailValue>
+                  </RailReadout>
+                  <span className="my-3 w-px bg-rule" aria-hidden="true" />
+                  <RailReadout label="Streak">
+                    <RailValue unit="hari">{String(studentStats.streak)}</RailValue>
+                  </RailReadout>
+                </div>
+              )}
+
+              <span className="w-px bg-rule" aria-hidden="true" />
+              <SystemStatus showDevice={role === 'teacher'} />
+              <span className="w-px bg-rule" aria-hidden="true" />
+
+              <div className="flex items-center gap-1.5 px-2 sm:px-2.5">
+                <button
+                  type="button"
+                  aria-label="Notifikasi"
+                  onClick={() => router.push(role === 'teacher' ? '/guru/penilaian' : '/siswa/penugasan')}
+                  className="flex size-8 items-center justify-center rounded-sm border border-rule text-muted-foreground transition-colors hover:border-foreground/25 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  <Bell className="size-4" />
+                </button>
+                <ThemeToggle />
+              </div>
+
+              <span className="w-px bg-rule" aria-hidden="true" />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Menu profil"
+                  className="flex items-center gap-2.5 pl-2.5 pr-3 outline-none transition-colors hover:bg-secondary/60 focus-visible:bg-secondary/60 sm:pl-3 sm:pr-4"
+                >
+                  <Avatar className="size-8 rounded-sm border border-rule">
+                    <AvatarFallback className="rounded-sm bg-foreground font-mono text-[11px] font-medium text-background">
+                      {user.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden min-w-0 flex-col items-start gap-1 2xl:flex">
+                    <span className="max-w-[160px] truncate text-[12px] font-semibold leading-none text-foreground">
+                      {user.name}
+                    </span>
+                    <span className="max-w-[160px] truncate font-mono text-[9px] uppercase leading-none tracking-[0.14em] text-muted-foreground">
+                      {user.meta}
+                    </span>
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                      <p className="text-sm font-semibold text-foreground">{user.name}</p>
+                      <p className="font-mono text-[10px] font-normal uppercase tracking-[0.12em] text-muted-foreground">
+                        {user.meta}
+                      </p>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem className="cursor-pointer p-0">
+                      <Link
+                        href={role === 'student' ? '/siswa/profil' : '/guru/pengaturan'}
+                        className="flex w-full items-center px-1.5 py-1"
+                      >
+                        Profil &amp; Pengaturan
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer" variant="destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Keluar
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </header>
 

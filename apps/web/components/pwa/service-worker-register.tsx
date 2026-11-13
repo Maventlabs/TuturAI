@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { cleanupAudioQueue, deleteOfflineRecord, replayPendingMutations } from '@/lib/offline/offline-db'
+import { cleanupAudioQueue, deleteOfflineRecord, replayPendingMutations, SYNC_REQUESTED_EVENT } from '@/lib/offline/offline-db'
 import { OfflineMutationError } from '@/lib/offline/offline-queue'
 
 export async function ensureReplayResponse(response: Response, fallbackMessage: string) {
@@ -71,9 +71,13 @@ export function ServiceWorkerRegister() {
       void replayPendingMutations(replayMutation)
     }
     window.addEventListener('online', replay)
+    window.addEventListener(SYNC_REQUESTED_EVENT, replay)
     replay()
     void cleanupAudioQueue(25 * 1024 * 1024)
-    return () => window.removeEventListener('online', replay)
+    return () => {
+      window.removeEventListener('online', replay)
+      window.removeEventListener(SYNC_REQUESTED_EVENT, replay)
+    }
   }, [])
 
   return null
