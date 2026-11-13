@@ -11,11 +11,12 @@ function isCurrent(pathname: string, href: string) {
 }
 
 /**
- * The student's primary navigation: a floating dock of five destinations.
+ * The student's primary navigation: a floating dock of five destinations with
+ * Beranda anchored in the middle.
  *
- * The active destination widens into a labelled pill while the rest stay as
- * icon wells, so the dock always shows where you are without spending a row of
- * text on every item. The remaining student routes live in the menu sheet.
+ * The centre item keeps a persistent ring so the dock always reads as a
+ * symmetric instrument with a fixed home, while the active destination widens
+ * into a labelled pill. Everything else lives in the profile menu.
  */
 export function StudentDock() {
   const pathname = usePathname()
@@ -28,6 +29,7 @@ export function StudentDock() {
       >
         {studentDockNav.map((item) => {
           const current = isCurrent(pathname, item.href)
+          const isHome = item.href === '/siswa'
           const Icon = item.icon
 
           return (
@@ -35,15 +37,18 @@ export function StudentDock() {
               key={item.href}
               href={item.href}
               aria-current={current ? 'page' : undefined}
+              aria-label={item.label}
               className={cn(
-                'flex h-10 shrink-0 items-center justify-center rounded-full outline-none transition-[background-color,color,padding] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ink-foreground/60 sm:h-11',
+                'flex shrink-0 items-center justify-center rounded-full outline-none transition-[background-color,color,padding] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ink-foreground/60',
+                isHome ? 'h-11' : 'h-10 sm:h-11',
                 current
                   ? 'gap-2 bg-accent-glow px-3.5 text-ink-deep'
-                  : 'w-10 text-ink-muted hover:bg-ink-foreground/10 hover:text-ink-foreground sm:w-11',
+                  : 'text-ink-muted hover:bg-ink-foreground/10 hover:text-ink-foreground',
+                !current && (isHome ? 'w-11 border border-ink-foreground/25' : 'w-10 sm:w-11'),
               )}
             >
               <Icon
-                className="size-[18px] shrink-0"
+                className={cn('shrink-0', isHome ? 'size-[19px]' : 'size-[18px]')}
                 strokeWidth={current ? 2.1 : 1.7}
                 aria-hidden="true"
               />

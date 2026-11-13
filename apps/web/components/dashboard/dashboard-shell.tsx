@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Menu, PanelLeftClose, PanelLeft, Search, Bell, LogOut } from 'lucide-react'
-import { studentNav, teacherNav } from '@/lib/navigation'
+import { studentAccountNav, studentNav, teacherNav } from '@/lib/navigation'
 import { Logo } from '@/components/logo'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
 import { StudentDock } from '@/components/dashboard/student-dock'
@@ -288,16 +288,36 @@ export function DashboardShell({
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem className="cursor-pointer p-0">
-                      <Link
-                        href={role === 'student' ? '/siswa/profil' : '/guru/pengaturan'}
-                        className="flex w-full items-center px-1.5 py-1"
-                      >
-                        Profil &amp; Pengaturan
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
+                  {role === 'student' ? (
+                    <DropdownMenuGroup>
+                      {studentAccountNav.map((item) => {
+                        const Icon = item.icon
+
+                        return (
+                          <DropdownMenuItem key={item.href} className="cursor-pointer p-0">
+                            <Link
+                              href={item.href}
+                              className="flex w-full items-center gap-2 px-1.5 py-1"
+                            >
+                              <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+                              {item.label}
+                            </Link>
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuGroup>
+                  ) : (
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem className="cursor-pointer p-0">
+                        <Link
+                          href="/guru/pengaturan"
+                          className="flex w-full items-center px-1.5 py-1"
+                        >
+                          Profil &amp; Pengaturan
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuItem onClick={handleLogout} className="cursor-pointer" variant="destructive">

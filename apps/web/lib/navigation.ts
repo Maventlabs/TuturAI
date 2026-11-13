@@ -3,7 +3,6 @@ import {
   Home,
   LayoutDashboard,
   Mic,
-  MessageSquare,
   AudioLines,
   BookText,
   Headphones,
@@ -30,34 +29,47 @@ export interface NavItem {
   badge?: string
 }
 
+/**
+ * The full student route list, reachable from the menu sheet. The five dock
+ * destinations lead this list; the practice modes below them are also surfaced
+ * on the home launcher and the Learning hub.
+ */
 export const studentNav: NavItem[] = [
-  { label: 'Dashboard', href: '/siswa', icon: LayoutDashboard },
-  { label: 'Penugasan', href: '/siswa/penugasan', icon: ClipboardCheck },
-  { label: 'Challenge Speaking', href: '/siswa/challenge-speaking', icon: Users },
+  { label: 'Beranda', href: '/siswa', icon: Home },
+  { label: 'Learning', href: '/siswa/belajar', icon: Route },
+  { label: 'Matchmaking', href: '/siswa/challenge-speaking', icon: Users },
+  { label: 'AI Tutor', href: '/siswa/latihan-bicara-ai', icon: Headphones },
+  { label: 'Classroom', href: '/siswa/penugasan', icon: ClipboardCheck },
   { label: 'Speaking Practice', href: '/siswa/speaking', icon: Mic },
-  { label: 'Latihan Bicara AI', href: '/siswa/latihan-bicara-ai', icon: Headphones, badge: 'AI' },
   { label: 'Pronunciation Lab', href: '/siswa/pronunciation', icon: AudioLines },
   { label: 'Vocabulary', href: '/siswa/vocabulary', icon: BookText },
   { label: 'Listening', href: '/siswa/listening', icon: Headphones },
   { label: 'Quiz', href: '/siswa/quiz', icon: ListChecks },
   { label: 'Adaptive Path', href: '/siswa/adaptive', icon: Route },
   { label: 'Tes Pedagogis', href: '/siswa/tes', icon: FlaskConical },
-  { label: 'Progress', href: '/siswa/progress', icon: TrendingUp },
-  { label: 'Leaderboard', href: '/siswa/leaderboard', icon: Trophy },
-  { label: 'Pencapaian', href: '/siswa/achievements', icon: Award },
-  { label: 'Profil', href: '/siswa/profil', icon: User },
 ]
 
 /**
- * The five destinations the student dock carries. Everything else in
- * `studentNav` stays reachable from the menu sheet, so the dock can stay a
- * fixed-width instrument instead of growing with the feature list.
+ * The five destinations the student dock carries, ordered left to right.
+ * Beranda sits in the middle so the dock reads as a symmetric instrument with
+ * a fixed anchor; the four practice surfaces fan out around it.
  */
 export const studentDockNav: NavItem[] = [
+  { label: 'Learning', href: '/siswa/belajar', icon: Route },
+  { label: 'Matchmaking', href: '/siswa/challenge-speaking', icon: Users },
   { label: 'Beranda', href: '/siswa', icon: Home },
-  { label: 'Tugas', href: '/siswa/penugasan', icon: ClipboardCheck },
-  { label: 'Latihan', href: '/siswa/speaking', icon: Mic },
+  { label: 'AI Tutor', href: '/siswa/latihan-bicara-ai', icon: Headphones },
+  { label: 'Classroom', href: '/siswa/penugasan', icon: ClipboardCheck },
+]
+
+/**
+ * Account-level student routes. These live in the profile menu rather than the
+ * dock, so the dock stays about doing the work and the menu stays about you.
+ */
+export const studentAccountNav: NavItem[] = [
   { label: 'Progress', href: '/siswa/progress', icon: TrendingUp },
+  { label: 'Leaderboard', href: '/siswa/leaderboard', icon: Trophy },
+  { label: 'Pencapaian', href: '/siswa/achievements', icon: Award },
   { label: 'Profil', href: '/siswa/profil', icon: User },
 ]
 
