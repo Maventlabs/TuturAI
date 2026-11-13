@@ -45,6 +45,8 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   --color-ink-deep: var(--ink-deep);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-ink-muted: var(--ink-muted);
 
   /* Hairlines for the teacher instrument sheet: --rule divides panels,
      --grid draws chart gridlines one step lighter than --rule. */
@@ -77,8 +79,11 @@
 .theme-light {
   color-scheme: light;
   --radius: 0.75rem;
-  /* The single dark surface on the marketing page (offline & hardware section). */
+  /* The single dark surface on the marketing page (offline & hardware section)
+     and the scoreboard band on the teacher leaderboard. */
   --ink-deep: #101014;
+  --ink-foreground: #f5f5f7;
+  --ink-muted: #a1a1a8;
 
   /* precision-blue brand palette (AGENTS.md section 5) */
   --background: #f5f5f7;
@@ -147,6 +152,10 @@
 .dark {
   color-scheme: dark;
   --background: #101014;
+  /* Sits one step below the dark canvas so the scoreboard reads as a recessed well. */
+  --ink-deep: #0a0a0d;
+  --ink-foreground: #f5f5f7;
+  --ink-muted: #a1a1a8;
   --foreground: #f5f5f7;
   --card: #1c1c21;
   --card-foreground: #f5f5f7;
