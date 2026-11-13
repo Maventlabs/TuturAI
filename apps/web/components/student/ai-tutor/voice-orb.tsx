@@ -107,7 +107,9 @@ export function VoiceOrb({ state, getLevel, className }: VoiceOrbProps) {
   const rippleRefs = useRef<Array<SVGCircleElement | null>>([])
 
   const levelRef = useRef(getLevel)
-  levelRef.current = getLevel
+  useEffect(() => {
+    levelRef.current = getLevel
+  }, [getLevel])
   const smoothRef = useRef(0)
 
   const tails = tailPaths()

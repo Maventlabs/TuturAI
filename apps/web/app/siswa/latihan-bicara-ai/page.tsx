@@ -158,7 +158,6 @@ export default function LatihanBicaraAIPage() {
     setAiText(null)
     setStatus('idle')
     const started = await mic.start()
-    console.log('[v0] mic start result:', started)
     setStatus(started ? 'recording' : 'error')
   }
 
@@ -286,11 +285,6 @@ export default function LatihanBicaraAIPage() {
             </p>
           )}
 
-          {mic.errorMessage && !recording && (
-            <p role="alert" className="mt-4 text-xs text-destructive">
-              {mic.errorMessage}
-            </p>
-          )}
         </div>
       </Card>
 
