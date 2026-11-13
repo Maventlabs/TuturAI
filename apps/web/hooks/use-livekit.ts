@@ -23,6 +23,9 @@ export function useLiveKit() {
     isMuted: false,
     isCameraOff: false,
   })
+  // The room is mirrored into state so consumers can read it during render;
+  // the ref stays the source of truth for imperative calls in callbacks.
+  const [room, setRoom] = useState<Room | null>(null)
   const roomRef = useRef<Room | null>(null)
 
   const connect = useCallback(async (token: string, url: string, roomName: string) => {
@@ -76,6 +79,7 @@ export function useLiveKit() {
 
       await room.connect(url, token)
       roomRef.current = room
+      setRoom(room)
 
       // Enable camera and mic by default
       await room.localParticipant.enableCameraAndMicrophone()
@@ -90,6 +94,7 @@ export function useLiveKit() {
       await roomRef.current.disconnect()
       roomRef.current = null
     }
+    setRoom(null)
     setState({
       connected: false,
       connecting: false,
@@ -132,6 +137,6 @@ export function useLiveKit() {
     disconnect,
     toggleMute,
     toggleCamera,
-    room: roomRef.current,
+    room,
   }
 }
