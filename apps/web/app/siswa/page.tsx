@@ -14,6 +14,7 @@ import {
   Route,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ActivityHeatmap, type ActivityDay } from '@/components/student/activity-heatmap'
 
 function greeting() {
   const h = new Date().getHours()
@@ -77,6 +78,28 @@ export default function StudentHomePage() {
   const [assignments, setAssignments] = useState<DashboardAssignment[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([])
   const [insights, setInsights] = useState<DashboardInsights | null>(null)
+  const [activity, setActivity] = useState<ActivityDay[] | null>(null)
+  const [activityError, setActivityError] = useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadActivity() {
+      try {
+        const response = await fetch('/api/student/activity', { cache: 'no-store' })
+        if (!response.ok) throw new Error('ACTIVITY_LOAD_FAILED')
+        const payload = (await response.json()) as { data?: { days?: ActivityDay[] } }
+        if (active) setActivity(payload.data?.days ?? [])
+      } catch {
+        if (active) setActivityError(true)
+      }
+    }
+
+    void loadActivity()
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -390,6 +413,11 @@ export default function StudentHomePage() {
           />
         </div>
       </div>
+
+      {/* Year-scale ledger — the week matrix above answers "this week", this answers "did I keep the rhythm". */}
+      <section className="mt-10">
+        <ActivityHeatmap days={activity} loading={!activity && !activityError} error={activityError} />
+      </section>
 
       {/* Launcher — the practice modes the dock no longer carries. */}
       <section className="mt-10">

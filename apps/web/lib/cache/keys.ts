@@ -46,6 +46,7 @@ export const CACHE_NAMESPACES = {
   teacherLeaderboard: (teacherId: string) => buildCacheKey('analytics:leaderboard', teacherId),
   studentDashboard: (studentId: string) => buildCacheKey('analytics:dashboard', studentId),
   learningStats: (studentId: string) => buildCacheKey('analytics:learningStats', studentId),
+  studentActivity: (studentId: string) => buildCacheKey('analytics:activity', studentId),
   publishedQuestions: (skill: string, level: string, contentType: string, limit: number) =>
     buildCacheKey('questionBank', skill, level, contentType, limit),
 } as const
