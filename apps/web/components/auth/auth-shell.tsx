@@ -24,7 +24,8 @@ export function AuthShell({
           fill
           priority
           sizes="50vw"
-          className="object-cover object-[34%_center]"
+          className="object-cover"
+          style={{ objectPosition: 'left center' }}
         />
         <div
           className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-ink-deep/65 to-transparent"
