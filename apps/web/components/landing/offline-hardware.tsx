@@ -116,12 +116,12 @@ export function OfflineHardware() {
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
             Perangkat
           </p>
-          <h2 className="mt-4 font-display text-3xl font-bold leading-[1.08] tracking-[-0.02em] text-balance text-foreground sm:text-4xl lg:text-5xl">
-            Tanpa internet. Tanpa ponsel pribadi.
+          <h2 className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-balance text-foreground sm:text-4xl lg:text-5xl">
+            Tanpa <span className="text-primary">internet</span>. Tanpa ponsel pribadi.
           </h2>
           <p className="mt-4 leading-relaxed text-muted-foreground text-pretty">
-            Satu konsol untuk seluruh sesi latihan di kelas — penilaian berjalan di perangkat, bukan
-            di cloud.
+            Satu konsol untuk seluruh kelas, tanpa kuota. Penilaian berjalan di perangkat, bukan di
+            cloud.
           </p>
         </div>
 

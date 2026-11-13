@@ -27,12 +27,12 @@ export function CTA() {
           </GSAPReveal>
 
           <GSAPLines>
-            <h2 className="mt-6 font-display text-3xl font-medium leading-[1.1] tracking-[-0.02em] text-primary-foreground text-balance sm:text-4xl lg:text-5xl">
+            <h2 className="mt-6 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-primary-foreground text-balance sm:text-4xl lg:text-5xl">
               <span data-line className="block">
                 Keberanian bicara lahir dari
               </span>
               <span data-line className="block">
-                percobaan pertama yang tidak dihakimi.
+                percobaan pertama yang <span className="text-accent-soft">tidak dihakimi</span>.
               </span>
             </h2>
           </GSAPLines>

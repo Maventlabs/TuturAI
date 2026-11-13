@@ -36,8 +36,8 @@ export function SiteFooter() {
       <div className="mx-auto max-w-[1400px] px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8">
         <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:gap-6 lg:gap-8">
           <div className="max-w-sm">
-            <h2 className="font-display text-3xl font-medium leading-[1.1] tracking-[-0.02em] text-balance sm:text-4xl">
-              Tetap terhubung
+            <h2 className="font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-balance sm:text-4xl">
+              Tetap <span className="text-accent-soft">terhubung</span>
             </h2>
             <NewsletterForm />
             <p className="mt-4 text-xs leading-relaxed text-pretty">

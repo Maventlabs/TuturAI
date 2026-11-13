@@ -26,7 +26,7 @@ const faqs = [
       'Bisa. PWA menyimpan latihan di perangkat dan mengirimnya saat kembali online. Perangkat ESP32-S3 untuk kelas berjalan penuh secara offline.',
   },
   {
-    question: 'Apakah suara AI bisa memakai suara guru?',
+    question: 'Bisakah latihan memakai suara guru sendiri?',
     answer:
       'Bisa. Guru melakukan enrollment voice profile sekali, lalu suara itu dipakai untuk latihan di kelasnya. Profil suara bisa dihapus atau didaftarkan ulang kapan saja.',
   },
@@ -56,25 +56,22 @@ export function FAQ() {
         <div className="mx-auto max-w-3xl text-center">
           <GSAPReveal>
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground">
-              Ada pertanyaan?
-            </p>
-          </GSAPReveal>
+            Ada pertanyaan?
+          </p>
+        </GSAPReveal>
 
-          <GSAPLines>
-            <h2 className="mt-4 font-heading text-3xl font-bold leading-[1.08] tracking-[-0.02em] text-foreground text-balance sm:text-4xl lg:text-5xl">
-              <span data-line className="block">
-                Frequently Asked
-              </span>
-              <span data-line className="block">
-                Questions
-              </span>
-            </h2>
-          </GSAPLines>
+        <GSAPLines>
+          <h2 className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-foreground text-balance sm:text-4xl lg:text-5xl">
+            <span data-line className="block">
+              Tanya <span className="text-primary">Jawab</span>
+            </span>
+          </h2>
+        </GSAPLines>
 
           <GSAPReveal delay={0.1}>
             <p className="mt-5 text-foreground text-pretty">
-              <strong className="font-semibold text-foreground">Temukan jawaban</strong> soal cara
-              kerja TuturAI, penilaian AI, dan pemakaiannya di kelas.
+              <strong className="font-semibold text-foreground">Soal cara kerja</strong>, cara
+              menilai, dan cara memakainya di kelas.
             </p>
           </GSAPReveal>
         </div>

@@ -90,12 +90,12 @@ export function Hero() {
 
       {/* Centered headline, subheadline and CTAs */}
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 pt-24 text-center sm:px-6">
-        <h1 className="font-display text-[2.6rem] font-bold leading-[1.05] tracking-[-0.03em] text-balance text-white sm:text-6xl lg:text-[4.25rem]">
+        <h1 className="font-display text-[2.6rem] font-medium leading-[1.04] tracking-[-0.02em] text-balance text-white sm:text-6xl lg:text-[4.25rem]">
           <span data-hero-line className="block text-white">
             Berani Berbicara
           </span>
           <span data-hero-line className="block">
-            Tumbuh <em className="italic">Percaya Diri</em>
+            Tumbuh <em className="italic text-accent-glow">Percaya Diri</em>
           </span>
         </h1>
 
@@ -129,7 +129,7 @@ export function Hero() {
         data-hero-marquee
         className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-14 sm:px-6 sm:pb-16"
       >
-        <p className="mb-4 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/55">
+        <p className="mb-4 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/70">
           Dibangun dengan teknologi
         </p>
         <LogoLoop

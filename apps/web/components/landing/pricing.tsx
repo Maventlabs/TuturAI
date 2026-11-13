@@ -134,15 +134,16 @@ export function Pricing() {
             </p>
           </GSAPReveal>
           <GSAPLines>
-            <h2 className="mt-4 font-heading text-3xl font-bold leading-[1.08] tracking-[-0.02em] text-primary-foreground text-balance sm:text-4xl lg:text-5xl">
+            <h2 className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-primary-foreground text-balance sm:text-4xl lg:text-5xl">
               <span data-line className="block">
-                Berapa biayanya?
+                Berapa <span className="text-accent-soft">biayanya</span>?
               </span>
             </h2>
           </GSAPLines>
           <GSAPReveal delay={0.1}>
             <p className="mt-5 text-primary-foreground/80 text-pretty">
-              Pilih paket yang sesuai tujuanmu. Bisa dijeda, diubah, atau diperpanjang kapan saja.
+              Siswa mulai gratis. Sekolah membayar per siswa, dan paketnya bisa dijeda atau diubah
+              kapan saja.
             </p>
           </GSAPReveal>
         </div>

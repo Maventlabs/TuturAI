@@ -63,11 +63,11 @@ export function Problem() {
         <div className="mx-auto max-w-2xl text-center">
           <GSAPReveal>
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Masalahnya
+              Kenapa siswa diam
             </p>
           </GSAPReveal>
           <GSAPLines>
-            <h2 className="mt-4 font-heading text-3xl font-bold leading-[1.08] tracking-[-0.02em] text-foreground text-balance sm:text-4xl lg:text-5xl">
+            <h2 className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-foreground text-balance sm:text-4xl lg:text-5xl">
               <span data-line className="block">
                 Bukan karena grammar.
               </span>
@@ -75,14 +75,16 @@ export function Problem() {
                 Karena <span className="text-primary">takut</span>.
               </span>
             </h2>
-          </GSAPLines>
-          <GSAPReveal delay={0.1}>
-            <p className="mt-5 text-muted-foreground text-pretty">
+
+            <p
+              data-line
+              className="mt-6 max-w-[58ch] text-base leading-relaxed text-muted-foreground text-pretty sm:text-lg"
+            >
               Siswa Indonesia memahami bahasa Inggris secara pasif, lalu lumpuh saat diminta
               praktik. TuturAI memberi ruang latihan yang aman, tanpa takut ditertawakan teman
               sekelas.
             </p>
-          </GSAPReveal>
+          </GSAPLines>
         </div>
 
         <GSAPReveal delay={0.15} className="mt-12">

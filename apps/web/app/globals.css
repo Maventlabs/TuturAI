@@ -28,6 +28,8 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-glow: var(--accent-glow);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
@@ -97,6 +99,10 @@
   /* Accent - TuturAI deep blue */
   --accent: #0071e3;
   --accent-foreground: #ffffff;
+  /* Light blue tint for accent words inside headlines on blue and dark surfaces. */
+  --accent-soft: #cfe0ff;
+  /* More saturated tint for accent words over the hero photograph. */
+  --accent-glow: #9ec5ff;
 
   /* Brand - gamification accent, stays on-brand amber */
   --brand: #f5a524;
