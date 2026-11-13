@@ -55,7 +55,7 @@ export function ClassCard({
         </Link>
         <span
           aria-hidden="true"
-          className="absolute -bottom-6 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-card text-sm font-semibold text-foreground ring-2 ring-card"
+          className="absolute -bottom-6 right-4 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-sm font-semibold text-foreground ring-2 ring-card"
         >
           {classInitials(classroom.name)}
         </span>
