@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Logo } from '@/components/logo'
 
@@ -14,44 +15,76 @@ export function AuthShell({
 }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Brand panel */}
-      <aside className="relative hidden flex-col justify-between bg-primary p-10 text-primary-foreground lg:flex">
-        <Link href="/" className="relative">
-          <span className="flex items-center gap-2">
-            <span className="font-heading text-xl font-extrabold">
-              Tutur<span className="text-primary-foreground/70">AI</span>
+      {/* Brand panel — the landing illustration carries the identity, so the
+          panel reads as part of the product instead of a flat colour block. */}
+      <aside className="relative hidden overflow-hidden bg-ink-deep lg:flex lg:flex-col lg:justify-between">
+        <Image
+          src="/landing/hero-bg.png"
+          alt=""
+          fill
+          priority
+          sizes="50vw"
+          className="object-cover object-[34%_center]"
+        />
+        <div
+          className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-ink-deep/65 to-transparent"
+          aria-hidden
+        />
+        <div
+          className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-ink-deep via-ink-deep/70 to-transparent"
+          aria-hidden
+        />
+
+        <div className="relative p-10 xl:p-12">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            <Image
+              src="/brand/logo-mark-white.png"
+              alt=""
+              width={36}
+              height={38}
+              priority
+              className="h-9 w-auto shrink-0"
+            />
+            <span className="font-heading text-xl font-extrabold tracking-tight text-white">
+              TuturAI
             </span>
-          </span>
-        </Link>
-        <div className="relative">
-          <h2 className="max-w-md text-balance font-heading text-3xl font-extrabold leading-tight">
+          </Link>
+        </div>
+
+        <div className="relative px-10 pb-10 xl:px-12 xl:pb-12">
+          <h2 className="max-w-lg text-pretty font-heading text-4xl font-extrabold leading-[1.1] tracking-tight text-white xl:text-5xl">
             Berani bicara, tumbuh percaya diri.
           </h2>
-          <p className="mt-4 max-w-sm text-pretty text-primary-foreground/80">
+          <p className="mt-5 max-w-sm text-pretty text-[15px] leading-relaxed text-white/75">
             Bergabung dengan ribuan siswa dan guru Indonesia yang berlatih
             speaking Bahasa Inggris bersama TuturAI.
           </p>
+          <p className="mt-10 text-sm text-white/55">
+            © {new Date().getFullYear()} TuturAI
+          </p>
         </div>
-        <p className="relative text-sm text-primary-foreground/70">
-          © {new Date().getFullYear()} TuturAI
-        </p>
       </aside>
 
       {/* Form panel */}
-      <main className="flex flex-col justify-center px-6 py-10 sm:px-12">
+      <main className="flex flex-col justify-center border-border px-6 py-10 sm:px-12 lg:border-l lg:px-16">
         <div className="mx-auto w-full max-w-md">
           <div className="mb-8 lg:hidden">
-            <Link href="/">
+            <Link href="/" className="inline-flex rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Logo />
             </Link>
           </div>
-          <h1 className="font-heading text-2xl font-extrabold tracking-tight text-foreground">
+          <h1 className="text-balance font-heading text-[2rem] font-extrabold leading-tight tracking-tight text-foreground">
             {title}
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
+          <p className="mt-2.5 text-pretty text-[15px] leading-relaxed text-muted-foreground">
+            {subtitle}
+          </p>
           <div className="mt-8">{children}</div>
           {footer && (
-            <div className="mt-6 text-center text-sm text-muted-foreground">
+            <div className="mt-7 text-center text-sm text-muted-foreground">
               {footer}
             </div>
           )}
