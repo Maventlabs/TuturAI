@@ -111,6 +111,7 @@ export default function TesPage() {
         message="Semua jawaban tes sudah dikonfirmasi tersimpan oleh server."
         score={`${percentage}/100`}
         detail={`Jawaban benar: ${correct}/${questions.length}`}
+        reaction="quiz"
         onClose={() => setDone(false)}
       />
     </div>

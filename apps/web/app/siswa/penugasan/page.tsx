@@ -445,6 +445,7 @@ export default function StudentAssignmentsPage() {
         message={completedAssignment ? `${completedAssignment.title} sudah diterima server.` : ''}
         score="Terkirim"
         detail="Status submission sudah diperbarui dan dapat ditinjau guru."
+        reaction="assignment"
         onClose={() => setCompletedAssignment(null)}
       />
     </div>

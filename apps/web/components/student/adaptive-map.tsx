@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Check, Lock } from 'lucide-react'
+import { ArrowRight, Check, Lock, FileText } from 'lucide-react'
+import { adaptiveCategories, adaptiveLevels, getAdaptiveLevelForScore } from '@/lib/adaptive-modules'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { EmptyState, MonoLabel, Panel, PanelHeader } from '@/components/student/practice/practice-ui'
@@ -28,6 +29,11 @@ function practiceHref(activity: AdaptiveActivity) {
     test: '/siswa/tes',
   }
   return `${routes[activity.contentType]}?questionId=${encodeURIComponent(activity.id)}`
+}
+
+function abilityLabel(average: number | null) {
+  const id = getAdaptiveLevelForScore(average)
+  return id ? adaptiveLevels.find((level) => level.id === id)?.label ?? null : null
 }
 
 function levelLabel(level: AdaptiveActivity['level']) {
@@ -73,13 +79,12 @@ export function AdaptiveMap() {
       const weighted = scored.reduce((total, activity) => total + (activity.score as number) * activity.attempts, 0)
       const weight = scored.reduce((total, activity) => total + activity.attempts, 0)
       const average = weight > 0 ? Math.round(weighted / weight) : null
-      const dominant = [...scored].sort((left, right) => right.attempts - left.attempts)[0] ?? null
       return {
         key: aspect.key,
         label: aspect.label,
         sessions,
         average,
-        level: dominant ? levelLabel(dominant.level) : null,
+        level: sessions >= MIN_SESSIONS ? abilityLabel(average) : null,
         reason:
           sessions < MIN_SESSIONS
             ? `Belum cukup data, minimal ${MIN_SESSIONS} sesi. Saat ini ${sessions} sesi tercatat.`
@@ -154,6 +159,48 @@ export function AdaptiveMap() {
       </div>
 
       <div className="min-w-0">
+        <section className="mb-5 border border-rule bg-card" aria-labelledby="adaptive-modules-title">
+          <div className="flex items-baseline justify-between gap-3 border-b border-rule px-4 py-3">
+            <div>
+              <MonoLabel>Modul belajar</MonoLabel>
+              <h2 id="adaptive-modules-title" className="mt-1 font-heading text-sm font-bold text-foreground">16 modul sesuai kemampuan</h2>
+            </div>
+            <span className="font-mono text-[10px] text-muted-foreground">4 kategori × 4 level</span>
+          </div>
+          <div className="divide-y divide-rule">
+            {adaptiveCategories.map((category) => {
+              const aspect = aspects.find((item) => item.key === category.id)
+              const recommendedLevel = aspect && aspect.sessions >= MIN_SESSIONS
+                ? getAdaptiveLevelForScore(aspect.average)
+                : null
+              return (
+                <div key={category.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-32">
+                    <p className="text-xs font-semibold text-foreground">{category.label}</p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      {recommendedLevel
+                        ? `Rekomendasi: ${adaptiveLevels.find((level) => level.id === recommendedLevel)?.label}`
+                        : 'Kumpulkan minimal 3 sesi untuk rekomendasi'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {adaptiveLevels.map((level) => {
+                      const selected = level.id === recommendedLevel
+                      return (
+                        <Button key={level.id} asChild size="sm" variant={selected ? 'default' : 'outline'} className="h-8 px-2.5 text-[10px]">
+                          <Link href={`/siswa/adaptive/modul/${category.id}-${level.id}`} aria-label={`Buka modul ${category.label}, ${level.label}${selected ? ', rekomendasi berdasar hasil latihan' : ''}`}>
+                            <FileText aria-hidden="true" /> {level.label}
+                          </Link>
+                        </Button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
         {plan.recommendation ? (
           <div className="border-y border-r border-rule border-l-2 border-l-primary bg-card px-4 py-3.5">
             <div className="flex items-start justify-between gap-3">
