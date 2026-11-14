@@ -19,7 +19,10 @@ export async function GET() {
 
   const attempts = attemptsSnapshot.docs.map((doc) => {
     const data = doc.data()
-    return { questionId: typeof data.questionId === 'string' ? data.questionId : undefined, isCorrect: data.isCorrect === true }
+    return {
+      questionId: typeof data.questionId === 'string' ? data.questionId : undefined,
+      isCorrect: typeof data.isCorrect === 'boolean' ? data.isCorrect : undefined,
+    }
   })
 
   const assessments = assessmentsSnapshot.docs.map((doc) => {
