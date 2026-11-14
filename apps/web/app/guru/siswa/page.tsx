@@ -3,16 +3,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import type { Classroom } from '@tuturai/domain'
-import { Search, ArrowUpDown, Flame, Circle } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Flame, Search, Users, X } from 'lucide-react'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { PageHeader } from '@/components/dashboard/page-header'
 import { FadeIn } from '@/components/dashboard/fade-in'
@@ -46,6 +45,14 @@ export default function StudentsPage() {
   const [asc, setAsc] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // The topbar search navigates here with ?search=, which is browser-only state.
+  // Reading it after mount keeps the server and client markup identical.
+  useEffect(() => {
+    const initial = new URLSearchParams(window.location.search).get('search')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (initial) setQuery(initial)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -128,6 +135,8 @@ export default function StudentsPage() {
     }
   }
 
+  const hasFilter = query.trim().length > 0 || classFilter !== 'all'
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
@@ -149,12 +158,24 @@ export default function StudentsPage() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari nama siswa..."
             aria-label="Cari nama siswa"
-            className="h-10 w-full rounded-lg border border-border bg-secondary/60 pl-9 pr-3 text-sm outline-none ring-ring placeholder:text-muted-foreground focus:ring-2"
+            className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-9 text-sm text-foreground outline-none ring-ring placeholder:text-muted-foreground focus-visible:ring-2"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="Bersihkan pencarian"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
         <Select value={classFilter} onValueChange={(value) => setClassFilter(value ?? 'all')}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="Semua kelas" />
+          <SelectTrigger className="w-full sm:w-52" aria-label="Filter kelas">
+            <span className="flex-1 truncate text-left">
+              {classFilter === 'all' ? 'Semua kelas' : classFilter}
+            </span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua kelas</SelectItem>
@@ -174,29 +195,50 @@ export default function StudentsPage() {
               Memuat daftar siswa...
             </div>
           ) : classrooms.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground" role="status">
-              Belum ada classroom yang Anda miliki.
-            </div>
+            <EmptyState
+              title="Belum ada classroom"
+              description="Buat classroom lebih dulu, lalu bagikan kode join ke siswa Anda."
+              action={<Button asChild><Link href="/guru/kelas">Buka Kelas Saya</Link></Button>}
+            />
           ) : students.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground" role="status">
-              Belum ada siswa aktif di classroom Anda.
-            </div>
+            <EmptyState
+              title="Belum ada siswa bergabung"
+              description="Siswa akan muncul di sini setelah mereka memasukkan kode join classroom Anda."
+              action={<Button asChild><Link href="/guru/kelas">Bagikan kode join</Link></Button>}
+            />
           ) : rows.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground" role="status">
-              Tidak ada siswa yang cocok dengan pencarian atau filter.
-            </div>
+            <EmptyState
+              title="Tidak ada siswa yang cocok"
+              description="Coba kata kunci lain atau ubah filter kelas."
+              action={
+                <Button
+                  variant="outline"
+                  onClick={() => { setQuery(''); setClassFilter('all') }}
+                >
+                  Reset filter
+                </Button>
+              }
+            />
           ) : (
             <>
               <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-3"><SortBtn label="Siswa" onClick={() => toggleSort('name')} /></th>
-                      <th className="px-4 py-3">Kelas</th>
-                      <th className="px-4 py-3"><SortBtn label="Skor Speaking" onClick={() => toggleSort('speakingScore')} /></th>
-                      <th className="px-4 py-3"><SortBtn label="Level" onClick={() => toggleSort('level')} /></th>
-                      <th className="px-4 py-3"><SortBtn label="Streak" onClick={() => toggleSort('streak')} /></th>
-                      <th className="px-4 py-3">Status</th>
+                    <tr className="border-b border-border bg-secondary/40 text-left text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                      <th className="px-4 py-3 font-semibold">
+                        <SortBtn label="Siswa" active={sortKey === 'name'} asc={asc} onClick={() => toggleSort('name')} />
+                      </th>
+                      <th className="px-4 py-3 font-semibold">Kelas</th>
+                      <th className="px-4 py-3 font-semibold">
+                        <SortBtn label="Skor Speaking" active={sortKey === 'speakingScore'} asc={asc} onClick={() => toggleSort('speakingScore')} />
+                      </th>
+                      <th className="px-4 py-3 font-semibold">
+                        <SortBtn label="Level" active={sortKey === 'level'} asc={asc} onClick={() => toggleSort('level')} />
+                      </th>
+                      <th className="px-4 py-3 font-semibold">
+                        <SortBtn label="Streak" active={sortKey === 'streak'} asc={asc} onClick={() => toggleSort('streak')} />
+                      </th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -208,10 +250,46 @@ export default function StudentsPage() {
               <div className="divide-y divide-border md:hidden">
                 {rows.map((student) => <StudentMobileRow key={`${student.classId}:${student.studentId}`} student={student} />)}
               </div>
+
+              <div className="flex items-center justify-between border-t border-border px-4 py-2.5 text-xs text-muted-foreground">
+                <span className="tabular-nums">
+                  {rows.length} dari {students.length} siswa
+                </span>
+                {hasFilter && (
+                  <button
+                    type="button"
+                    onClick={() => { setQuery(''); setClassFilter('all') }}
+                    className="font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Reset filter
+                  </button>
+                )}
+              </div>
             </>
           )}
         </Card>
       </FadeIn>
+    </div>
+  )
+}
+
+function EmptyState({
+  title,
+  description,
+  action,
+}: {
+  title: string
+  description: string
+  action: ReactNode
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 px-6 py-16 text-center" role="status">
+      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary">
+        <Users className="h-5 w-5 text-muted-foreground" />
+      </div>
+      <p className="font-heading text-sm font-bold text-foreground">{title}</p>
+      <p className="max-w-sm text-pretty text-sm text-muted-foreground">{description}</p>
+      <div className="mt-2">{action}</div>
     </div>
   )
 }
@@ -222,19 +300,29 @@ function StudentTableRow({ student }: { student: StudentRow }) {
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <StudentAvatar name={student.name} />
-          <div>
-            <Link href={`/guru/siswa/${encodeURIComponent(student.studentId)}`} className="font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{student.name}</Link>
-            <p className="text-xs text-muted-foreground">{student.email ?? 'Email tidak tersedia'}</p>
+          <div className="min-w-0">
+            <Link
+              href={`/guru/siswa/${encodeURIComponent(student.studentId)}`}
+              className="font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {student.name}
+            </Link>
+            <p className="truncate text-xs text-muted-foreground">{student.email ?? 'Email tidak tersedia'}</p>
           </div>
         </div>
       </td>
-      <td className="px-4 py-3 text-muted-foreground">{student.className}</td>
-       <td className="px-4 py-3"><ScoreCell score={student.speakingScore} /></td>
-       <td className="px-4 py-3"><MetricCell value={student.level} label="Level" /></td>
-       <td className="px-4 py-3"><MetricCell value={student.streak} label="Streak" icon={<Flame className="h-3.5 w-3.5" />} /></td>
       <td className="px-4 py-3">
-        <span className="flex items-center gap-1.5 text-xs font-medium text-success">
-          <Circle className="h-2 w-2 fill-current text-success" /> Aktif
+        <span className="inline-flex max-w-[180px] truncate rounded-md bg-secondary px-2 py-1 text-xs font-medium text-muted-foreground">
+          {student.className}
+        </span>
+      </td>
+      <td className="px-4 py-3"><ScoreCell score={student.speakingScore} /></td>
+      <td className="px-4 py-3"><MetricCell value={student.level} /></td>
+      <td className="px-4 py-3"><MetricCell value={student.streak} icon={<Flame className="h-3.5 w-3.5 text-destructive" />} /></td>
+      <td className="px-4 py-3">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+          <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
+          Aktif
         </span>
       </td>
     </tr>
@@ -247,15 +335,22 @@ function StudentMobileRow({ student }: { student: StudentRow }) {
       <StudentAvatar name={student.name} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <Link href={`/guru/siswa/${encodeURIComponent(student.studentId)}`} className="truncate font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{student.name}</Link>
-           <span className="text-sm text-muted-foreground">{student.speakingScore === null ? 'Skor tidak tersedia' : `${student.speakingScore}/100`}</span>
+          <Link
+            href={`/guru/siswa/${encodeURIComponent(student.studentId)}`}
+            className="truncate font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            {student.name}
+          </Link>
+          <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+            {student.speakingScore === null ? '—' : `${student.speakingScore}/100`}
+          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>{student.className}</span>
-          <span aria-hidden="true">•</span>
-           <span>{student.level === null ? 'Level tidak tersedia' : `Level ${student.level}`}</span>
-          <span aria-hidden="true">•</span>
-           <span>{student.streak === null ? 'Streak tidak tersedia' : `${student.streak} hari streak`}</span>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span className="truncate">{student.className}</span>
+          <span aria-hidden="true">·</span>
+          <span>{student.level === null ? 'Level —' : `Level ${student.level}`}</span>
+          <span aria-hidden="true">·</span>
+          <span>{student.streak === null ? 'Streak —' : `${student.streak} hari`}</span>
         </div>
       </div>
     </div>
@@ -265,34 +360,59 @@ function StudentMobileRow({ student }: { student: StudentRow }) {
 function StudentAvatar({ name }: { name: string }) {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '?'
   return (
-    <Avatar className="h-9 w-9">
-      <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">{initials}</AvatarFallback>
+    <Avatar className="h-9 w-9 shrink-0">
+      <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{initials}</AvatarFallback>
     </Avatar>
   )
 }
 
-function SortBtn({ label, onClick }: { label: string; onClick: () => void }) {
+function SortBtn({
+  label,
+  active,
+  asc,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  asc: boolean
+  onClick: () => void
+}) {
+  const Icon = !active ? ArrowUpDown : asc ? ArrowUp : ArrowDown
   return (
-    <button type="button" onClick={onClick} className="flex items-center gap-1 font-medium uppercase tracking-wide transition-colors hover:text-foreground">
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`Urutkan berdasarkan ${label}`}
+      className={cn(
+        'flex items-center gap-1 uppercase tracking-[0.08em] transition-colors',
+        active ? 'text-foreground' : 'hover:text-foreground',
+      )}
+    >
       {label}
-      <ArrowUpDown className="h-3 w-3" />
+      <Icon className="h-3 w-3" />
     </button>
   )
 }
 
 function ScoreCell({ score }: { score: number | null }) {
+  if (score === null) return <span className="text-xs text-muted-foreground">—</span>
+  const clamped = Math.min(100, Math.max(0, score))
   return (
-    <div className="text-muted-foreground">
-      <span>{score === null ? 'Skor tidak tersedia' : `${score}/100`}</span>
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+        <div className="h-full rounded-full bg-primary" style={{ width: `${clamped}%` }} />
+      </div>
+      <span className="text-xs font-semibold tabular-nums text-foreground">{score}</span>
     </div>
   )
 }
 
-function MetricCell({ value, label, icon }: { value: number | null; label: string; icon?: ReactNode }) {
+function MetricCell({ value, icon }: { value: number | null; icon?: ReactNode }) {
+  if (value === null) return <span className="text-xs text-muted-foreground">—</span>
   return (
-    <span className="flex items-center gap-1 text-muted-foreground">
+    <span className="inline-flex items-center gap-1 text-xs font-semibold tabular-nums text-foreground">
       {icon}
-      <Badge variant="secondary">{value === null ? `${label} tidak tersedia` : value}</Badge>
+      {value}
     </span>
   )
 }

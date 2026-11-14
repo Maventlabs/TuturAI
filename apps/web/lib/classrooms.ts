@@ -80,6 +80,7 @@ export function classroomFromSnapshot(snapshot: DocumentSnapshot<DocumentData>) 
     name: data.name,
     description: data.description ?? null,
     school: data.school ?? null,
+    level: data.level ?? null,
     status: data.status,
     createdAt: toIsoString(data.createdAt),
     updatedAt: toIsoString(data.updatedAt),
@@ -142,7 +143,13 @@ export async function updateTeacherClassroom(
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(reference)
     if (!snapshot.exists || snapshot.data()?.teacherId !== teacherId) throw new Error('CLASSROOM_NOT_FOUND')
-    transaction.update(reference, { ...input, status, updatedAt: now })
+    // A PATCH that omits `level` must not wipe the level stored at creation time.
+    transaction.update(reference, {
+      ...input,
+      level: input.level ?? snapshot.data()?.level ?? null,
+      status,
+      updatedAt: now,
+    })
   })
   const updated = classroomFromSnapshot(await reference.get())
   await invalidateNamespaces(

@@ -12,12 +12,29 @@ export interface UserProfile {
   updatedAt: string
 }
 
+export type ClassroomLevel =
+  | 'kelas-1'
+  | 'kelas-2'
+  | 'kelas-3'
+  | 'kelas-4'
+  | 'kelas-5'
+  | 'kelas-6'
+  | 'kelas-7'
+  | 'kelas-8'
+  | 'kelas-9'
+  | 'kelas-10'
+  | 'kelas-11'
+  | 'kelas-12'
+  | 'mahasiswa'
+  | 'umum'
+
 export interface Classroom {
   id: string
   teacherId: string
   name: string
   description: string | null
   school: string | null
+  level: ClassroomLevel | null
   status: RecordStatus
   createdAt: string
   updatedAt: string

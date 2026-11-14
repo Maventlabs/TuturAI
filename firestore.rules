@@ -158,6 +158,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /materials/{materialId} {
+      allow read: if signedIn()
+        && ((hasRole('teacher') && ownsClassroom(resource.data.classId))
+          || (resource.data.status == 'published' && isActiveMember(resource.data.classId)));
+      allow write: if false;
+    }
+
     match /submissions/{submissionId} {
       allow read: if signedIn()
         && (resource.data.studentId == request.auth.uid
@@ -176,6 +183,10 @@ service cloud.firestore {
     }
 
     match /devices/{deviceId} {
+      allow read, write: if false;
+    }
+
+    match /newsletterSubscribers/{subscriberId} {
       allow read, write: if false;
     }
   }

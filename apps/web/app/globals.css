@@ -6,8 +6,9 @@
 
 @theme inline {
   --font-heading: var(--font-jakarta), 'Plus Jakarta Sans Fallback';
-  --font-sans: var(--font-inter), 'Inter Fallback';
-  --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
+  --font-display: var(--font-newsreader), 'Newsreader Fallback';
+  --font-sans: var(--font-inter-tight), 'Inter Tight Fallback';
+  --font-mono: var(--font-plex-mono), 'IBM Plex Mono Fallback';
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -27,6 +28,8 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-glow: var(--accent-glow);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
@@ -34,12 +37,21 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-deep: var(--primary-deep);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-ink-deep: var(--ink-deep);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-ink-muted: var(--ink-muted);
+
+  /* Hairlines for the teacher instrument sheet: --rule divides panels,
+     --grid draws chart gridlines one step lighter than --rule. */
+  --color-rule: var(--rule);
+  --color-grid: var(--grid);
 
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -57,9 +69,21 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
+/*
+ * The marketing page is always light, regardless of the app's theme setting.
+ * `.theme-light` re-declares the light palette on a wrapper element, and
+ * because custom properties inherit from the nearest ancestor that sets them,
+ * it wins over `.dark` on <html> for that subtree only.
+ */
+:root,
+.theme-light {
   color-scheme: light;
-  --radius: 0.875rem;
+  --radius: 0.75rem;
+  /* The single dark surface on the marketing page (offline & hardware section)
+     and the scoreboard band on the teacher leaderboard. */
+  --ink-deep: #101014;
+  --ink-foreground: #f5f5f7;
+  --ink-muted: #a1a1a8;
 
   /* precision-blue brand palette (AGENTS.md section 5) */
   --background: #f5f5f7;
@@ -72,6 +96,8 @@
   /* Primary - TuturAI blue */
   --primary: #2f6df5;
   --primary-foreground: #ffffff;
+  /* Deeper blue for small text on light surfaces: #2f6df5 only reaches 4.3:1 on white. */
+  --primary-deep: #1d4ed8;
 
   /* Secondary - soft blue-tinted surface */
   --secondary: #eceff6;
@@ -83,6 +109,10 @@
   /* Accent - TuturAI deep blue */
   --accent: #0071e3;
   --accent-foreground: #ffffff;
+  /* Light blue tint for accent words inside headlines on blue and dark surfaces. */
+  --accent-soft: #cfe0ff;
+  /* More saturated tint for accent words over the hero photograph. */
+  --accent-glow: #9ec5ff;
 
   /* Brand - gamification accent, stays on-brand amber */
   --brand: #f5a524;
@@ -98,6 +128,8 @@
   --border: #d2d2d7;
   --input: #d2d2d7;
   --ring: #2f6df5;
+  --rule: #e4e4e9;
+  --grid: #eeeef2;
 
   /* Charts: brand blues, amber, emerald, rose, violet */
   --chart-1: #2f6df5;
@@ -120,6 +152,10 @@
 .dark {
   color-scheme: dark;
   --background: #101014;
+  /* Sits one step below the dark canvas so the scoreboard reads as a recessed well. */
+  --ink-deep: #0a0a0d;
+  --ink-foreground: #f5f5f7;
+  --ink-muted: #a1a1a8;
   --foreground: #f5f5f7;
   --card: #1c1c21;
   --card-foreground: #f5f5f7;
@@ -127,6 +163,7 @@
   --popover-foreground: #f5f5f7;
   --primary: #5b8cff;
   --primary-foreground: #101014;
+  --primary-deep: #a8c2ff;
   --secondary: #26262e;
   --secondary-foreground: #f5f5f7;
   --muted: #26262e;
@@ -143,6 +180,8 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: #5b8cff;
+  --rule: oklch(1 0 0 / 10%);
+  --grid: oklch(1 0 0 / 6%);
   --chart-1: #5b8cff;
   --chart-2: #3b95f0;
   --chart-3: #f5b445;
@@ -177,6 +216,21 @@
   }
 }
 
+/* Testimonial columns: seamless vertical loop. Each child carries its own
+   trailing spacing so the -50% translate lands exactly on the duplicate. */
+@keyframes infinite-scroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-infinite-scroll {
+  animation: infinite-scroll linear infinite;
+}
+
 @keyframes waveform {
   0%, 100% {
     height: 0.5rem;
@@ -208,4 +262,227 @@
 
 .animate-pulse-ring {
   animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Problem-section illustrations: slow, low-amplitude loops so they read as
+   diagrams rather than decoration. Disabled entirely under reduced motion. */
+@keyframes illo-bar {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes illo-draw {
+  0% {
+    stroke-dashoffset: 260;
+  }
+  60%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes illo-dot {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes illo-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes illo-signal {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  45%,
+  65% {
+    opacity: 1;
+  }
+}
+
+/* Problem-card UI panels: small, purposeful loops that read as live product
+   state (pending rows, a listening meter, a queue filling up). */
+@keyframes mock-shimmer {
+  0% {
+    background-position: -140% 0;
+  }
+  100% {
+    background-position: 240% 0;
+  }
+}
+
+.mock-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--shimmer, rgba(0, 0, 0, 0.1)) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: mock-shimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes mock-blink {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.mock-blink {
+  animation: mock-blink 1.6s ease-in-out infinite;
+}
+
+@keyframes mock-ripple {
+  0%,
+  100% {
+    opacity: 0.16;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+}
+
+.mock-ripple {
+  animation: mock-ripple 2.6s ease-in-out infinite;
+}
+
+@keyframes mock-scan {
+  0% {
+    transform: translateY(-120%);
+  }
+  100% {
+    transform: translateY(320%);
+  }
+}
+
+.mock-scan {
+  animation: mock-scan 3.2s ease-in-out infinite;
+}
+
+@keyframes mock-bar {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.mock-bar {
+  animation: mock-bar 1.1s ease-in-out infinite;
+}
+
+@keyframes mock-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 42%;
+  }
+}
+
+.mock-fill {
+  animation: mock-fill 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+@keyframes mock-seg {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.mock-seg {
+  transform-origin: left;
+  animation: mock-seg 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/*
+ * Vertical rhythm for the marketing page. Every full-width section shares this
+ * one scale so the page reads as a single system instead of per-section margins.
+ */
+@utility section-y {
+  padding-block: 5rem;
+
+  @media (width >= 40rem) {
+    padding-block: 7rem;
+  }
+
+  @media (width >= 64rem) {
+    padding-block: 9rem;
+  }
+}
+
+/* Matchmaking stage: one scan line sweeping the self-preview frame while the
+   queue searches for a partner. */
+@keyframes tutur-scan {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.tutur-scan-line {
+  animation: tutur-scan 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .illo-anim,
+  .mock-shimmer,
+  .mock-blink,
+  .mock-ripple,
+  .mock-scan,
+  .mock-bar,
+  .mock-fill,
+  .mock-seg,
+  .animate-pulse-ring,
+  .animate-infinite-scroll,
+  .tutur-scan-line {
+    animation: none !important;
+  }
+  .mock-fill {
+    width: 42%;
+  }
+  .mock-seg {
+    transform: none;
+  }
 }

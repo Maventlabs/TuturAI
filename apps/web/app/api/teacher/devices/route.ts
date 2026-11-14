@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
-import { createDeviceSecret, hashDeviceSecret, isValidDeviceId, listTeacherDevices, registerDevice, revokeDevice } from '@/lib/devices'
+import {
+  PAIRING_TTL_MS,
+  createDeviceId,
+  createPairingCode,
+  hashPairingCode,
+  isValidDeviceId,
+  issuePairingCode,
+  listTeacherDevices,
+  registerDevice,
+  revokeDevice,
+} from '@/lib/devices'
 import { getAdminDb } from '@/lib/firebase/admin'
 
 export async function GET() {
@@ -10,25 +20,66 @@ export async function GET() {
   return NextResponse.json({ data: await listTeacherDevices(auth.user.uid) })
 }
 
+/**
+ * Creates a device, or re-issues a pairing code for one that has not been
+ * claimed yet. The device credential is never returned here: the firmware
+ * exchanges the pairing code for its own secret at /api/device/pair.
+ */
 export async function POST(request: NextRequest) {
   const auth = await requireRole('teacher')
   if (!auth.ok) return auth.response
-  const body = await request.json().catch(() => null) as { deviceId?: unknown; classroomId?: unknown } | null
-  const deviceId = typeof body?.deviceId === 'string' ? body.deviceId.trim() : ''
+
+  const body = await request.json().catch(() => null) as { deviceId?: unknown; label?: unknown; classroomId?: unknown } | null
+  const requestedId = typeof body?.deviceId === 'string' ? body.deviceId.trim() : ''
+  const label = typeof body?.label === 'string' && body.label.trim() ? body.label.trim().slice(0, 60) : null
   const classroomId = typeof body?.classroomId === 'string' && body.classroomId.trim() ? body.classroomId.trim() : null
-  if (!isValidDeviceId(deviceId)) return NextResponse.json(apiError('VALIDATION_ERROR', 'Device ID must be 4-64 safe characters'), { status: 400 })
-  try {
-    if (classroomId) {
-      const classroom = await getAdminDb().collection('classrooms').doc(classroomId).get()
-      if (!classroom.exists || classroom.data()?.teacherId !== auth.user.uid || classroom.data()?.status !== 'active') {
-        return NextResponse.json(apiError('FORBIDDEN', 'Classroom is not owned by this teacher'), { status: 403 })
-      }
+
+  if (requestedId && !isValidDeviceId(requestedId)) {
+    return NextResponse.json(apiError('VALIDATION_ERROR', 'Device ID must be 4-64 safe characters'), { status: 400 })
+  }
+
+  if (classroomId) {
+    const classroom = await getAdminDb().collection('classrooms').doc(classroomId).get()
+    if (!classroom.exists || classroom.data()?.teacherId !== auth.user.uid || classroom.data()?.status !== 'active') {
+      return NextResponse.json(apiError('FORBIDDEN', 'Classroom is not owned by this teacher'), { status: 403 })
     }
-    const secret = createDeviceSecret()
-    const device = await registerDevice({ deviceId, teacherId: auth.user.uid, classroomId, secretHash: await hashDeviceSecret(secret) })
-    return NextResponse.json({ data: { device, secret } }, { status: 201 })
+  }
+
+  const code = createPairingCode()
+  const pairingCodeHash = await hashPairingCode(code)
+  const pairingExpiresAt = new Date(Date.now() + PAIRING_TTL_MS)
+  const deviceId = requestedId || createDeviceId()
+
+  try {
+    let device
+    let status = 201
+
+    if (requestedId) {
+      try {
+        device = await issuePairingCode(deviceId, auth.user.uid, { pairingCodeHash, pairingExpiresAt })
+        status = 200
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== 'DEVICE_NOT_FOUND') throw error
+        device = await registerDevice({ deviceId, teacherId: auth.user.uid, classroomId, label, pairingCodeHash, pairingExpiresAt })
+      }
+    } else {
+      device = await registerDevice({ deviceId, teacherId: auth.user.uid, classroomId, label, pairingCodeHash, pairingExpiresAt })
+    }
+
+    return NextResponse.json(
+      { data: { device, pairing: { code, expiresAt: pairingExpiresAt.toISOString() } } },
+      { status },
+    )
   } catch (error) {
-    if (error instanceof Error && error.message === 'DEVICE_ALREADY_REGISTERED') return NextResponse.json(apiError('CONFLICT', 'Device is already registered'), { status: 409 })
+    if (error instanceof Error && error.message === 'DEVICE_ALREADY_REGISTERED') {
+      return NextResponse.json(apiError('CONFLICT', 'Device is already registered'), { status: 409 })
+    }
+    if (error instanceof Error && error.message === 'DEVICE_ALREADY_PAIRED') {
+      return NextResponse.json(apiError('CONFLICT', 'Device is already paired. Revoke it before pairing again.'), { status: 409 })
+    }
+    if (error instanceof Error && error.message === 'DEVICE_REVOKED') {
+      return NextResponse.json(apiError('CONFLICT', 'Device was revoked and cannot be paired again'), { status: 409 })
+    }
     throw error
   }
 }

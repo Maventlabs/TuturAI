@@ -52,11 +52,19 @@ export const publicEnv = {
   },
 } as const
 
+// Secrets pasted from dashboards often arrive wrapped in quotes with escaped
+// newlines, which makes the PEM unparseable. Normalize before validating.
+function normalizePem(value: string) {
+  const trimmed = value.trim()
+  const unquoted = /^(['"])[\s\S]*\1$/.test(trimmed) ? trimmed.slice(1, -1) : trimmed
+  return unquoted.replace(/\\n/g, '\n').trim()
+}
+
 export function getFirebaseAdminEnv() {
   const projectId = required('FIREBASE_ADMIN_PROJECT_ID')
   const clientProjectId = optional('NEXT_PUBLIC_FIREBASE_PROJECT_ID')
   const clientEmail = required('FIREBASE_ADMIN_CLIENT_EMAIL')
-  const privateKey = required('FIREBASE_ADMIN_PRIVATE_KEY').replace(/\\n/g, '\n')
+  const privateKey = normalizePem(required('FIREBASE_ADMIN_PRIVATE_KEY'))
 
   if (clientProjectId && clientProjectId !== projectId) {
     throw new Error('FIREBASE_ADMIN_PROJECT_ID must match NEXT_PUBLIC_FIREBASE_PROJECT_ID')

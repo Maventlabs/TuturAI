@@ -10,7 +10,7 @@
  *    the offline shell instead of the browser's dinosaur page.
  *  - Static assets are cache-first because Next.js fingerprints their URLs.
  */
-const CACHE_VERSION = 'v5'
+const CACHE_VERSION = 'v6'
 const CACHE_NAME = `tuturai-static-${CACHE_VERSION}`
 
 // Only same-origin paths that are guaranteed to exist. A missing entry would

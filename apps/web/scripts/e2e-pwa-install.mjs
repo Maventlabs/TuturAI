@@ -49,9 +49,9 @@ async function run() {
   })
   await page.goto(BASE, { waitUntil: 'commit' })
   await page.waitForSelector('#boot-splash', { timeout: 10_000 }).catch(() => {})
-  const splashBox = await page.locator('#boot-splash .bs-mark').boundingBox().catch(() => null)
-  check('launch screen paints before hydration', Boolean(splashBox && splashBox.height >= 60), JSON.stringify(splashBox))
-  const splashName = await page.locator('#boot-splash .bs-name').textContent().catch(() => '')
+  const splashBox = await page.locator('#boot-splash [data-loader-stack]').boundingBox().catch(() => null)
+  check('launch screen paints a card stack', Boolean(splashBox && splashBox.height >= 60), JSON.stringify(splashBox))
+  const splashName = await page.locator('#boot-splash [data-loader-caption]').textContent().catch(() => '')
   check('launch screen shows the brand wordmark', Boolean(splashName?.includes('Tutur')), String(splashName))
 
   await page.waitForFunction(() => !document.getElementById('boot-splash'), null, { timeout: 30_000 }).catch(() => {})

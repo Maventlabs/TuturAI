@@ -13,7 +13,18 @@ describe('classroom join rules', () => {
   it('validates a classroom creation payload', () => {
     expect(validateClassroomInput({ name: '  XI IPA 1 ', description: '  Speaking class ', school: ' SMA 1 ' })).toEqual({
       success: true,
-      data: { name: 'XI IPA 1', description: 'Speaking class', school: 'SMA 1' },
+      data: { name: 'XI IPA 1', description: 'Speaking class', school: 'SMA 1', level: null },
+    })
+  })
+
+  it('accepts a supported classroom level and rejects an unknown one', () => {
+    expect(validateClassroomInput({ name: 'Kelas 10', level: 'kelas-10' })).toEqual({
+      success: true,
+      data: { name: 'Kelas 10', description: null, school: null, level: 'kelas-10' },
+    })
+    expect(validateClassroomInput({ name: 'Kelas 10', level: 'kelas-13' })).toEqual({
+      success: false,
+      issues: [{ path: 'level', message: 'level must be a supported classroom level' }],
     })
   })
 

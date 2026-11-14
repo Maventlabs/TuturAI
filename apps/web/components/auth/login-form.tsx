@@ -10,6 +10,9 @@ import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { AuthFlowError, authErrorMessage, firebaseAuthErrorCode, logGoogleAuthFailure, serverAuthErrorCode, serverConfigField, serverFirebaseAuthErrorCode, serverRequestId } from '@/lib/firebase/auth-errors'
 import { getFirebaseClientDiagnostics } from '@/lib/firebase/client'
+import { GoogleIcon } from '@/components/auth/google-icon'
+
+const fieldClass = 'h-12 rounded-md px-4 text-[15px] md:text-[15px]'
 
 async function establishSession(authenticatedUser?: User) {
   const user = authenticatedUser ?? getFirebaseAuth().currentUser
@@ -89,20 +92,25 @@ export function LoginForm() {
     <div className="space-y-4">
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" required autoComplete="email" placeholder="nama@sekolah.id" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Label htmlFor="email" className="text-[13px] font-semibold text-foreground">Email</Label>
+          <Input id="email" type="email" required autoComplete="email" placeholder="nama@sekolah.id" value={email} onChange={(e) => setEmail(e.target.value)} className={fieldClass} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Kata Sandi</Label>
-          <Input id="password" type="password" required autoComplete="current-password" placeholder="Masukkan kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Label htmlFor="password" className="text-[13px] font-semibold text-foreground">Kata Sandi</Label>
+          <Input id="password" type="password" required autoComplete="current-password" placeholder="Masukkan kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} className={fieldClass} />
         </div>
-        {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="h-11 w-full" disabled={loading}>
+        {error && (
+          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 px-3.5 py-2.5 text-[13px] leading-relaxed text-destructive">
+            {error}
+          </p>
+        )}
+        <Button type="submit" className="h-12 w-full rounded-md text-[15px] font-semibold" disabled={loading}>
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           Masuk
         </Button>
       </form>
-      <Button type="button" variant="outline" className="h-11 w-full" onClick={handleGoogle} disabled={loading}>
+      <Button type="button" variant="outline" className="h-12 w-full rounded-md text-[15px] font-semibold" onClick={handleGoogle} disabled={loading}>
+        <GoogleIcon className="size-[18px]" />
         Masuk dengan Google
       </Button>
     </div>

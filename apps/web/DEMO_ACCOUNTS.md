@@ -23,7 +23,7 @@
 ### Teacher
 
 - `/guru/kelas` classroom and member management.
-- `/guru/penugasan` assignment lifecycle.
+- `/guru/kelas/[classroomId]` class detail: Stream, Classwork (assignment + material authoring), People, Grades.
 - `/guru/penilaian` review queue and approve/return actions.
 - `/guru/analitik`, `/guru/leaderboard`, `/guru/perangkat`, and `/guru/pengaturan`.
 

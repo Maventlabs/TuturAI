@@ -29,6 +29,8 @@ export interface OfflineRecord<T = unknown> {
 }
 
 export const PENDING_MUTATIONS_CHANGED_EVENT = 'tuturai:pending-mutations-changed'
+/** Fired by the status rail to ask the sync engine for an immediate replay. */
+export const SYNC_REQUESTED_EVENT = 'tuturai:sync-requested'
 export const OFFLINE_MUTATION_SYNCED_EVENT = 'tuturai:offline-mutation-synced'
 
 export function openOfflineDb(): Promise<IDBDatabase> {

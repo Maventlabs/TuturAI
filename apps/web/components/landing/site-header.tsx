@@ -3,181 +3,433 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { Menu, X, ChevronDown, ArrowUpRight } from 'lucide-react'
+import { useGSAP } from '@gsap/react'
+import {
+  ArrowUpRight,
+  ChevronDown,
+  Menu,
+  X,
+} from 'lucide-react'
 import { Logo } from '@/components/logo'
 import { getFirebaseAuth } from '@/lib/firebase/client'
 import { onAuthStateChanged } from 'firebase/auth'
+import { cn } from '@/lib/utils'
 
-const leftItems = [
-  { label: 'Features', href: '#fitur' },
-  { label: 'Why TuturAI', href: '#masalah' },
-]
+gsap.registerPlugin(useGSAP)
 
-const productItems = [
-  { label: 'Untuk Siswa', href: '#untuk-siapa', desc: 'Ruang aman untuk bicara' },
-  { label: 'Untuk Guru', href: '#untuk-siapa', desc: 'Dashboard analitik kelas' },
-  { label: 'Perangkat Offline', href: '#offline', desc: 'ESP32-S3 handheld' },
-  { label: 'Cara Kerja', href: '#cara-kerja', desc: 'Tiga langkah mulai' },
+type PanelItem = {
+  label: string
+  href: string
+}
+
+type NavEntry = {
+  id: string
+  label: string
+  href: string
+  panel?: PanelItem[]
+}
+
+const navEntries: NavEntry[] = [
+  { id: 'kenapa', label: 'Kenapa TuturAI', href: '#masalah' },
+  {
+    id: 'produk',
+    label: 'Produk',
+    href: '#fitur',
+    panel: [
+      { label: 'Latihan Speaking AI', href: '#fitur' },
+      { label: 'Perangkat Offline', href: '#offline' },
+      { label: 'Analitik Guru', href: '#fitur' },
+      { label: 'Sinkron Luring', href: '#offline' },
+    ],
+  },
+  {
+    id: 'solusi',
+    label: 'Solusi',
+    href: '#fitur',
+    panel: [
+      { label: 'Untuk Siswa', href: '#fitur' },
+      { label: 'Untuk Guru', href: '#fitur' },
+      { label: 'Untuk Sekolah', href: '#harga' },
+      { label: 'Kecemasan Berbicara', href: '#masalah' },
+    ],
+  },
+  {
+    id: 'sumber-daya',
+    label: 'Sumber Daya',
+    href: '#faq',
+    panel: [
+      { label: 'FAQ', href: '#faq' },
+      { label: 'Harga & Paket', href: '#harga' },
+      { label: 'Cara Kerja', href: '#fitur' },
+      { label: 'Mulai Sekarang', href: '/auth/sign-up' },
+    ],
+  },
+  { id: 'harga', label: 'Harga', href: '#harga' },
 ]
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [authed, setAuthed] = useState(false)
+  const [overHero, setOverHero] = useState(true)
+  const [navTheme, setNavTheme] = useState<'light' | 'dark' | 'blue'>('light')
+  const [canHover, setCanHover] = useState(false)
+  const shellRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
-  const drawerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let unsub: (() => void) | undefined
     try {
       unsub = onAuthStateChanged(getFirebaseAuth(), (user) => setAuthed(Boolean(user)))
     } catch {
-      setAuthed(false)
+      // Auth is unavailable (no Firebase config in this environment); the
+      // header already defaults to the signed-out state.
     }
     return () => unsub?.()
   }, [])
 
+  // Transparent over the hero at the top; once scrolled, the bar adapts to
+  // whichever section currently sits behind it (see `data-nav-theme` on each
+  // landing section). rAF-throttled so the probe runs at most once per frame.
   useEffect(() => {
-    const el = headerRef.current
-    if (!el) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const ctx = gsap.context(() => {
-      gsap.fromTo(el, { y: -20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: 'power3.out' })
-      let lastY = window.scrollY
-      const onScroll = () => {
-        const y = window.scrollY
-        const dir = y > lastY ? 1 : -1
-        lastY = y
-        if (y > 340 && dir === 1) gsap.to(el, { y: -88, duration: 0.35, ease: 'power2.out', overwrite: 'auto' })
-        else gsap.to(el, { y: 0, duration: 0.35, ease: 'power2.out', overwrite: 'auto' })
-      }
-      window.addEventListener('scroll', onScroll, { passive: true })
-      return () => window.removeEventListener('scroll', onScroll)
-    }, headerRef)
-    return () => ctx.revert()
+    let raf = 0
+
+    const update = () => {
+      raf = 0
+
+      // Stay transparent for as long as the hero still sits behind the bar.
+      const hero = document.getElementById('hero')
+      setOverHero(hero ? hero.getBoundingClientRect().bottom > 80 : false)
+
+      // Probe a point just below the header bar (h-16 mobile / h-18 desktop).
+      const probeY = 80
+      let theme: 'light' | 'dark' | 'blue' = 'light'
+      document.querySelectorAll<HTMLElement>('[data-nav-theme]').forEach((section) => {
+        const rect = section.getBoundingClientRect()
+        if (rect.top <= probeY && rect.bottom > probeY) {
+          theme = (section.dataset.navTheme as 'light' | 'dark' | 'blue') ?? 'light'
+        }
+      })
+      setNavTheme(theme)
+    }
+
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update)
+    }
+
+    update()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+
+  // Hover-to-open only where a real pointer exists, so a tap on touch devices
+  // does not open the panel and immediately toggle it shut.
+  useEffect(() => {
+    const query = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const update = () => setCanHover(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
   }, [])
 
   useEffect(() => {
-    const drawer = drawerRef.current
-    if (!drawer || !open) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    gsap.fromTo(drawer, { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' })
+    if (!openMenu) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenMenu(null)
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) setOpenMenu(null)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('pointerdown', onPointerDown)
+    }
+  }, [openMenu])
+
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
   }, [open])
 
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia()
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.fromTo(
+          shellRef.current,
+          { y: -16, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out' },
+        )
+      })
+      return () => mm.revert()
+    },
+    { scope: shellRef },
+  )
+
+  const closeAll = () => {
+    setOpen(false)
+    setOpenMenu(null)
+    setOpenGroup(null)
+  }
+
+  // True when the bar sits over a dark or blue section and needs inverted
+  // text, an inverted logo, and tinted button treatments.
+  const onTinted = !overHero && navTheme !== 'light'
+
+  // Over the hero the bar is transparent, so the logo and nav links go white.
+  const navInverted = overHero || onTinted
+
   return (
-    <div className="fixed inset-x-0 top-3 z-50 px-3 sm:px-4">
+    <div
+      ref={shellRef}
+      className={cn(
+        'fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300',
+        overHero && 'border-transparent bg-transparent',
+        !overHero && navTheme === 'light' && 'border-border bg-background/85 backdrop-blur-md',
+        !overHero &&
+          navTheme === 'dark' &&
+          'border-white/10 bg-ink-deep/85 text-background backdrop-blur-md',
+        !overHero &&
+          navTheme === 'blue' &&
+          'border-white/15 bg-primary/95 text-primary-foreground backdrop-blur-md',
+      )}
+    >
       <header
         ref={headerRef}
-        className="relative mx-auto flex h-16 w-full max-w-[1400px] items-center gap-3 rounded-lg border border-border/80 bg-background/90 px-4 shadow-[0_8px_40px_-16px_rgba(29,29,31,0.25)] backdrop-blur-xl"
+        onMouseLeave={() => setOpenMenu(null)}
+        className="relative mx-auto flex h-16 w-full max-w-[1400px] items-center gap-2 px-4 sm:px-6 lg:grid lg:h-18 lg:grid-cols-[1fr_auto_1fr] lg:px-8"
       >
-        {/* Left nav (desktop) */}
-        <nav className="hidden min-w-0 flex-1 items-center gap-1 lg:flex" aria-label="Navigasi utama">
-          {leftItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              {item.label}
-            </a>
-          ))}
-          <div className="group relative">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              aria-haspopup="true"
-            >
-              Products
-              <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180" />
-            </button>
-            <div className="invisible absolute left-0 top-full z-50 mt-1 w-64 translate-y-1 rounded-lg border border-border bg-card p-2 opacity-0 shadow-[0_16px_48px_-16px_rgba(29,29,31,0.3)] transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-              {productItems.map((item) => (
-                <a key={item.label} href={item.href} className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary">
-                  <span className="block text-sm font-semibold text-foreground">{item.label}</span>
-                  <span className="block text-xs text-muted-foreground">{item.desc}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        </nav>
-
-        {/* Mobile menu button */}
-        <button
-          type="button"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-foreground lg:hidden"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? 'Tutup menu' : 'Buka menu'}
-          aria-expanded={open}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-
-        {/* Center logo — absolute center, independent of left/right width */}
-        <Link href="/" aria-label="TuturAI beranda" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <Logo />
+        <Link href="/" aria-label="TuturAI beranda" className="shrink-0">
+          <Logo
+            inverted={navInverted}
+            textClassName="font-heading text-xl font-extrabold tracking-tight"
+          />
         </Link>
 
-        {/* Right auth (desktop) */}
-        <div className="ml-auto hidden min-w-0 flex-1 items-center justify-end gap-2 lg:flex">
+        <nav className="hidden items-center justify-center gap-1 lg:flex" aria-label="Navigasi utama">
+          {navEntries.map((entry) =>
+            entry.panel ? (
+              <div key={entry.id} className="relative">
+                <button
+                  type="button"
+                  aria-expanded={openMenu === entry.id}
+                  aria-controls={`nav-panel-${entry.id}`}
+                  onMouseEnter={() => canHover && setOpenMenu(entry.id)}
+                  onClick={() => setOpenMenu((current) => (current === entry.id ? null : entry.id))}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    openMenu === entry.id
+                      ? navInverted
+                        ? 'bg-white/15 text-primary-foreground'
+                        : 'bg-secondary text-foreground'
+                      : navInverted
+                        ? 'text-primary-foreground/80 hover:text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {entry.label}
+                  <ChevronDown
+                    aria-hidden
+                    className={cn(
+                      'h-4 w-4 transition-transform duration-200',
+                      openMenu === entry.id && 'rotate-180',
+                    )}
+                  />
+                </button>
+
+                {openMenu === entry.id && (
+                  <div
+                    id={`nav-panel-${entry.id}`}
+                    className="absolute left-0 top-full pt-2"
+                  >
+                    <ul className="flex w-56 flex-col rounded-xl border border-border bg-card p-1.5 shadow-[0_24px_60px_-32px_rgba(29,29,31,0.35)]">
+                      {entry.panel.map((item) => (
+                        <li key={item.label}>
+                          <Link
+                            href={item.href}
+                            onClick={() => setOpenMenu(null)}
+                            className="block rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+                          >
+                            {item.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <a
+                key={entry.id}
+                href={entry.href}
+                className={cn(
+                  'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  navInverted
+                    ? 'text-primary-foreground/80 hover:text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {entry.label}
+              </a>
+            ),
+          )}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2 lg:ml-0 lg:justify-end">
           {authed ? (
             <Link
               href="/dashboard"
-              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+              className={cn(
+                'hidden h-10 items-center gap-1.5 rounded-lg px-4 text-sm font-semibold transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98] lg:inline-flex',
+                onTinted && navTheme === 'blue'
+                  ? 'bg-primary-foreground text-primary'
+                  : 'bg-primary text-primary-foreground',
+              )}
             >
               Dashboard
-              <ArrowUpRight className="h-4 w-4" />
+              <ArrowUpRight className="h-4 w-4" aria-hidden />
             </Link>
           ) : (
             <>
-              <Link href="/auth/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground">
-                Login
+              <Link
+                href="/auth/login"
+                className={cn(
+                  'hidden h-10 items-center rounded-lg border px-4 text-sm font-semibold transition-colors lg:inline-flex',
+                  onTinted
+                    ? 'border-white/30 bg-white/10 text-primary-foreground hover:bg-white/20'
+                    : 'border-border bg-card text-foreground hover:bg-secondary',
+                )}
+              >
+                Masuk
               </Link>
               <Link
                 href="/auth/sign-up"
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+                className={cn(
+                  'hidden h-10 items-center gap-1.5 rounded-lg px-4 text-sm font-semibold transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98] lg:inline-flex',
+                  onTinted && navTheme === 'blue'
+                    ? 'bg-primary-foreground text-primary'
+                    : 'bg-primary text-primary-foreground',
+                )}
               >
-                Sign Up
-                <ArrowUpRight className="h-4 w-4" />
+                Coba Gratis
+                <ArrowUpRight className="h-4 w-4" aria-hidden />
               </Link>
             </>
           )}
+
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-label={open ? 'Tutup menu' : 'Buka menu'}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            className={cn(
+              'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition-colors lg:hidden',
+              onTinted
+                ? 'border-white/30 bg-white/10 text-primary-foreground hover:bg-white/20'
+                : 'border-border bg-card text-foreground hover:bg-secondary',
+            )}
+          >
+            {open ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
+          </button>
         </div>
-        <span className="w-10 shrink-0 lg:hidden" aria-hidden />
+
       </header>
 
       {open && (
-        <div
-          ref={drawerRef}
-          className="mx-auto mt-2 w-full max-w-[1400px] rounded-lg border border-border bg-background/95 shadow-[0_8px_40px_-16px_rgba(29,29,31,0.25)] backdrop-blur-xl lg:hidden"
-        >
-          <nav className="flex flex-col gap-1 p-3" aria-label="Navigasi seluler">
-            {leftItems.map((item) => (
-              <a key={item.href} href={item.href} onClick={() => setOpen(false)} className="rounded-lg px-3.5 py-3 text-sm font-medium text-foreground hover:bg-secondary">
-                {item.label}
-              </a>
-            ))}
-            <p className="px-3.5 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Products</p>
-            {productItems.map((item) => (
-              <a key={item.label} href={item.href} onClick={() => setOpen(false)} className="rounded-lg px-3.5 py-3 text-sm text-foreground hover:bg-secondary">
-                {item.label}
-              </a>
-            ))}
-            <div className="mt-3 flex gap-2 border-t border-border pt-4">
+        <div id="mobile-nav" className="absolute inset-x-0 top-full lg:hidden">
+          <div className="mx-4 mb-3 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-xl border border-border bg-card shadow-[0_24px_60px_-32px_rgba(29,29,31,0.35)] sm:mx-6">
+            <nav aria-label="Navigasi seluler" className="flex flex-col px-2 py-1">
+              {navEntries.map((entry) =>
+                entry.panel ? (
+                  <div key={entry.id} className="border-b border-border last:border-b-0">
+                    <button
+                      type="button"
+                      onClick={() => setOpenGroup((current) => (current === entry.id ? null : entry.id))}
+                      aria-expanded={openGroup === entry.id}
+                      aria-controls={`mobile-group-${entry.id}`}
+                      className="flex w-full items-center justify-between px-3 py-4 text-left text-base font-medium text-foreground"
+                    >
+                      {entry.label}
+                      <ChevronDown
+                        aria-hidden
+                        className={cn(
+                          'h-5 w-5 text-muted-foreground transition-transform duration-200',
+                          openGroup === entry.id && 'rotate-180',
+                        )}
+                      />
+                    </button>
+                    {openGroup === entry.id && (
+                      <ul id={`mobile-group-${entry.id}`} className="pb-3">
+                        {entry.panel.map((item) => (
+                          <li key={item.label}>
+                            <Link
+                              href={item.href}
+                              onClick={closeAll}
+                              className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+                            >
+                              {item.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  <a
+                    key={entry.id}
+                    href={entry.href}
+                    onClick={closeAll}
+                    className="border-b border-border px-3 py-4 text-base font-medium text-foreground last:border-b-0"
+                  >
+                    {entry.label}
+                  </a>
+                ),
+              )}
+            </nav>
+            <div className="flex flex-col gap-2 border-t border-border p-3">
               {authed ? (
-                <Link href="/dashboard" onClick={() => setOpen(false)} className="inline-flex h-11 flex-1 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
+                <Link
+                  href="/dashboard"
+                  onClick={closeAll}
+                  className="inline-flex h-12 items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
+                >
                   Dashboard
+                  <ArrowUpRight className="h-4 w-4" aria-hidden />
                 </Link>
               ) : (
                 <>
-                  <Link href="/auth/login" onClick={() => setOpen(false)} className="inline-flex h-11 flex-1 items-center justify-center rounded-lg border border-border text-sm font-semibold">
-                    Login
+                  <Link
+                    href="/auth/login"
+                    onClick={closeAll}
+                    className="inline-flex h-12 items-center justify-center rounded-lg border border-border bg-card text-sm font-semibold text-foreground"
+                  >
+                    Masuk
                   </Link>
-                  <Link href="/auth/sign-up" onClick={() => setOpen(false)} className="inline-flex h-11 flex-1 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
-                    Sign Up
+                  <Link
+                    href="/auth/sign-up"
+                    onClick={closeAll}
+                    className="inline-flex h-12 items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
+                  >
+                    Coba Gratis
+                    <ArrowUpRight className="h-4 w-4" aria-hidden />
                   </Link>
                 </>
               )}
             </div>
-          </nav>
+          </div>
         </div>
       )}
     </div>

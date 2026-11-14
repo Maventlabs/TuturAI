@@ -29,16 +29,16 @@ try {
   if (!classroomId) throw new Error('Teacher fixture returned no classroom')
 
   const title = `E2E authored assignment ${Date.now()}`
-  await page.goto(`${baseURL}/guru/penugasan`)
-  await page.getByRole('heading', { name: 'Penugasan', exact: true }).waitFor()
-  await page.getByLabel('Classroom').selectOption(classroomId)
-  await page.getByLabel('Status saat dibuat').selectOption('published')
-  await page.getByLabel('Judul').fill(title)
+  await page.goto(`${baseURL}/guru/kelas/${classroomId}/classwork`)
+  await page.getByRole('heading', { name: 'Classwork', exact: true }).waitFor()
+  await page.getByRole('button', { name: /Buat/ }).click()
+  await page.getByRole('menuitem', { name: /Penugasan/ }).click()
+  await page.getByLabel('Judul penugasan').fill(title)
   await page.getByLabel('Instruksi').fill('Create and read back a durable assignment.')
-  await page.getByLabel('Maksimal attempt').fill('2')
+  await page.getByLabel('Maks attempt').fill('2')
 
   const createResponse = page.waitForResponse((response) => response.url().includes(`/api/classrooms/${classroomId}/assignments`) && response.request().method() === 'POST')
-  await page.getByRole('button', { name: 'Simpan penugasan', exact: true }).click()
+  await page.getByRole('button', { name: 'Simpan', exact: true }).click()
   const created = await createResponse
   if (created.status() !== 201) throw new Error(`Expected assignment create 201, received ${created.status()}`)
 
@@ -56,7 +56,7 @@ try {
     throw new Error('Firestore assignment does not match the browser-created assignment')
   }
   await page.reload()
-  await page.getByRole('heading', { name: title, exact: true }).waitFor()
+  await page.getByText(title, { exact: true }).waitFor()
   await db.collection('classrooms').doc('e2e-outsider-classroom').set({
     name: 'Outsider classroom',
     teacherId: 'e2e-outsider-teacher',

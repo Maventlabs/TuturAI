@@ -1,121 +1,141 @@
 'use client'
 
 import Image from 'next/image'
-import { Mic, Gauge, Trophy, WifiOff, BarChart3 } from 'lucide-react'
 import { GSAPLines, GSAPReveal } from './gsap-helpers'
+
+type Tile = {
+  id: string
+  label: string
+  caption: string
+  src: string
+  alt: string
+  placement: string
+  sizes: string
+  objectClass?: string
+}
+
+const tiles: Tile[] = [
+  {
+    id: 'speaking',
+    label: 'Speaking AI',
+    caption:
+      'Speaking practice, AI conversation, dan pronunciation lab. Dinilai lima dimensi, bukan satu angka.',
+    src: '/hero-student.webp',
+    alt: 'Siswa SMA berlatih speaking dengan partner AI TuturAI',
+    placement: 'min-h-[380px] lg:col-start-1 lg:row-start-1 lg:row-span-4 lg:min-h-0',
+    sizes: '(min-width: 1024px) 45vw, 100vw',
+    objectClass: 'object-[center_28%] lg:object-center',
+  },
+  {
+    id: 'dashboard',
+    label: 'Dashboard guru',
+    caption: 'Analitik kelas, antrean penilaian, dan rekap kesalahan umum dalam satu layar.',
+    src: '/feature-dashboard.png',
+    alt: 'Laptop menampilkan dashboard analitik kelas',
+    placement: 'min-h-[220px] lg:col-start-2 lg:col-span-2 lg:row-start-1 lg:min-h-0',
+    sizes: '(min-width: 1024px) 55vw, 100vw',
+  },
+  {
+    id: 'kuis',
+    label: 'Kuis per kata',
+    caption: 'Vocabulary, kuis terpadu, dan tes pedagogis. Tiap kata punya level Easy, Medium, Hard.',
+    src: '/feature-flashcards.png',
+    alt: 'Tumpukan kartu flashcard di atas meja',
+    placement: 'min-h-[200px] lg:col-start-2 lg:row-start-2 lg:min-h-0',
+    sizes: '(min-width: 1024px) 28vw, 100vw',
+  },
+  {
+    id: 'listening',
+    label: 'Listening',
+    caption: 'Mode santai atau baku, tiga level, satu menit audio, delapan soal per set.',
+    src: '/feature-listening.png',
+    alt: 'Headphone di atas buku catatan',
+    placement: 'min-h-[200px] lg:col-start-3 lg:row-start-2 lg:min-h-0',
+    sizes: '(min-width: 1024px) 28vw, 100vw',
+  },
+  {
+    id: 'adaptive',
+    label: 'Adaptive learning',
+    caption: 'Jalur belajar dan modul PDF yang menyesuaikan level, plus progres dan pencapaian.',
+    src: '/feature-adaptive.png',
+    alt: 'Tablet menampilkan modul belajar di atas meja',
+    placement: 'min-h-[220px] lg:col-start-2 lg:row-start-3 lg:row-span-2 lg:min-h-0',
+    sizes: '(min-width: 1024px) 28vw, 100vw',
+  },
+  {
+    id: 'hardware',
+    label: 'Perangkat offline',
+    caption:
+      'Latihan tetap jalan tanpa internet. Hasil tersimpan di perangkat, lalu sinkron otomatis begitu tersambung lagi.',
+    src: '/feature-device.png',
+    alt: 'Perangkat belajar genggam di atas meja kelas',
+    placement: 'min-h-[240px] lg:col-start-3 lg:row-start-3 lg:row-span-2 lg:min-h-0',
+    sizes: '(min-width: 1024px) 28vw, 100vw',
+  },
+]
 
 export function Features() {
   return (
-    <section id="fitur" className="scroll-mt-20 bg-background px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <section id="fitur" data-nav-theme="light" className="section-y scroll-mt-24 bg-background px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
-        <div className="max-w-2xl">
-          <GSAPLines>
-            <h2 className="font-heading text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              <span data-line className="block">Semua alat bicara,</span>
-              <span data-line className="block">dalam satu tempat.</span>
-            </h2>
-          </GSAPLines>
-          <GSAPReveal delay={0.1}>
-            <p className="mt-4 text-muted-foreground">
-              Mulai dari partner AI sampai analitik guru — dirancang untuk konteks belajar Indonesia.
+        <div className="mx-auto max-w-2xl text-center">
+          <GSAPReveal>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Isi dalamnya
             </p>
           </GSAPReveal>
+          <GSAPLines>
+            <h2 className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-foreground text-balance sm:text-4xl lg:text-5xl">
+              <span data-line className="block">
+                Semua alat <span className="text-primary">bicara</span>,
+              </span>
+              <span data-line className="block">
+                dalam satu tempat.
+              </span>
+            </h2>
+
+            <p
+              data-line
+              className="mt-6 max-w-[58ch] text-base leading-relaxed text-muted-foreground text-pretty sm:text-lg"
+            >
+              Sembilan alat yang saling terhubung — dari latihan speaking real-time sampai laporan
+              PDF untuk guru. Semuanya berbagi satu profil belajar.
+            </p>
+          </GSAPLines>
         </div>
 
-        {/* Bento 5 sel: 2 besar + 3 kecil — ritme ber-variasi, background beragam */}
-        <div className="mt-12 grid gap-5 md:grid-cols-6">
-          {/* Hero cell: partner speaking + image */}
-          <GSAPReveal className="md:col-span-4">
-            <article className="group relative h-full overflow-hidden rounded-[1.75rem] border border-border bg-card">
-              <div className="grid sm:grid-cols-2">
-                <div className="p-7 sm:p-9">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Mic className="h-5 w-5" />
-                  </span>
-                  <h3 className="mt-5 font-heading text-xl font-bold text-foreground">Partner Speaking AI</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    Ngobrol bebas 24/7. Tidak malu, tidak dinilai teman — latihan sampai berani.
-                  </p>
-                  <ul className="mt-5 space-y-2 text-xs text-muted-foreground">
-                    <li className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-primary" /> Skenario sehari-hari & materi sekolah</li>
-                    <li className="flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-primary" /> Suara AI bisa pakai suara guru</li>
-                  </ul>
-                </div>
-                <div className="relative min-h-56 overflow-hidden bg-secondary">
+        <GSAPReveal delay={0.15} className="mt-12 sm:mt-16">
+          <div className="rounded-sm bg-ink-deep p-2.5 sm:p-3.5">
+            <div className="grid gap-2.5 sm:gap-3 lg:h-[800px] lg:grid-cols-[1.6fr_1fr_1fr] lg:grid-rows-4">
+              {tiles.map((tile) => (
+                <article
+                  key={tile.id}
+                  className={`group relative overflow-hidden rounded-sm bg-ink-deep ${tile.placement}`}
+                >
                   <Image
-                    src="/hero-student.webp"
-                    alt="Siswa berlatih speaking dengan partner AI TuturAI"
-                    width={640}
-                    height={520}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    src={tile.src}
+                    alt={tile.alt}
+                    fill
+                    sizes={tile.sizes}
+                    className={`object-cover transition-transform duration-500 group-hover:scale-[1.03] ${tile.objectClass ?? 'object-center'}`}
                   />
-                </div>
-              </div>
-            </article>
-          </GSAPReveal>
-
-          {/* 5 dimensi */}
-          <GSAPReveal delay={0.07} className="md:col-span-2">
-            <article className="h-full rounded-[1.75rem] bg-primary p-7 text-primary-foreground">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15">
-                <Gauge className="h-5 w-5" />
-              </span>
-              <h3 className="mt-5 font-heading text-xl font-bold">Feedback 5 Dimensi</h3>
-              <p className="mt-2 text-sm leading-relaxed text-primary-foreground/80">
-                Pronunciation, fluency, intonation, grammar, vocabulary — langsung setelah bicara.
-              </p>
-              <div className="mt-6 space-y-2">
-                {['Pronunciation', 'Fluency', 'Intonation', 'Grammar', 'Vocabulary'].map((d) => (
-                  <span key={d} className="inline-block rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold">
-                    {d}
-                  </span>
-                ))}
-              </div>
-            </article>
-          </GSAPReveal>
-
-          {/* Gamifikasi */}
-          <GSAPReveal delay={0.03} className="md:col-span-2">
-            <article className="h-full rounded-[1.75rem] border border-border bg-brand/15 p-7">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/25 text-brand-foreground">
-                <Trophy className="h-5 w-5" />
-              </span>
-              <h3 className="mt-5 font-heading text-xl font-bold text-foreground">XP, Streak & Badge</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Kumpulkan XP, jaga streak, naik leaderboard kelas.
-              </p>
-            </article>
-          </GSAPReveal>
-
-          {/* Guru */}
-          <GSAPReveal delay={0.08} className="md:col-span-2">
-            <article className="group relative h-full overflow-hidden rounded-[1.75rem] border border-border bg-card">
-              <div className="p-7">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                  <BarChart3 className="h-5 w-5" />
-                </span>
-                <h3 className="mt-5 font-heading text-xl font-bold text-foreground">Dashboard Guru</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  Tren, skill, common-error — putuskan perbaikan dari data.
-                </p>
-              </div>
-            </article>
-          </GSAPReveal>
-
-          {/* Offline */}
-          <GSAPReveal delay={0.12} className="md:col-span-2">
-            <article className="h-full rounded-[1.75rem] bg-foreground p-7 text-background">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                <WifiOff className="h-5 w-5" />
-              </span>
-              <h3 className="mt-5 font-heading text-xl font-bold">Offline-First</h3>
-              <p className="mt-2 text-sm leading-relaxed text-background/70">
-                Tanpa internet pun tetap latihan. Sync otomatis saat online.
-              </p>
-              <p className="mt-5 inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold">PWA + perangkat ESP32-S3</p>
-            </article>
-          </GSAPReveal>
-        </div>
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 bg-linear-to-t from-ink-deep/92 via-ink-deep/50 to-ink-deep/5"
+                  />
+                  <div className="relative flex h-full flex-col justify-end p-5 sm:p-6">
+                    <h3 className="font-heading text-xl font-bold tracking-[-0.01em] text-white sm:text-2xl">
+                      {tile.label}
+                    </h3>
+                    <p className="mt-1.5 max-w-[38ch] text-sm leading-relaxed text-white/75 text-pretty">
+                      {tile.caption}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </GSAPReveal>
       </div>
     </section>
   )

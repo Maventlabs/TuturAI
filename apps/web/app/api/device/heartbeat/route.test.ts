@@ -19,12 +19,22 @@ function request(body: unknown, secret = 'secret') {
   return new NextRequest('http://localhost/api/device/heartbeat', { method: 'POST', headers: { 'content-type': 'application/json', 'x-device-id': 'esp32-1', 'x-device-secret': secret }, body: JSON.stringify(body) })
 }
 
+function mockStoredDevice(data: Record<string, unknown>) {
+  mockedDb.mockReturnValue({ collection: () => ({ doc: () => ({ get: async () => ({ data: () => data }) }) }) } as never)
+}
+
 describe('/api/device/heartbeat', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mockedGetDevice.mockResolvedValue({ id: 'esp32-1' } as never)
     mockedVerify.mockResolvedValue(true)
-    mockedDb.mockReturnValue({ collection: () => ({ doc: () => ({ get: async () => ({ data: () => ({ credentialHash: 'hash' }) }) }) }) } as never)
+    mockStoredDevice({ credentialHash: 'hash' })
+  })
+
+  it('rejects a missing device secret', async () => {
+    const response = await POST(request({ battery: 90 }, ''))
+    expect(response.status).toBe(401)
+    expect(mockedUpdate).not.toHaveBeenCalled()
   })
 
   it('rejects invalid credentials', async () => {
@@ -34,10 +44,18 @@ describe('/api/device/heartbeat', () => {
     expect(mockedUpdate).not.toHaveBeenCalled()
   })
 
+  it('rejects a revoked device even with a valid secret', async () => {
+    mockStoredDevice({ credentialHash: 'hash', revokedAt: new Date() })
+    const response = await POST(request({ battery: 90 }))
+    expect(response.status).toBe(401)
+    expect(mockedUpdate).not.toHaveBeenCalled()
+  })
+
   it('accepts bounded telemetry and updates the durable device record', async () => {
     const response = await POST(request({ battery: 90, signal: 75, firmware: '1.0.0' }))
     expect(response.status).toBe(200)
-    expect(mockedUpdate).toHaveBeenCalledWith('esp32-1', { battery: 90, signal: 75, firmware: '1.0.0' })
+    expect(mockedUpdate).toHaveBeenCalledWith('esp32-1', { battery: 90, signal: 75, firmware: '1.0.0' }, { credentialHash: 'hash' })
+    await expect(response.json()).resolves.toMatchObject({ data: { accepted: true, status: 'online', heartbeatIntervalSeconds: 30 } })
   })
 
   it('rejects telemetry outside the device contract', async () => {

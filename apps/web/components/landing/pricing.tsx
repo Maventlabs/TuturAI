@@ -1,126 +1,261 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Check } from 'lucide-react'
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  Clock,
+  Cpu,
+  FileText,
+  GraduationCap,
+  Headphones,
+  Mail,
+  Server,
+  ShieldCheck,
+  UserCog,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
+import { GSAPLines, GSAPReveal } from './gsap-helpers'
 
-const plans = [
+type Billing = 'bulanan' | 'tahunan'
+
+type Plan = {
+  id: string
+  name: string
+  tagline: string
+  price: Record<Billing, string>
+  unit: string
+  note: Record<Billing, string>
+  cta: string
+  href: string
+  tone: 'light' | 'primary' | 'dark'
+  featured?: boolean
+  features: string[]
+  extras: { icon: LucideIcon; label: string }[]
+}
+
+const plans: Plan[] = [
   {
-    name: 'Siswa',
-    price: 'Gratis',
-    period: 'selamanya',
-    desc: 'Untuk belajar mandiri setiap hari.',
+    id: 'gratis',
+    name: 'Gratis',
+    tagline: 'Untuk siswa yang ingin mencoba dulu.',
+    price: { bulanan: 'Rp0', tahunan: 'Rp0' },
+    unit: 'selamanya',
+    note: { bulanan: 'Tanpa kartu kredit', tahunan: 'Tanpa kartu kredit' },
+    cta: 'Mulai gratis',
+    href: '/auth/sign-up',
+    tone: 'light',
     features: [
-      'Sesi speaking AI harian',
-      'Feedback pronunciation & grammar',
-      'Streak, XP, dan badge',
-      'Akses materi dasar',
+      'Partner speaking AI, 3 sesi per hari',
+      'Feedback grammar dan vocabulary',
+      'Kuis per kata dan analisis paragraf',
+      'Progres, streak, dan badge',
+      'Leaderboard kelas',
+      'Mode offline terbatas',
     ],
-    cta: 'Mulai Gratis',
-    highlight: false,
+    extras: [
+      { icon: Clock, label: 'Riwayat latihan 7 hari' },
+      { icon: FileText, label: 'Ringkasan hasil per sesi' },
+      { icon: Users, label: 'Dukungan komunitas' },
+    ],
   },
   {
-    name: 'Kelas',
-    price: 'Rp25rb',
-    period: '/siswa per bulan',
-    desc: 'Untuk guru dan kelas yang ingin pantauan lengkap.',
+    id: 'sekolah',
+    name: 'School Plan',
+    tagline: 'Semua yang ada di paket Gratis, plus:',
+    price: { bulanan: 'Rp15.000', tahunan: 'Rp12.000' },
+    unit: 'per siswa / bulan',
+    note: { bulanan: 'Ditagih per bulan', tahunan: 'Ditagih per tahun, hemat 20%' },
+    cta: 'Ajukan School Plan',
+    href: '/auth/sign-up',
+    tone: 'primary',
+    featured: true,
     features: [
-      'Semua fitur Siswa',
+      'Sesi speaking tanpa batas',
+      'Feedback lima dimensi termasuk pronunciation',
       'Dashboard analitik guru',
-      'Penugasan & pemantauan kelas',
-      'Laporan progres mingguan',
-      'Prioritas dukungan',
+      'Penugasan dan penilaian otomatis',
+      'Voice profile guru (OmniVoice)',
+      'Laporan PDF per kelas',
     ],
-    cta: 'Coba untuk Kelas',
-    highlight: true,
+    extras: [
+      { icon: Cpu, label: 'Monitoring perangkat ESP32-S3' },
+      { icon: GraduationCap, label: 'Onboarding guru satu sesi' },
+      { icon: Mail, label: 'Dukungan email 1x24 jam' },
+      { icon: ShieldCheck, label: 'Data siswa terisolasi per sekolah' },
+    ],
   },
   {
-    name: 'Sekolah',
-    price: 'Custom',
-    period: 'hubungi kami',
-    desc: 'Untuk implementasi tingkat sekolah/yayasan.',
+    id: 'enterprise',
+    name: 'Enterprise',
+    tagline: 'Semua yang ada di School Plan, plus:',
+    price: { bulanan: 'Custom', tahunan: 'Custom' },
+    unit: 'sesuai kebutuhan',
+    note: { bulanan: 'Kontrak tahunan', tahunan: 'Kontrak multi-tahun' },
+    cta: 'Hubungi kami',
+    href: 'mailto:hello@tuturai.id?subject=Enterprise%20Plan',
+    tone: 'dark',
     features: [
-      'Semua fitur Kelas',
-      'Manajemen multi-kelas',
-      'Integrasi data sekolah',
-      'Pelatihan guru & onboarding',
+      'Multi-sekolah dan multi-kelas',
+      'SSO dan manajemen peran',
+      'Kuota perangkat tanpa batas',
+      'SLA uptime 99,5%',
+      'Pendampingan kurikulum',
+      'Integrasi Dapodik',
     ],
-    cta: 'Hubungi Tim',
-    highlight: false,
+    extras: [
+      { icon: UserCog, label: 'Account manager khusus' },
+      { icon: BookOpen, label: 'Pelatihan guru on-site' },
+      { icon: Server, label: 'Opsi deployment on-premise' },
+      { icon: Headphones, label: 'Dukungan prioritas 24/7' },
+    ],
   },
 ]
 
+const priceTone: Record<Plan['tone'], string> = {
+  light: 'bg-secondary text-foreground',
+  primary: 'bg-primary text-primary-foreground',
+  dark: 'bg-ink-deep text-background',
+}
+
 export function Pricing() {
+  const [billing, setBilling] = useState<Billing>('bulanan')
+
   return (
-    <section id="harga" className="scroll-mt-20 py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <section id="harga" data-nav-theme="blue" className="section-y scroll-mt-24 bg-primary px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            Harga
-          </p>
-          <h2 className="mt-3 text-balance font-heading text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-            Mulai gratis, tingkatkan saat siap
-          </h2>
-          <p className="mt-4 text-pretty text-muted-foreground">
-            Transparan dan ramah anggaran sekolah Indonesia.
-          </p>
+          <GSAPReveal>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground/70">
+              Paket
+            </p>
+          </GSAPReveal>
+          <GSAPLines>
+            <h2 className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-primary-foreground text-balance sm:text-4xl lg:text-5xl">
+              <span data-line className="block">
+                Berapa <span className="text-accent-soft">biayanya</span>?
+              </span>
+            </h2>
+          </GSAPLines>
+          <GSAPReveal delay={0.1}>
+            <p className="mt-6 text-primary-foreground/80 text-pretty">
+              Siswa mulai gratis. Sekolah membayar per siswa, dan paketnya bisa dijeda atau diubah
+              kapan saja.
+            </p>
+          </GSAPReveal>
         </div>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-3">
-          {plans.map((plan, i) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.45, delay: i * 0.08 }}
-            >
-              <Card
-                className={`relative flex h-full flex-col p-7 ${
-                  plan.highlight
-                    ? 'border-primary shadow-lg ring-1 ring-primary'
-                    : 'border-border'
+          <GSAPReveal delay={0.15} className="mt-12 flex justify-center sm:mt-16">
+          <div
+            role="group"
+            aria-label="Periode penagihan"
+            className="inline-flex items-center gap-1 rounded-full border border-primary-foreground/25 bg-primary-foreground/10 p-1"
+          >
+            {(['bulanan', 'tahunan'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setBilling(option)}
+                aria-pressed={billing === option}
+                className={`inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold capitalize transition-colors ${
+                  billing === option
+                    ? 'bg-primary-foreground text-primary'
+                    : 'text-primary-foreground/70 hover:text-primary-foreground'
                 }`}
               >
-                {plan.highlight && (
-                  <Badge className="absolute -top-3 left-7 bg-primary text-primary-foreground hover:bg-primary">
-                    Paling Populer
-                  </Badge>
+                {option}
+                {option === 'tahunan' && (
+                  <span className="font-mono text-[10px] font-normal opacity-70">-20%</span>
                 )}
-                <h3 className="font-heading text-lg font-bold text-foreground">
-                  {plan.name}
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.desc}</p>
-                <div className="mt-5 flex items-baseline gap-1.5">
-                  <span className="font-heading text-3xl font-extrabold text-foreground">
-                    {plan.price}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {plan.period}
-                  </span>
+              </button>
+            ))}
+          </div>
+        </GSAPReveal>
+
+          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          {plans.map((plan, index) => (
+            <GSAPReveal key={plan.id} delay={index * 0.06} className="h-full">
+              <article
+                className={`flex h-full flex-col rounded-sm border bg-card p-6 sm:p-7 ${
+                  plan.featured ? 'border-foreground ring-1 ring-foreground' : 'border-border'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="font-heading text-lg font-bold tracking-[-0.01em] text-foreground">
+                    {plan.name}
+                  </h3>
+                  {plan.featured && (
+                    <span className="shrink-0 rounded-sm bg-primary px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-primary-foreground">
+                      Paling populer
+                    </span>
+                  )}
                 </div>
-                <ul className="mt-6 flex-1 space-y-3">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5">
-                      <Check className="mt-0.5 h-4 w-4 flex-none text-primary" />
-                      <span className="text-sm text-muted-foreground">{f}</span>
+
+                <div className="mt-6 flex items-end justify-between gap-3">
+                  <div className={`rounded-sm px-3.5 py-2.5 ${priceTone[plan.tone]}`}>
+                    <span className="font-heading text-3xl font-bold tracking-[-0.02em]">
+                      {plan.price[billing]}
+                    </span>
+                    <span className="ml-1.5 font-mono text-[10px] opacity-80">{plan.unit}</span>
+                  </div>
+                  <p className="max-w-[11ch] pb-1 text-right font-mono text-[10px] uppercase leading-relaxed tracking-[0.1em] text-muted-foreground">
+                    {plan.note[billing]}
+                  </p>
+                </div>
+
+                <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                  Fitur
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground text-pretty">{plan.tagline}</p>
+
+                <ul className="mt-4 flex flex-col gap-2.5">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2.5">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden />
+                      </span>
+                      <span className="text-sm leading-relaxed text-foreground text-pretty">
+                        {feature}
+                      </span>
                     </li>
                   ))}
                 </ul>
-                <Button
-                  className="mt-7 w-full"
-                  variant={plan.highlight ? 'default' : 'outline'}
-                  asChild
-                >
-                  <Link href="/auth/sign-up">{plan.cta}</Link>
-                </Button>
-              </Card>
-            </motion.div>
+
+                <ul className="mt-5 flex flex-col gap-2.5 border-t border-border pt-5">
+                  {plan.extras.map(({ icon: Icon, label }) => (
+                    <li key={label} className="flex items-start gap-2.5">
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                      <span className="text-sm leading-relaxed text-muted-foreground text-pretty">
+                        {label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-auto pt-7">
+                  <Link
+                    href={plan.href}
+                    className={`inline-flex h-12 w-full items-center justify-center gap-2 rounded-sm text-sm font-semibold transition-transform duration-150 hover:scale-[1.01] active:scale-[0.99] ${
+                      plan.featured
+                        ? 'bg-primary text-primary-foreground'
+                        : 'border border-foreground/20 text-foreground hover:border-foreground/40'
+                    }`}
+                  >
+                    {plan.cta}
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </Link>
+                </div>
+              </article>
+            </GSAPReveal>
           ))}
         </div>
+
+        <p className="mt-8 text-center font-mono text-[11px] text-primary-foreground/70">
+          Harga dalam Rupiah, belum termasuk PPN. Pembayaran diproses lewat gateway resmi.
+        </p>
       </div>
     </section>
   )

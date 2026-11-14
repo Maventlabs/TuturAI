@@ -1,34 +1,64 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Cpu, Battery, RefreshCw, Wifi, CircleDot } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
+import { RailIndicator, RailReadout, RailValue } from '@/components/dashboard/rail-readout'
 import { cn } from '@/lib/utils'
+
+type Device = {
+  status: 'online' | 'offline' | 'busy'
+  battery: number | null
+  signal: number | null
+  lastSyncAt: string | null
+}
+
+async function fetchDevice(): Promise<{ ok: boolean; device: Device | null }> {
+  const response = await fetch('/api/teacher/devices', { cache: 'no-store' })
+  const payload = (await response.json()) as { data?: Device[] }
+  return { ok: response.ok, device: Array.isArray(payload.data) ? (payload.data[0] ?? null) : null }
+}
 
 export function HardwareStatus() {
   const [syncing, setSyncing] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
-  const [device, setDevice] = useState<{ status: 'online' | 'offline' | 'busy'; battery: number | null; signal: number | null; lastSyncAt: string | null } | null>(null)
+  const [device, setDevice] = useState<Device | null>(null)
 
-  async function loadDevice() {
+  useEffect(() => {
+    let cancelled = false
+    void fetchDevice()
+      .then((result) => {
+        if (cancelled) return
+        setUnavailable(!result.ok)
+        setDevice(result.device)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setUnavailable(true)
+        setDevice(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function reload() {
     setSyncing(true)
     try {
-      const response = await fetch('/api/teacher/devices', { cache: 'no-store' })
-      const payload = await response.json() as { data?: typeof device }
-      setUnavailable(!response.ok)
-      setDevice(Array.isArray(payload.data) ? payload.data[0] ?? null : null)
+      const result = await fetchDevice()
+      setUnavailable(!result.ok)
+      setDevice(result.device)
     } catch {
       setUnavailable(true)
       setDevice(null)
-    } finally { setSyncing(false) }
+    } finally {
+      setSyncing(false)
+    }
   }
-
-  useEffect(() => { void loadDevice() }, [])
 
   const online = device?.status === 'online' || device?.status === 'busy'
   const battery = device?.battery
@@ -38,107 +68,87 @@ export function HardwareStatus() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button
-            variant="outline"
-            className="h-9 gap-2 border-border px-2.5 sm:px-3"
-            aria-label="Status perangkat"
+          <button
+            type="button"
+            aria-label="Status perangkat kelas"
+            className="flex items-stretch outline-none transition-colors hover:bg-secondary/60 focus-visible:bg-secondary/60"
           />
         }
       >
-        <span className="relative flex h-2 w-2">
-            <span
-              className={cn(
-                'absolute inline-flex h-full w-full rounded-full opacity-75',
-                online ? 'animate-ping bg-success' : 'bg-muted-foreground',
-              )}
-            />
-            <span
-              className={cn(
-                'relative inline-flex h-2 w-2 rounded-full',
-                online ? 'bg-success' : 'bg-muted-foreground',
-              )}
-            />
-          </span>
-          <Cpu className="h-4 w-4 text-muted-foreground" />
-          <span className="hidden text-xs font-semibold sm:inline">
-            {unavailable ? 'Belum tersedia' : online ? 'Terhubung' : 'Offline'}
-          </span>
+        <RailReadout label="Perangkat">
+          <RailIndicator tone={unavailable ? 'idle' : online ? 'ok' : 'warn'} />
+          <RailValue tone={!unavailable && !online ? 'attention' : 'default'}>
+            {unavailable ? 'Belum ada' : online ? 'Terhubung' : 'Luring'}
+          </RailValue>
+        </RailReadout>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="end" className="w-72 p-0">
-        <div className="border-b border-border p-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Cpu className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                TuturAI Console
-              </p>
-              <p className="font-mono text-xs text-muted-foreground">
-                {device ? 'Perangkat terdaftar' : 'Belum ada perangkat terdaftar'}
-              </p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between border-b border-rule px-3 py-2">
+          <span className="font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            Perangkat kelas
+          </span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60">
+            {device ? 'Terdaftar' : 'Kosong'}
+          </span>
         </div>
-        <div className="space-y-3 p-4 text-sm">
-          <Row
-            icon={<CircleDot className="h-4 w-4 text-success" />}
+
+        <dl className="divide-y divide-rule">
+          <DeviceRow
             label="Status"
-            value={unavailable ? 'Belum tersedia' : online ? 'Online' : 'Offline'}
-            valueClass={online ? 'text-success' : 'text-muted-foreground'}
+            value={unavailable ? 'Belum tersedia' : online ? 'Terhubung' : 'Luring'}
+            tone={unavailable ? 'idle' : online ? 'ok' : 'warn'}
           />
-          <Row
-            icon={<Battery className="h-4 w-4 text-muted-foreground" />}
+          <DeviceRow
             label="Baterai"
             value={battery === null || battery === undefined ? 'Belum ada' : `${battery}%`}
           />
-          <Row
-            icon={<Wifi className="h-4 w-4 text-muted-foreground" />}
+          <DeviceRow
             label="Sinyal"
             value={device?.signal === null || device?.signal === undefined ? 'Belum ada' : `${device.signal}%`}
           />
-          <Row
-            icon={<RefreshCw className="h-4 w-4 text-muted-foreground" />}
-            label="Sinkron terakhir"
-            value={lastSync}
-          />
-        </div>
-        <div className="border-t border-border p-3">
-          <Button
-             onClick={() => void loadDevice()}
+          <DeviceRow label="Sinkron terakhir" value={lastSync} />
+        </dl>
+
+        <div className="border-t border-rule p-2">
+          <button
+            type="button"
+            onClick={() => void reload()}
             disabled={syncing}
-            className="w-full gap-2"
-            size="sm"
+            className="flex h-8 w-full items-center justify-center gap-1.5 rounded-sm border border-rule font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
           >
-            <RefreshCw className={cn('h-4 w-4', syncing && 'animate-spin')} />
-             {syncing ? 'Memuat...' : 'Muat ulang status'}
-          </Button>
+            <RefreshCw className={cn('size-3.5', syncing && 'animate-spin')} aria-hidden="true" />
+            {syncing ? 'Memuat' : 'Muat ulang'}
+          </button>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )
 }
 
-function Row({
-  icon,
+function DeviceRow({
   label,
   value,
-  valueClass,
+  tone,
 }: {
-  icon: React.ReactNode
   label: string
   value: string
-  valueClass?: string
+  tone?: 'ok' | 'warn' | 'idle'
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="flex items-center gap-2 text-muted-foreground">
-        {icon}
-        {label}
-      </span>
-      <span className={cn('font-semibold text-foreground', valueClass)}>
-        {value}
-      </span>
+    <div className="flex items-center justify-between gap-3 px-3 py-2">
+      <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</dt>
+      <dd className="flex items-center gap-1.5">
+        {tone && <RailIndicator tone={tone} />}
+        <span
+          className={cn(
+            'font-mono text-[11px] font-medium tabular-nums',
+            tone === 'warn' ? 'text-warning' : 'text-foreground',
+          )}
+        >
+          {value}
+        </span>
+      </dd>
     </div>
   )
 }

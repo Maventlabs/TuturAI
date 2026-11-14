@@ -11,8 +11,12 @@ import { cn } from '@/lib/utils'
 import { AuthFlowError, authErrorMessage, firebaseAuthErrorCode, logGoogleAuthFailure, serverAuthErrorCode, serverConfigField, serverFirebaseAuthErrorCode, serverRequestId } from '@/lib/firebase/auth-errors'
 import { getFirebaseClientDiagnostics } from '@/lib/firebase/client'
 import { GraduationCap, Presentation, Loader2 } from 'lucide-react'
+import { GoogleIcon } from '@/components/auth/google-icon'
 
 type Role = 'student' | 'teacher'
+
+const fieldClass = 'h-12 rounded-md px-4 text-[15px] md:text-[15px]'
+const labelClass = 'text-[13px] font-semibold text-foreground'
 
 export function SignUpForm() {
   const router = useRouter()
@@ -124,29 +128,37 @@ export function SignUpForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label>Saya seorang</Label>
+        <Label className={labelClass}>Saya seorang</Label>
         <div className="grid grid-cols-2 gap-3">
           <RoleCard active={role === 'student'} onClick={() => setRole('student')} icon={<GraduationCap className="h-5 w-5" />} label="Siswa" />
           <RoleCard active={role === 'teacher'} onClick={() => setRole('teacher')} icon={<Presentation className="h-5 w-5" />} label="Guru" />
         </div>
       </div>
-      <div className="space-y-2"><Label htmlFor="fullName">Nama Lengkap</Label><Input id="fullName" required autoComplete="name" placeholder="Nama lengkap" value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
-      <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" required autoComplete="email" placeholder="nama@sekolah.id" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+      <div className="space-y-2"><Label htmlFor="fullName" className={labelClass}>Nama Lengkap</Label><Input id="fullName" required autoComplete="name" placeholder="Nama lengkap" value={fullName} onChange={(e) => setFullName(e.target.value)} className={fieldClass} /></div>
+      <div className="space-y-2"><Label htmlFor="email" className={labelClass}>Email</Label><Input id="email" type="email" required autoComplete="email" placeholder="nama@sekolah.id" value={email} onChange={(e) => setEmail(e.target.value)} className={fieldClass} /></div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2"><Label htmlFor="school">Asal Sekolah</Label><Input id="school" required autoComplete="organization" placeholder="Nama sekolah" value={school} onChange={(e) => setSchool(e.target.value)} /></div>
-        <div className="space-y-2"><Label htmlFor="extra">{role === 'student' ? 'Kelas' : 'Mata Pelajaran'}</Label><Input id="extra" required placeholder={role === 'student' ? 'Contoh: XI IPA 2' : 'Contoh: Bahasa Inggris'} value={extra} onChange={(e) => setExtra(e.target.value)} /></div>
+        <div className="space-y-2"><Label htmlFor="school" className={labelClass}>Asal Sekolah</Label><Input id="school" required autoComplete="organization" placeholder="Nama sekolah" value={school} onChange={(e) => setSchool(e.target.value)} className={fieldClass} /></div>
+        <div className="space-y-2"><Label htmlFor="extra" className={labelClass}>{role === 'student' ? 'Kelas' : 'Mata Pelajaran'}</Label><Input id="extra" required placeholder={role === 'student' ? 'Contoh: XI IPA 2' : 'Contoh: Bahasa Inggris'} value={extra} onChange={(e) => setExtra(e.target.value)} className={fieldClass} /></div>
       </div>
-      <div className="space-y-2"><Label htmlFor="password">Kata Sandi</Label><Input id="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Buat kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-      {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="h-11 w-full" disabled={loading}>{loading && <Loader2 className="h-4 w-4 animate-spin" />}Buat Akun</Button>
-      <div className="relative py-1 text-center text-xs text-muted-foreground"><span className="bg-background px-2">atau</span><span className="absolute inset-x-0 top-1/2 -z-10 border-t border-border" /></div>
-      <Button type="button" variant="outline" className="h-11 w-full" disabled={loading} onClick={handleGoogleSignUp}>Daftar dengan Google</Button>
+      <div className="space-y-2"><Label htmlFor="password" className={labelClass}>Kata Sandi</Label><Input id="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Buat kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} className={fieldClass} /></div>
+      {error && (
+        <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 px-3.5 py-2.5 text-[13px] leading-relaxed text-destructive">
+          {error}
+        </p>
+      )}
+      <Button type="submit" className="h-12 w-full rounded-md text-[15px] font-semibold" disabled={loading}>{loading && <Loader2 className="h-4 w-4 animate-spin" />}Buat Akun</Button>
+      <div className="flex items-center gap-3 py-1">
+        <span className="h-px flex-1 bg-border" aria-hidden />
+        <span className="text-xs text-muted-foreground">atau</span>
+        <span className="h-px flex-1 bg-border" aria-hidden />
+      </div>
+      <Button type="button" variant="outline" className="h-12 w-full rounded-md text-[15px] font-semibold" disabled={loading} onClick={handleGoogleSignUp}><GoogleIcon className="size-[18px]" />Daftar dengan Google</Button>
     </form>
   )
 }
 
 function RoleCard({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
-  return <button type="button" onClick={onClick} aria-pressed={active} className={cn('flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all', active ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/40')}><span className={cn('flex h-9 w-9 items-center justify-center rounded-lg', active ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground')}>{icon}</span><span className={cn('text-sm font-semibold', active ? 'text-foreground' : 'text-muted-foreground')}>{label}</span></button>
+  return <button type="button" onClick={onClick} aria-pressed={active} className={cn('flex items-center gap-3 rounded-md border px-4 py-3.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50', active ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-foreground/25')}><span className={cn('flex size-9 shrink-0 items-center justify-center rounded-md', active ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground')}>{icon}</span><span className={cn('text-[15px] font-semibold', active ? 'text-foreground' : 'text-muted-foreground')}>{label}</span></button>
 }

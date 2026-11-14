@@ -9,6 +9,7 @@ overrides:
   # Pin the last CJS-compatible release so Netlify Functions can load it on any
   # Node runtime. jose@6 exports importJWK/exportSPKI signatures unchanged in v5.
   jose: 5.9.6
+  '@grpc/grpc-js': 1.14.5
 
 onlyBuiltDependencies:
   - esbuild

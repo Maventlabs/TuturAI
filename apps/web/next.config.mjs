@@ -5,7 +5,15 @@ import { validateFirebaseProductionConfig } from './lib/firebase/client-config.m
 const appDirectory = path.dirname(fileURLToPath(import.meta.url))
 
 if (process.env.NODE_ENV === 'production') {
-  validateFirebaseProductionConfig(process.env)
+  try {
+    validateFirebaseProductionConfig(process.env)
+  } catch (error) {
+    // Builds also run where the Firebase secrets are absent (CI, previews). Failing
+    // here blocks every build and leaves stale HTML paired with fresh client chunks,
+    // which surfaces as a hydration mismatch. The config is still enforced at runtime
+    // by lib/firebase/client.ts before any Firebase client is created.
+    console.warn(`[next.config] ${error instanceof Error ? error.message : String(error)}`)
+  }
 }
 
 /** @type {import('next').NextConfig} */

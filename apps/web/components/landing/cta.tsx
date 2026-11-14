@@ -6,32 +6,57 @@ import { GSAPLines, GSAPReveal } from './gsap-helpers'
 
 export function CTA() {
   return (
-    <section className="px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
-      <div className="mx-auto max-w-[1400px]">
-        <div className="rounded-[2rem] bg-primary px-6 py-16 text-center text-primary-foreground sm:px-12 sm:py-24">
+    <section
+      data-nav-theme="blue"
+      className="relative overflow-hidden bg-primary px-4 pb-32 sm:px-6 sm:pb-40 lg:px-8 lg:pb-48"
+    >
+      {/* White at the top blends into the FAQ above; primary at the bottom matches the footer. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-48 sm:h-72"
+        style={{
+          backgroundImage:
+            'linear-gradient(to bottom, #ffffff 0%, #ffffff 12%, #cfe0ff 38%, #6f9bf8 68%, var(--primary) 90%)',
+        }}
+      />
+
+      <div className="relative mx-auto max-w-[1400px] pt-48 sm:pt-72">
+        <div className="mx-auto max-w-4xl text-center">
+          <GSAPReveal>
+            <p className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground">
+              Waktunya mulai
+              <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" aria-hidden />
+            </p>
+          </GSAPReveal>
+
           <GSAPLines>
-            <h2 className="mx-auto max-w-3xl font-heading text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-              <span data-line className="block">Satu sesi hari ini.</span>
-              <span data-line className="block">Satu langkah lebih berani.</span>
+            <h2 className="mt-6 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-primary-foreground text-balance sm:text-4xl lg:text-5xl">
+              <span data-line className="block">
+                Keberanian bicara lahir dari
+              </span>
+              <span data-line className="block">
+                percobaan pertama yang <span className="text-accent-soft">tidak dihakimi</span>.
+              </span>
             </h2>
           </GSAPLines>
+
           <GSAPReveal delay={0.12}>
-            <p className="mx-auto mt-5 max-w-xl leading-relaxed text-primary-foreground/85">
-              Gratis untuk siswa, mudah untuk guru. Tanpa kartu kredit.
+            <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-primary-foreground text-pretty sm:text-base">
+              Gratis untuk siswa, tanpa kartu kredit. Guru bisa langsung mendaftarkan kelasnya.
             </p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link
-                href="/auth/sign-up"
-                className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-card px-7 text-base font-semibold text-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Daftar Gratis
-                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-              </Link>
+
+            <div className="mt-12 flex justify-center">
               <Link
                 href="/auth/login"
-                className="inline-flex h-12 items-center justify-center rounded-full border border-primary-foreground/30 px-7 text-base font-semibold text-primary-foreground transition-colors hover:bg-white/10"
+                className="group inline-flex items-center gap-3 rounded-full bg-card py-2 pl-7 pr-2 text-sm font-semibold uppercase tracking-[0.12em] text-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
               >
-                Sudah punya akun?
+                Coba Sekarang
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background">
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </span>
               </Link>
             </div>
           </GSAPReveal>

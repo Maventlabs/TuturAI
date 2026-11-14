@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateOnboardingInput, validateProfileUpdateInput } from './validation'
+import { validateNewsletterInput, validateOnboardingInput, validateProfileUpdateInput } from './validation'
 
 describe('validateOnboardingInput', () => {
   it('keeps role-specific onboarding fields when valid', () => {
@@ -66,5 +66,30 @@ describe('validateProfileUpdateInput', () => {
         { path: 'school', message: 'School must be 2-160 characters' },
       ],
     })
+  })
+})
+
+describe('validateNewsletterInput', () => {
+  it('normalizes a valid email', () => {
+    expect(validateNewsletterInput({ email: '  Budi@Example.COM ' })).toEqual({
+      success: true,
+      data: { email: 'budi@example.com' },
+    })
+  })
+
+  it('rejects missing input', () => {
+    expect(validateNewsletterInput(null)).toEqual({
+      success: false,
+      issues: [{ path: 'email', message: 'Email is required' }],
+    })
+  })
+
+  it('rejects malformed addresses', () => {
+    for (const email of ['budi', 'budi@', '@example.com', 'budi@example', 'a b@example.com']) {
+      expect(validateNewsletterInput({ email })).toEqual({
+        success: false,
+        issues: [{ path: 'email', message: 'Enter a valid email address' }],
+      })
+    }
   })
 })
