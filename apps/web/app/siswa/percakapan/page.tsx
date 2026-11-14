@@ -356,6 +356,7 @@ export default function PercakapanPage() {
              message="Hasil percakapan sudah dikonfirmasi tersimpan oleh server."
              score={`${assessment?.overall ?? textAssessment?.score ?? 0}/100`}
              detail={assessment?.feedback ?? textAssessment?.feedback ?? 'Hasil analisis tersedia di sesi ini.'}
+             reaction="speaking"
              onClose={() => setShowCompletion(false)}
            />
          </>
