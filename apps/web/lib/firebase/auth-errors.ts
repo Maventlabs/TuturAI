@@ -63,21 +63,28 @@ export function serverRequestId(response: Response): string | null {
 export function authErrorMessage(error: unknown, action: 'login' | 'signup' | 'google') {
   if (error instanceof AuthFlowError) {
     if (error.serverErrorCode === 'FIREBASE_ADMIN_MISCONFIGURED') {
-      return 'Akun Google berhasil dipilih, tetapi server TuturAI gagal membuat sesi Firebase karena konfigurasi Admin.'
+      return 'Server TuturAI gagal membuat sesi Firebase karena konfigurasi Admin. Periksa konfigurasi Firebase Admin.'
     }
     if (error.serverErrorCode === 'FIREBASE_PROJECT_MISMATCH') {
-      return 'Project Firebase aplikasi dan server tidak sama. Admin perlu menyamakan konfigurasi project.'
+      return 'Project Firebase aplikasi dan server tidak sama. Samakan konfigurasi project.'
     }
     if (error.serverErrorCode === 'SESSION_NETWORK_ERROR' || error.serverErrorCode === 'FIREBASE_SERVICE_UNAVAILABLE') {
       return 'Layanan verifikasi Firebase sedang tidak tersedia. Periksa koneksi lalu coba lagi.'
     }
     if (error.serverErrorCode === 'FIREBASE_ID_TOKEN_REJECTED') {
-      return 'Akun Google berhasil dipilih, tetapi server TuturAI tidak dapat memverifikasi sesi Firebase.'
+      return 'Server TuturAI tidak dapat memverifikasi sesi Firebase. Coba masuk kembali.'
+    }
+    if (error.stage === 'onboarding' && error.httpStatus === 400) {
+      return 'Data profil belum lengkap atau tidak valid. Periksa nama, asal sekolah, dan kelas/mata pelajaran.'
     }
     if (error.stage === 'onboarding') {
-      return 'Akun Google berhasil dipilih, tetapi profil awal TuturAI gagal disimpan. Coba lagi.'
+      return action === 'google'
+        ? 'Akun Google berhasil dibuat, tetapi profil awal TuturAI gagal disimpan. Coba masuk kembali atau hubungi admin.'
+        : 'Akun berhasil dibuat, tetapi profil awal TuturAI gagal disimpan. Coba masuk kembali atau hubungi admin.'
     }
-    return 'Akun Google berhasil dipilih, tetapi sesi server TuturAI gagal dibuat. Coba lagi.'
+    return action === 'google'
+      ? 'Akun Google berhasil dipilih, tetapi sesi server TuturAI gagal dibuat. Coba lagi.'
+      : 'Sesi server TuturAI gagal dibuat. Coba lagi.'
   }
 
   const code = firebaseAuthErrorCode(error)
