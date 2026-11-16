@@ -76,7 +76,7 @@ export function FAQ() {
           </GSAPReveal>
         </div>
 
-          <div className="mx-auto mt-12 grid max-w-5xl gap-3 sm:mt-16 md:grid-cols-2 md:gap-4">
+          <div className="mx-auto mt-12 grid max-w-5xl items-start gap-3 sm:mt-16 md:grid-cols-2 md:gap-4">
           {faqs.map((faq, index) => {
             const isOpen = openIndex === index
 
