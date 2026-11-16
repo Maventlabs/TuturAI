@@ -13,6 +13,7 @@ import { SkillLedger } from '@/components/guru/analytics/skill-ledger'
 import { EvidenceCoverage, type EvidenceRow } from '@/components/guru/analytics/evidence-coverage'
 import { ClassroomSpread } from '@/components/guru/analytics/classroom-spread'
 import { NextSteps } from '@/components/guru/analytics/next-steps'
+import SplitText from '@/components/ui/split-text'
 
 export type AnalyticsData = {
   summary: {
@@ -135,14 +136,14 @@ export function AnalyticsSheet({
     },
     {
       label: 'Akurasi',
-      value: accuracy === null ? '—' : String(accuracy),
+      value: accuracy === null ? 'Belum ada' : String(accuracy),
       unit: accuracy === null ? undefined : '%',
       note: `target ${TARGET}%`,
       tone: accuracy !== null && accuracy < TARGET ? 'attention' : 'default',
     },
     {
       label: 'Speaking',
-      value: speaking === null ? '—' : String(speaking),
+      value: speaking === null ? 'Belum ada' : String(speaking),
       note: `${assessmentCount} sesi dinilai`,
     },
   ]
@@ -221,9 +222,11 @@ export function AnalyticsSheet({
             </div>
           </div>
 
-          <h1 className="mt-4 max-w-[52ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]">
-            {loading ? 'Membaca data kelas…' : insight}
-          </h1>
+          <SplitText
+            as="h1"
+            text={loading ? 'Membaca data kelas…' : insight}
+            className="mt-4 max-w-[52ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]"
+          />
           <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
             Rentang {PERIOD_LABEL[period]} &middot; ambang perhatian 60 &middot; target {TARGET}
           </p>

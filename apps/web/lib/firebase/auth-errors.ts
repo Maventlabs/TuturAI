@@ -22,6 +22,24 @@ export function firebaseAuthErrorCode(error: unknown): string | null {
   return typeof code === 'string' && code.startsWith('auth/') ? code : null
 }
 
+const CLIENT_CONFIG_ERROR_PREFIX = 'Firebase Web App configuration is invalid'
+
+/**
+ * `validateFirebaseClientConfig` throws a plain Error listing the offending
+ * env vars. Without this, a missing Firebase config surfaces as the generic
+ * "periksa data lalu coba lagi" message, which sends people hunting for a
+ * typo in their own input instead of the real cause.
+ */
+function missingClientConfigFields(error: unknown): string[] | null {
+  if (!(error instanceof Error) || !error.message.startsWith(CLIENT_CONFIG_ERROR_PREFIX)) return null
+  const listed = error.message.split('Check:')[1]
+  if (!listed) return []
+  return listed
+    .split(',')
+    .map((field) => field.trim())
+    .filter(Boolean)
+}
+
 export function serverAuthErrorCode(payload: unknown): string | null {
   if (!payload || typeof payload !== 'object' || !('error' in payload)) return null
   const apiError = payload.error
@@ -128,6 +146,13 @@ export function authErrorMessage(error: unknown, action: 'login' | 'signup' | 'g
   }
   if (code === 'auth/email-already-in-use') {
     return 'Email sudah terdaftar. Gunakan halaman Masuk untuk melanjutkan ke akun tersebut.'
+  }
+
+  const missingFields = missingClientConfigFields(error)
+  if (missingFields) {
+    const detail = missingFields.length > 0 ? ` (${missingFields.join(', ')})` : ''
+    const subject = action === 'signup' ? 'Pendaftaran akun' : action === 'google' ? 'Login Google' : 'Login'
+    return `${subject} belum bisa dipakai karena konfigurasi Firebase aplikasi belum lengkap${detail}. Hubungi admin untuk melengkapi environment variable Firebase.`
   }
 
   if (action === 'google') return 'Login Google gagal. Silakan coba lagi.'

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/sheet'
 import { ClassCard } from '@/components/guru/class-card'
 import { useClassroomOverview, useTeacherName } from '@/components/guru/use-classroom-overview'
+import SplitText from '@/components/ui/split-text'
 
 type CreatedClassroom = Classroom & { joinKey: string }
 
@@ -126,7 +127,7 @@ export default function ClassesPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Kelas</h1>
+          <SplitText as="h1" text="Kelas" className="font-heading text-2xl font-bold text-foreground" />
           <p className="mt-1 text-sm text-muted-foreground">
             Kelola classroom, siswa, dan penugasan speaking dari satu tempat.
           </p>

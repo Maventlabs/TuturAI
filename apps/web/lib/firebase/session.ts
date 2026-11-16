@@ -79,7 +79,7 @@ export async function verifySessionCookie(sessionCookie: string) {
  *
  * Only the Firestore read is cached. `verifySessionCookie` still runs on every
  * request above it, so revoking a session or disabling an account takes effect
- * immediately — the cache never extends a session's lifetime, it only avoids
+ * immediately, the cache never extends a session's lifetime, it only avoids
  * re-fetching a document for a session that is already known to be valid.
  */
 export async function readProfileDocument(uid: string) {

@@ -195,7 +195,7 @@ function resolveCanonicalScores(
         rawMetrics.pronunciationFullErrors = pronunciation.rawMetrics.fullErrors
         rawMetrics.pronunciationDeletions = pronunciation.rawMetrics.deletions
       } else {
-        // D9: engine evidence existed but was insufficient — the provider
+        // D9: engine evidence existed but was insufficient, the provider
         // estimate stands in, explicitly labeled as a fallback (never canonical).
         metricStatuses.pronunciation = 'insufficient_evidence'
         sources.pronunciation = 'PROVIDER_ESTIMATE_FALLBACK'
@@ -231,7 +231,7 @@ function resolveCanonicalScores(
         rawMetrics.vocabularyEstimatedCefrBand = vocabulary.rawMetrics.estimatedCefrBand
         rawMetrics.vocabularyCefrBandingLabel = vocabulary.rawMetrics.cefrBandingLabel
       } else {
-        // D9: engine evidence existed but was insufficient — labeled fallback.
+        // D9: engine evidence existed but was insufficient, labeled fallback.
         metricStatuses.vocabulary = 'insufficient_evidence'
         sources.vocabulary = 'PROVIDER_ESTIMATE_FALLBACK'
         rawMetrics.vocabularyTotalTokens = vocabulary.rawMetrics.totalTokens
@@ -256,7 +256,7 @@ function resolveCanonicalScores(
         rawMetrics.intonationSlopeVariationSt = intonation.rawMetrics.slopeVariationSemitones
         rawMetrics.intonationPitchPointCount = intonation.rawMetrics.pitchPointCount
       } else {
-        // D9: engine evidence existed but was insufficient — labeled fallback.
+        // D9: engine evidence existed but was insufficient, labeled fallback.
         metricStatuses.intonation = 'insufficient_evidence'
         sources.intonation = 'PROVIDER_ESTIMATE_FALLBACK'
         rawMetrics.intonationPitchPointCount = intonation.rawMetrics.pitchPointCount

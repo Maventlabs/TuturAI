@@ -5,7 +5,7 @@ import type { AnalyticsPeriod } from '@/components/guru/overview/period-switch'
 import { AnalyticsSheet, type AnalyticsData } from '@/components/guru/analytics/analytics-sheet'
 
 // The date is formatted in the viewer's timezone, so it is read only after
-// hydration — the server snapshot stays null to keep SSR and client in sync.
+// hydration, the server snapshot stays null to keep SSR and client in sync.
 const subscribeToNothing = () => () => {}
 const getTodayLabel = () =>
   new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date())

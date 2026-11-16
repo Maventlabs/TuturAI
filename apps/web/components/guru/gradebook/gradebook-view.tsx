@@ -9,6 +9,7 @@ import { ScoreMatrix } from '@/components/guru/gradebook/score-matrix'
 import { ScoreDistribution } from '@/components/guru/gradebook/score-distribution'
 import { DimensionRadar } from '@/components/guru/gradebook/dimension-radar'
 import { TARGET_SCORE, type Gradebook } from '@/lib/gradebook'
+import SplitText from '@/components/ui/split-text'
 
 const SCALE_LEGEND = [
   { label: '<60', swatch: 'bg-warning/20' },
@@ -91,9 +92,11 @@ export function GradebookView({
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           Buku Nilai · Speaking
         </p>
-        <h1 className="mt-1.5 font-heading text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
-          {className ?? 'Daftar nilai'}
-        </h1>
+        <SplitText
+          as="h1"
+          text={className ?? 'Daftar nilai'}
+          className="mt-1.5 font-heading text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground"
+        />
         <p className="mt-1.5 max-w-[72ch] text-[13px] leading-relaxed text-muted-foreground">{insight}</p>
         {classrooms.length > 1 && (
           <div className="mt-4">

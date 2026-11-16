@@ -21,7 +21,7 @@ type AssignmentSubmissionsPayload = {
 type ApiResponse<T> = { data: T; error?: { message?: string } }
 
 function formatDateTime(value: string | null) {
-  if (!value) return '—'
+  if (!value) return 'Belum ada'
   return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
@@ -177,7 +177,7 @@ export function StudentWorkTable({ assignmentId }: { assignmentId: string }) {
                       {formatDateTime(student.submission?.submittedAt ?? null)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm font-semibold text-foreground">
-                      {typeof student.assessment?.overall === 'number' ? student.assessment.overall : '—'}
+                      {typeof student.assessment?.overall === 'number' ? student.assessment.overall : 'Belum ada'}
                     </TableCell>
                     <TableCell className="pr-4">
                       <Link

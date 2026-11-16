@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Logo } from '@/components/logo'
+import SplitText from '@/components/ui/split-text'
 
 export function AuthShell({
   title,
@@ -14,8 +15,8 @@ export function AuthShell({
   footer?: React.ReactNode
 }) {
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Brand panel — the landing illustration carries the identity, so the
+    <div className="page-zoom-app page-zoom page-zoom-min-screen grid lg:grid-cols-2">
+      {/* Brand panel, the landing illustration carries the identity, so the
           panel reads as part of the product instead of a flat colour block. */}
       <aside className="relative hidden overflow-hidden bg-ink-deep lg:flex lg:flex-col lg:justify-between">
         <Image
@@ -77,9 +78,11 @@ export function AuthShell({
               <Logo />
             </Link>
           </div>
-          <h1 className="text-balance font-heading text-[2rem] font-extrabold leading-tight tracking-tight text-foreground">
-            {title}
-          </h1>
+          <SplitText
+            as="h1"
+            text={title}
+            className="text-balance font-heading text-[2rem] font-extrabold leading-tight tracking-tight text-foreground"
+          />
           <p className="mt-2.5 text-pretty text-[15px] leading-relaxed text-muted-foreground">
             {subtitle}
           </p>

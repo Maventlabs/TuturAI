@@ -31,6 +31,18 @@ describe('authErrorMessage', () => {
     expect(authErrorMessage(new Error('internal'), 'login')).toContain('Login gagal')
   })
 
+  it('names the missing Firebase env vars instead of blaming the form input', () => {
+    const error = new Error(
+      'Firebase Web App configuration is invalid. Check: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_APP_ID',
+    )
+
+    const message = authErrorMessage(error, 'signup')
+
+    expect(message).toContain('konfigurasi Firebase aplikasi belum lengkap')
+    expect(message).toContain('NEXT_PUBLIC_FIREBASE_API_KEY')
+    expect(message).not.toContain('Periksa data')
+  })
+
   it('distinguishes server-session failures from Firebase popup failures', () => {
     const error = new AuthFlowError('server-session', 500, 'FIREBASE_ADMIN_MISCONFIGURED')
 

@@ -3,7 +3,7 @@ export const SITE_URL = (
 ).replace(/\/+$/, '')
 
 export const SITE_NAME = 'TuturAI'
-export const SITE_TITLE = 'TuturAI — Latihan Speaking Bahasa Inggris dengan AI'
+export const SITE_TITLE = 'TuturAI: Latihan Speaking Bahasa Inggris dengan AI'
 export const SITE_DESCRIPTION =
   'Platform latihan speaking Bahasa Inggris berbasis AI untuk siswa SMA/SMK Indonesia. Feedback instan, gamifikasi, dan dashboard analitik untuk guru.'
 export const SITE_KEYWORDS = [

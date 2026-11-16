@@ -20,7 +20,7 @@ const LABEL_CLASS: Record<DeviceRow['status'], string> = {
 
 function Meter({ value, tone }: { value: number | null; tone: 'battery' | 'signal' }) {
   if (value === null) {
-    return <span className="font-mono text-[11px] tabular-nums text-muted-foreground/50">—</span>
+    return <span className="font-mono text-[11px] tabular-nums text-muted-foreground/50">Belum ada</span>
   }
   const critical = tone === 'battery' && value < 20
   const low = tone === 'battery' ? value < 50 : value < 40
@@ -119,7 +119,7 @@ export function DeviceRoster({ devices, now, busyId, onRevoke, onReissue, onRegi
               </div>
 
               <span className="hidden w-20 shrink-0 truncate font-mono text-[10px] text-muted-foreground lg:block">
-                {device.firmware ?? '—'}
+                {device.firmware ?? 'Belum ada'}
               </span>
 
               <span className="w-24 shrink-0 font-mono text-[10px] text-muted-foreground">

@@ -8,7 +8,7 @@ const dueFormat = new Intl.DateTimeFormat('id-ID', {
 })
 
 // Deadlines are school dates, so they are read in Jakarta time on both the
-// server and the client — otherwise a 23:59 WIB deadline renders as the next
+// server and the client, otherwise a 23:59 WIB deadline renders as the next
 // day for anyone whose machine sits in another timezone.
 const dayKeyFormat = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Jakarta',

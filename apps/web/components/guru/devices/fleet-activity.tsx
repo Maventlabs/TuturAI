@@ -10,7 +10,7 @@ interface FleetActivityProps {
 
 /**
  * The one dark surface on this page: a 24-hour heartbeat trace for the whole
- * fleet. Bars are hourly counts, so a flat line means devices stopped calling —
+ * fleet. Bars are hourly counts, so a flat line means devices stopped calling,
  * which is exactly the failure a teacher needs to see at a glance.
  */
 export function FleetActivity({ series, deviceCount }: FleetActivityProps) {

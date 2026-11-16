@@ -9,6 +9,7 @@ import { TelemetryCoverage } from './telemetry-coverage'
 import { DeviceRoster } from './device-roster'
 import { PairingPanel } from './pairing-panel'
 import { deviceName, type DeviceActivityBucket, type DeviceRow, type PairingTicket } from './types'
+import SplitText from '@/components/ui/split-text'
 
 const LOW_BATTERY = 20
 
@@ -101,7 +102,7 @@ export function DeviceSheet({
     },
     {
       label: 'Rata-rata',
-      value: averageBattery === null ? '—' : String(averageBattery),
+      value: averageBattery === null ? 'Belum ada' : String(averageBattery),
       unit: averageBattery === null ? undefined : '%',
       note: `${measured.length} unit melapor`,
     },
@@ -141,9 +142,11 @@ export function DeviceSheet({
             </button>
           </div>
 
-          <h1 className="mt-4 max-w-[58ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]">
-            {loading && devices.length === 0 ? 'Membaca status armada…' : buildHeadline(devices)}
-          </h1>
+          <SplitText
+            as="h1"
+            text={loading && devices.length === 0 ? 'Membaca status armada…' : buildHeadline(devices)}
+            className="mt-4 max-w-[58ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]"
+          />
           <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
             Heartbeat 30 dtk &middot; ambang offline 90 dtk &middot; kode pairing 15 mnt
           </p>

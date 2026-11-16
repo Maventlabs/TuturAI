@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Activity, Users, Volume2, WifiOff } from 'lucide-react'
+import CountUp from '@/components/ui/count-up'
 import { GSAPLines, GSAPReveal, GSAPStagger } from './gsap-helpers'
 import { AnxietyMockup, CrowdedMockup, MuteMockup, OfflineMockup } from './problem-mockups'
 
@@ -11,7 +13,11 @@ const cards = [
     label: 'Pola bicara',
     title: 'Mute English',
     desc: 'Paham pasif, tapi diam saat harus bicara. Salah sedikit langsung terasa seperti gagal.',
-    image: '/problem-red.png',
+    image: '/problem-mute.webp',
+    tint: '#e23b2e',
+    // The panels cover the lower two thirds, so each photo is zoomed and
+    // shifted to put its subject inside the strip that stays visible.
+    crop: 'scale(1.12) translateY(-3%)',
     Icon: Volume2,
     Mockup: MuteMockup,
   },
@@ -20,7 +26,9 @@ const cards = [
     label: 'Rasa aman',
     title: 'Speaking anxiety',
     desc: 'Foreign Language Speaking Anxiety membuat siswa menghindari partisipasi aktif di kelas.',
-    image: '/problem-orange.png',
+    image: '/problem-anxiety.webp',
+    tint: '#e07a1f',
+    crop: 'scale(1.12) translateY(-3%)',
     Icon: Activity,
     Mockup: AnxietyMockup,
   },
@@ -29,7 +37,9 @@ const cards = [
     label: 'Skala kelas',
     title: 'Kelas padat',
     desc: 'Satu guru untuk 35 siswa. Latihan bicara satu per satu tidak pernah sempat.',
-    image: '/problem-yellow.png',
+    image: '/problem-crowded.webp',
+    tint: '#d9a300',
+    crop: 'scale(1.3) translateY(-9%)',
     Icon: Users,
     Mockup: CrowdedMockup,
   },
@@ -38,7 +48,9 @@ const cards = [
     label: 'Akses jaringan',
     title: 'Offline masih sulit',
     desc: 'Solusi yang bergantung penuh pada internet tidak sampai ke sekolah di wilayah 3T.',
-    image: '/problem-blue.png',
+    image: '/problem-offline.webp',
+    tint: '#2f6df5',
+    crop: 'scale(1.04)',
     Icon: WifiOff,
     Mockup: OfflineMockup,
   },
@@ -50,15 +62,54 @@ function trackSpotlight(event: React.PointerEvent<HTMLDivElement>) {
   event.currentTarget.style.setProperty('--my', `${event.clientY - rect.top}px`)
 }
 
-const proof = [
-  { v: '110,0 → 83,6', l: 'Skor FLSA turun' },
-  { v: '+15 poin', l: 'Kemampuan speaking' },
-  { v: '80,0', l: 'SUS, kategori acceptable' },
+/**
+ * The four mockups run ~70 looping CSS animations between them. Pausing them
+ * while the grid is off-screen keeps the landing page cheap to scroll.
+ */
+function useMockPause() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [paused, setPaused] = useState(true)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setPaused(!entry.isIntersecting),
+      { rootMargin: '200px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return { ref, paused }
+}
+
+type ProofPoint = {
+  from: number
+  to: number
+  decimals?: number
+  prefix?: string
+  suffix?: string
+  arrowFrom?: string
+  l: string
+}
+
+const proof: ProofPoint[] = [
+  { from: 110, to: 83.6, decimals: 1, arrowFrom: '110,0', l: 'Skor FLSA turun' },
+  { from: 0, to: 15, prefix: '+', suffix: ' poin', l: 'Kemampuan speaking' },
+  { from: 0, to: 80, decimals: 1, l: 'SUS, kategori acceptable' },
 ]
 
 export function Problem() {
+  const { ref: stageRef, paused } = useMockPause()
+
   return (
-    <section id="masalah" data-nav-theme="light" className="section-y scroll-mt-24 bg-background px-4 sm:px-6 lg:px-8">
+    <section
+      id="masalah"
+      data-nav-theme="light"
+      aria-labelledby="masalah-heading"
+      className="section-y scroll-mt-24 bg-background px-4 sm:px-6 lg:px-8"
+    >
       <div className="mx-auto max-w-[1400px]">
         <div className="mx-auto max-w-2xl text-center">
           <GSAPReveal>
@@ -67,7 +118,10 @@ export function Problem() {
             </p>
           </GSAPReveal>
           <GSAPLines>
-            <h2 className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-foreground text-balance sm:text-4xl lg:text-5xl">
+            <h2
+              id="masalah-heading"
+              className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-foreground text-balance sm:text-4xl lg:text-5xl"
+            >
               <span data-line className="block">
                 Bukan karena grammar.
               </span>
@@ -107,7 +161,11 @@ export function Problem() {
             />
 
             <div className="overflow-hidden">
-              <div className="-mb-px -mr-px grid auto-rows-fr grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+              <div
+                ref={stageRef}
+                data-paused={paused}
+                className="mock-stage -mb-px -mr-px grid auto-rows-fr grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
+              >
                 {cards.map((card) => (
                   <article
                     key={card.id}
@@ -118,42 +176,69 @@ export function Problem() {
                         onPointerMove={trackSpotlight}
                         className="relative aspect-4/5 overflow-hidden border border-border bg-ink-deep"
                       >
-                        <Image
-                          src={card.image}
-                          alt=""
-                          fill
-                          sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
-                          className="object-cover"
+                        <div
+                          aria-hidden
+                          className="absolute inset-0"
+                          style={{ transform: card.crop }}
+                        >
+                          <Image
+                            src={card.image}
+                            alt=""
+                            fill
+                            sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
+                            className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.04]"
+                          />
+                        </div>
+                        {/* Colour grade keeps the four-card colour system without a flat gradient. */}
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 opacity-45 mix-blend-color"
+                          style={{ backgroundColor: card.tint }}
+                        />
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 bg-linear-to-b from-ink-deep/25 via-ink-deep/55 to-ink-deep/92"
                         />
                         <div
                           aria-hidden
                           className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                           style={{
                             background:
-                              'radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.16), transparent 72%)',
+                              'radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.14), transparent 72%)',
                           }}
                         />
-                        <div className="relative flex h-full flex-col justify-center p-3">
+                        <div
+                          aria-hidden
+                          className="relative flex h-full flex-col justify-center p-3"
+                        >
                           <card.Mockup />
                         </div>
                       </div>
                     </div>
 
                     <GSAPStagger
-                      className="flex flex-1 flex-col px-4 pb-6 pt-1 sm:px-5"
+                      className="flex flex-1 flex-col px-4 pb-6 pt-4 sm:px-5"
                       y={10}
                       stagger={0.06}
                     >
-                      <div
-                        data-stagger
-                        className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
-                      >
-                        <card.Icon className="size-3.5 shrink-0" strokeWidth={1.5} />
-                        {card.label}
+                      <div data-stagger className="flex items-center gap-2">
+                        <span
+                          className="flex size-6 shrink-0 items-center justify-center rounded-[4px]"
+                          style={{
+                            backgroundColor: `${card.tint}1a`,
+                            // The raw tints (especially amber) fall under 3:1 on the chip.
+                            color: `color-mix(in oklab, ${card.tint} 70%, #1d1d1f)`,
+                          }}
+                        >
+                          <card.Icon className="size-3.5" strokeWidth={1.75} />
+                        </span>
+                        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                          {card.label}
+                        </span>
                       </div>
                       <h3
                         data-stagger
-                        className="mt-4 font-heading text-lg font-semibold tracking-[-0.01em] text-foreground"
+                        className="mt-3 font-heading text-xl font-semibold tracking-[-0.015em] text-foreground"
                       >
                         {card.title}
                       </h3>
@@ -178,7 +263,23 @@ export function Problem() {
                 <dt className="sr-only">{s.l}</dt>
                 <dd>
                   <span className="block font-mono text-sm font-semibold text-foreground sm:text-base">
-                    {s.v}
+                    {s.arrowFrom ? (
+                      <>
+                        <span className="text-muted-foreground">{s.arrowFrom}</span>
+                        <span aria-hidden="true" className="mx-1.5 text-muted-foreground">
+                          →
+                        </span>
+                        <CountUp from={s.from} to={s.to} decimals={s.decimals} />
+                      </>
+                    ) : (
+                      <CountUp
+                        from={s.from}
+                        to={s.to}
+                        decimals={s.decimals}
+                        prefix={s.prefix}
+                        suffix={s.suffix}
+                      />
+                    )}
                   </span>
                   <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">
                     {s.l}

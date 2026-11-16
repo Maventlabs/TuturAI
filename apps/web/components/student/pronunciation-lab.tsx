@@ -255,7 +255,7 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
           {mic.status === 'requesting'
             ? 'Meminta izin mikrofon'
             : recording
-              ? 'Merekam — tekan untuk berhenti'
+              ? 'Merekam, tekan untuk berhenti'
               : submitting
                 ? 'Menilai dengan provider'
                 : 'Tekan dan ucapkan kata di atas'}
@@ -298,7 +298,7 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
           <Panel>
             <PanelHeader label="Yang terdengar" />
             <p className="px-4 py-3 font-mono text-[13px] leading-relaxed text-foreground">
-              {result.transcript || '—'}
+              {result.transcript || 'Belum ada'}
             </p>
           </Panel>
 
@@ -331,7 +331,7 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
           {activeWord ? (
             <Panel>
               <PanelHeader
-                label={`Fonem — ${activeWord.expected}`}
+                label={`Fonem: ${activeWord.expected}`}
                 right={
                   <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
                     {activeWord.score}/100

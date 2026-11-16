@@ -76,7 +76,7 @@ export function PairingPanel({ ticket, busy, error, onGenerate, onDismiss }: Pai
             value={label}
             onChange={(event) => setLabel(event.target.value)}
             maxLength={60}
-            placeholder="Unit 01 — XI IPA 1"
+            placeholder="Unit 01, XI IPA 1"
             className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-[13px] text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <button
@@ -130,7 +130,7 @@ export function PairingPanel({ ticket, busy, error, onGenerate, onDismiss }: Pai
           />
         </div>
         <p className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/70">
-          {expired ? 'Kode kedaluwarsa — buat kode baru' : `Berlaku ${countdown(remaining)} lagi`}
+          {expired ? 'Kode kedaluwarsa, buat kode baru' : `Berlaku ${countdown(remaining)} lagi`}
         </p>
       </div>
 

@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
   }
 
   // The new membership changes the student's classroom list, the roster, the
-  // leaderboard, and the teacher's aggregates — drop all of them now rather
+  // leaderboard, and the teacher's aggregates, drop all of them now rather
   // than serving pre-join state until a TTL expires.
   await invalidateNamespaces(
     `classrooms:student:${auth.user.uid}`,

@@ -38,6 +38,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
   --color-primary-deep: var(--primary-deep);
+  --color-primary-ink: var(--primary-ink);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -47,8 +48,10 @@
   --color-ink-deep: var(--ink-deep);
   --color-ink-foreground: var(--ink-foreground);
   --color-ink-muted: var(--ink-muted);
-  --color-team-night: var(--team-night);
-  --color-team-gold: var(--team-gold);
+
+  /* Student dock: brand blue surface with white glyphs in both themes. */
+  --color-dock: var(--dock);
+  --color-dock-foreground: var(--dock-foreground);
 
   /* Hairlines for the teacher instrument sheet: --rule divides panels,
      --grid draws chart gridlines one step lighter than --rule. */
@@ -86,8 +89,11 @@
   --ink-deep: #101014;
   --ink-foreground: #f5f5f7;
   --ink-muted: #a1a1a8;
-  --team-night: #160d57;
-  --team-gold: #f7c64a;
+
+  /* The student dock stays brand blue with white glyphs in every theme, so it
+     does not follow --primary (which flips to a light blue with dark text). */
+  --dock: #2f6df5;
+  --dock-foreground: #ffffff;
 
   /* precision-blue brand palette (AGENTS.md section 5) */
   --background: #f5f5f7;
@@ -102,6 +108,9 @@
   --primary-foreground: #ffffff;
   /* Deeper blue for small text on light surfaces: #2f6df5 only reaches 4.3:1 on white. */
   --primary-deep: #1d4ed8;
+  /* Scrim behind captions on the blue feature bento. #1d4ed8 is too light once it
+     sits over a bright photo, so white body text drops under 4.5:1. */
+  --primary-ink: #143a8f;
 
   /* Secondary - soft blue-tinted surface */
   --secondary: #eceff6;
@@ -160,6 +169,8 @@
   --ink-deep: #0a0a0d;
   --ink-foreground: #f5f5f7;
   --ink-muted: #a1a1a8;
+  --dock: #2f6df5;
+  --dock-foreground: #ffffff;
   --foreground: #f5f5f7;
   --card: #1c1c21;
   --card-foreground: #f5f5f7;
@@ -168,6 +179,7 @@
   --primary: #5b8cff;
   --primary-foreground: #101014;
   --primary-deep: #a8c2ff;
+  --primary-ink: #143a8f;
   --secondary: #26262e;
   --secondary-foreground: #f5f5f7;
   --muted: #26262e;
@@ -218,6 +230,37 @@
     font-family: var(--font-heading);
     letter-spacing: -0.02em;
   }
+}
+
+/* Page zoom — mirrors the browser's own zoom-out control so the layout
+   reflows into the extra room instead of being visually squashed. `zoom` is
+   used rather than `transform: scale()` because it reflows, and viewport
+   units are compensated below because `zoom` does not scale them. */
+.page-zoom-landing {
+  --page-zoom: 0.8;
+}
+
+.page-zoom-app {
+  --page-zoom: 0.9;
+}
+
+.page-zoom {
+  zoom: var(--page-zoom, 1);
+}
+
+/* Cancels the surrounding page zoom so the footer keeps its full-bleed
+   wordmark at 100%. */
+.page-zoom-reset {
+  zoom: calc(1 / var(--page-zoom, 1));
+}
+
+/* Sections that must still fill the screen inside a zoomed page. */
+.page-zoom-screen {
+  height: calc(100dvh / var(--page-zoom, 1));
+}
+
+.page-zoom-min-screen {
+  min-height: calc(100dvh / var(--page-zoom, 1));
 }
 
 /* Testimonial columns: seamless vertical loop. Each child carries its own
@@ -408,12 +451,25 @@
     width: 0%;
   }
   to {
-    width: 42%;
+    width: 8%;
   }
 }
 
 .mock-fill {
   animation: mock-fill 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+/* The problem-card mockups run ~70 looping animations between them. Pause the
+   whole set while the grid is off-screen so scrolling stays cheap. */
+.mock-stage[data-paused='true'] .mock-shimmer,
+.mock-stage[data-paused='true'] .mock-blink,
+.mock-stage[data-paused='true'] .mock-ripple,
+.mock-stage[data-paused='true'] .mock-scan,
+.mock-stage[data-paused='true'] .mock-bar,
+.mock-stage[data-paused='true'] .mock-fill,
+.mock-stage[data-paused='true'] .mock-seg,
+.mock-stage[data-paused='true'] .animate-pulse-ring {
+  animation-play-state: paused;
 }
 
 @keyframes mock-seg {
@@ -473,47 +529,11 @@
   height: 340px;
 }
 
-.team-lanyard-rail {
-  min-height: 40rem;
-  padding: clamp(4.5rem, 8vw, 7.5rem) clamp(1rem, 4.5vw, 4rem) 1.5rem;
-  --background: var(--team-night);
-  --foreground: #fbf9ff;
-  --muted: rgb(255 255 255 / 8%);
-  --muted-foreground: #c9c3eb;
-  --card: #fffdf7;
-  --card-foreground: #1d1d1f;
-  --border: rgb(255 255 255 / 22%);
-}
-
-.team-lanyard-rail > header {
-  gap: 0.8rem;
-  padding: 0;
-}
-
-.team-lanyard-rail > header::before {
-  width: 2.5rem;
-  height: 3px;
-  border-radius: 999px;
-  background: var(--team-gold);
-  content: '';
-}
-
-.team-lanyard-rail > header p {
-  color: var(--team-gold);
-}
-
+/* The lanyard rail is a full-bleed stage: badges swing past the container edge,
+   so only the rail itself is width-capped. */
 .team-lanyard-rail [data-stage] {
   max-width: 84rem;
   margin-inline: auto;
-  margin-top: clamp(2.25rem, 4vw, 3.5rem);
-}
-
-.team-lanyard-rail [data-face] {
-  --color-background: #fffdf7;
-  --color-foreground: #1d1d1f;
-  --color-muted: #eceff6;
-  --color-muted-foreground: #6e6e73;
-  --color-border: #d2d2d7;
 }
 
 @media (min-width: 40rem) {
@@ -543,7 +563,7 @@
     animation: none !important;
   }
   .mock-fill {
-    width: 42%;
+    width: 8%;
   }
   .mock-seg {
     transform: none;

@@ -419,7 +419,7 @@ export function ListeningTest() {
                   <div className="min-w-0">
                     <p className="text-[13px] leading-relaxed text-foreground">{item.prompt}</p>
                     <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-                      Jawabanmu: {answers[index] === null ? '—' : item.options[answers[index] as number]}
+                      Jawabanmu: {answers[index] === null ? 'Belum ada' : item.options[answers[index] as number]}
                       {correctOptions[index] !== null ? ` · Benar: ${item.options[correctOptions[index] as number]}` : ''}
                     </p>
                   </div>

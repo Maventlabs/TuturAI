@@ -10,9 +10,10 @@ import {
 import { NotificationsPanel, type NotificationPrefs } from '@/components/guru/settings/notifications-panel'
 import { SecurityPanel } from '@/components/guru/settings/security-panel'
 import { SettingsRail, type ReadinessItem } from '@/components/guru/settings/settings-rail'
+import SplitText from '@/components/ui/split-text'
 
 // The date is formatted in the viewer's timezone, so it is read only after
-// hydration — the server snapshot stays null to keep SSR and client in sync.
+// hydration, the server snapshot stays null to keep SSR and client in sync.
 const subscribeToNothing = () => () => {}
 const getTodayLabel = () =>
   new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date())
@@ -287,9 +288,11 @@ export default function SettingsPage() {
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             Pengaturan Guru{today ? ` · ${today}` : ''}
           </p>
-          <h1 className="mt-4 max-w-[58ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]">
-            {buildHeadline(profile, drive, voiceProfile)}
-          </h1>
+          <SplitText
+            as="h1"
+            text={buildHeadline(profile, drive, voiceProfile)}
+            className="mt-4 max-w-[58ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]"
+          />
           <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
             Notifikasi tersimpan ke server &middot; identitas dari Firebase &middot; integrasi terpisah dari login
           </p>

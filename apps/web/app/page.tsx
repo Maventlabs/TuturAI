@@ -36,25 +36,29 @@ const jsonLd = {
 
 export default function HomePage() {
   return (
-    <div className="theme-light flex min-h-screen flex-col bg-background text-foreground">
+    <div className="theme-light page-zoom-landing bg-background text-foreground">
       <Script
         id="ld-json-software-application"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <SiteHeader />
-      <main className="flex-1">
-        <Hero />
-        <Problem />
-        <Features />
-        <OfflineHardware />
-        <Pricing />
-        <Testimonials />
-        <Team />
-        <FAQ />
-        <CTA />
-      </main>
-      <SiteFooter />
+      <div className="page-zoom page-zoom-min-screen flex flex-col">
+        <SiteHeader />
+        <main className="flex-1">
+          <Hero />
+          <Problem />
+          <Features />
+          <OfflineHardware />
+          <Pricing />
+          <Testimonials />
+          <Team />
+          <FAQ />
+          <CTA />
+        </main>
+      </div>
+      <div className="page-zoom-reset">
+        <SiteFooter />
+      </div>
     </div>
   )
 }

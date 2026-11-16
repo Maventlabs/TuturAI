@@ -13,9 +13,10 @@ import { RailPanel } from '@/components/student/classroom/rail-panel'
 import { formatDue, relativeDue } from '@/components/student/classroom/format'
 import { enqueuePendingMutation } from '@/lib/offline/offline-db'
 import { cn } from '@/lib/utils'
+import SplitText from '@/components/ui/split-text'
 
 // The date is formatted in the viewer's timezone, so it is read only after
-// hydration — the server snapshot stays null to keep SSR and client in sync.
+// hydration, the server snapshot stays null to keep SSR and client in sync.
 const subscribeToNothing = () => () => {}
 const getTodayLabel = () =>
   new Intl.DateTimeFormat('id-ID', {
@@ -257,9 +258,11 @@ export default function StudentAssignmentsPage() {
             </p>
             <ClassroomSwitch classrooms={classrooms} value={classroomId} onChange={selectClassroom} />
           </div>
-          <h1 className="mt-4 max-w-[52ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]">
-            {insight}
-          </h1>
+          <SplitText
+            as="h1"
+            text={insight}
+            className="mt-4 max-w-[52ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]"
+          />
         </header>
 
         <ClassroomReadouts items={readouts} />

@@ -1,8 +1,9 @@
 import { AudioLines, BookText, Headphones, ListChecks, Mic, Route } from 'lucide-react'
 import { PracticeCard, type PracticeMode } from '@/components/student/learning/practice-card'
+import SplitText from '@/components/ui/split-text'
 
 export const metadata = {
-  title: 'Learning · TuturAI',
+  title: 'Learning',
   description: 'Enam mode latihan speaking, pronunciation, vocabulary, listening, quiz, dan jalur adaptif.',
 }
 
@@ -89,9 +90,11 @@ export default function LearningHubPage() {
           </p>
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-end lg:gap-10">
-          <h1 className="text-balance font-display text-[2.25rem] leading-[1.05] tracking-[-0.02em] text-foreground sm:text-[2.9rem]">
-            Pilih cara kamu berlatih hari ini.
-          </h1>
+          <SplitText
+            as="h1"
+            text="Pilih cara kamu berlatih hari ini."
+            className="text-balance font-display text-[2.25rem] leading-[1.05] tracking-[-0.02em] text-foreground sm:text-[2.9rem]"
+          />
           <p className="text-pretty text-[14px] leading-relaxed text-muted-foreground lg:pb-1.5">
             Enam mode latihan, satu jalur adaptif. Semua hasil masuk ke progres dan klasemen kelasmu.
           </p>

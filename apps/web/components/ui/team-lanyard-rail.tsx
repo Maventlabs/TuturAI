@@ -41,14 +41,12 @@ export interface TeamLanyardRailLabels {
   show: string;
 }
 
-export interface TeamLanyardRailProps extends React.ComponentProps<"section"> {
+export interface TeamLanyardRailProps extends React.ComponentProps<"div"> {
   items: LanyardMember[];
-  eyebrow?: string;
-  heading?: string;
-  /** Shown under the rail while nobody is selected. */
-  caption?: string;
-  /** Call to action rendered under the caption. */
-  action?: React.ReactNode;
+  /** Accessible name for the rail group. */
+  label?: string;
+  /** Instruction shown under the rail while nobody is selected. */
+  hint?: string;
   /** Turns the badges to the front and flips them one by one until the visitor interacts. */
   autoplay?: boolean;
   /** Milliseconds a badge shows its back during autoplay. */
@@ -62,9 +60,9 @@ export interface TeamLanyardRailProps extends React.ComponentProps<"section"> {
   labels?: TeamLanyardRailLabels;
 }
 
-const RATIO = 96 / 62;
-const MAX_W = 124;
-const MIN_RAIL_W = 100;
+const RATIO = 96 / 66;
+const MAX_W = 172;
+const MIN_RAIL_W = 140;
 const EM = 11.2;
 const RAIL_PITCH_MIN = 1.16;
 const RAIL_PITCH_MAX = 1.62;
@@ -303,7 +301,7 @@ function Hole() {
 function Finish() {
   return (
     <>
-      <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 -left-1/2 block w-[200%] opacity-70 dark:opacity-35" style={{ background: "linear-gradient(100deg, transparent 40%, color-mix(in oklab, white 26%, transparent) 48%, color-mix(in oklab, white 8%, transparent) 52%, transparent 58%)", transform: "translateX(var(--gx, 0%))" }} />
+      <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 -left-1/2 block w-[200%] opacity-70" style={{ background: "linear-gradient(100deg, transparent 40%, color-mix(in oklab, white 26%, transparent) 48%, color-mix(in oklab, white 8%, transparent) 52%, transparent 58%)", transform: "translateX(var(--gx, 0%))" }} />
       <span aria-hidden="true" className="pointer-events-none absolute inset-0 block bg-black" style={{ opacity: "var(--shade, 0)" }} />
     </>
   );
@@ -330,7 +328,7 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, tone }: { item: Lanyar
       <span data-face="front" className="absolute inset-0 flex flex-col items-center overflow-hidden rounded-[0.85em] border border-border bg-card px-[0.8em] pb-[0.7em] text-card-foreground [backface-visibility:hidden]" style={{ transform: "translateZ(1px)" }}>
         <Band tone={tone} tall />
         <Hole />
-        <span className="relative mt-[2.05em] block size-[5.3em] shrink-0 rounded-full bg-card p-[0.2em]" style={{ boxShadow: "0 0.15em 0.5em color-mix(in oklab, var(--color-foreground) 22%, transparent)" }}>
+        <span className="relative mt-[2.1em] block size-[5.6em] shrink-0 rounded-full bg-card p-[0.18em]" style={{ boxShadow: "0 0.15em 0.5em color-mix(in oklab, var(--color-foreground) 22%, transparent)" }}>
           <span className="relative block size-full overflow-hidden rounded-full bg-muted">
             <Silhouette />
             <span
@@ -344,40 +342,36 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, tone }: { item: Lanyar
             />
           </span>
         </span>
-        <span className="mt-[0.55em] block w-full truncate text-center text-[1.08em] font-semibold leading-tight tracking-tight">{item.name}</span>
-        <span className="mt-[0.15em] line-clamp-2 block min-h-[2.3em] w-full whitespace-normal text-center text-[0.72em] leading-[1.15] text-muted-foreground">{item.role}</span>
+        <span className="mt-[0.6em] line-clamp-2 min-h-[2.2em] w-full text-center text-[0.98em] font-semibold leading-[1.12] tracking-[-0.01em]">{item.name}</span>
+        <span className="mt-[0.2em] line-clamp-2 min-h-[1.6em] w-full text-center text-[0.68em] font-medium leading-[1.2] text-muted-foreground">{item.role}</span>
         {item.team && <span className="mt-[0.5em] block w-full truncate text-center text-[0.6em] font-medium uppercase tracking-[0.2em] text-muted-foreground">{item.team}</span>}
         <span className="mt-auto block w-full border-t border-dashed border-border pt-[0.5em]">
-          <svg aria-hidden="true" viewBox={`0 0 ${bars.width} 20`} preserveAspectRatio="none" className="block h-[1.6em] w-full text-foreground/80">
+          <svg aria-hidden="true" viewBox={`0 0 ${bars.width} 20`} preserveAspectRatio="none" className="block h-[1.25em] w-full text-foreground/55">
             <path d={bars.d} fill="currentColor" />
           </svg>
-          <span className="mt-[0.25em] block text-center font-mono text-[0.52em] tracking-[0.32em] text-muted-foreground">{digits}</span>
+          <span className="mt-[0.25em] block text-center font-mono text-[0.5em] tracking-[0.3em] text-muted-foreground/80">{digits}</span>
         </span>
         <Finish />
       </span>
-      <span data-face="back" className="absolute inset-0 overflow-hidden rounded-[0.85em] border border-border bg-card text-card-foreground [backface-visibility:hidden]" style={{ transform: "rotateY(180deg) translateZ(1px)" }}>
+      <span data-face="back" className="absolute inset-0 flex flex-col overflow-hidden rounded-[0.85em] border border-border bg-card px-[0.85em] pb-[0.8em] text-card-foreground [backface-visibility:hidden]" style={{ transform: "rotateY(180deg) translateZ(1px)" }}>
         <Band tone={tone} />
         <Hole />
-        <span className="absolute inset-x-[0.85em] top-[2.6em] block">
-          <span className="block truncate text-[0.95em] font-semibold leading-tight">{item.name}</span>
-          <span className="block truncate text-[0.72em] leading-snug text-muted-foreground">{item.role}</span>
+        <span className="mt-[2.5em] block">
+          <span className="line-clamp-2 block text-[0.9em] font-semibold leading-[1.15] tracking-[-0.01em]">{item.name}</span>
+          <span className="mt-[0.1em] block truncate text-[0.7em] leading-snug text-muted-foreground">{item.role}</span>
         </span>
-        {item.bio && (
-          <span className="absolute inset-x-[0.85em] top-[5.1em] block">
-            <span data-bio className="line-clamp-4 block text-[0.74em] leading-[1.4]">{item.bio}</span>
-          </span>
-        )}
+        {item.bio && <span data-bio className="mt-[0.7em] line-clamp-4 block text-[0.76em] leading-[1.4]">{item.bio}</span>}
         {tags.length > 0 && (
-          <span className="absolute inset-x-[0.85em] top-[9.8em] flex flex-wrap gap-[0.28em]">
+          <span className="mt-[0.6em] flex flex-wrap gap-[0.28em]">
             {tags.map((tag) => <span key={tag} className="block rounded-full border border-border bg-muted/60 px-[0.6em] py-[0.16em] text-[0.6em] leading-tight text-muted-foreground">{tag}</span>)}
           </span>
         )}
         {links.length > 0 && (
-          <span aria-hidden="true" className="absolute bottom-[0.75em] left-[0.6em] flex flex-col items-start gap-[0.1em] transition-opacity duration-150 motion-reduce:transition-none" style={{ opacity: "var(--drawn, 1)" }}>
+          <span aria-hidden="true" className="mt-[0.5em] flex flex-col items-start gap-[0.1em] transition-opacity duration-150 motion-reduce:transition-none" style={{ opacity: "var(--drawn, 1)" }}>
             {links.map((link) => <span key={link.label} className={LINK_ROW}><LinkIcon label={link.label} />{link.label}</span>)}
           </span>
         )}
-        <svg aria-hidden="true" viewBox="-1 -1 23 23" className="absolute bottom-[0.8em] right-[0.8em] size-[3.9em] text-foreground">
+        <svg aria-hidden="true" viewBox="-1 -1 23 23" className="mt-auto ml-auto block size-[3.2em] text-foreground/85">
           <path d={qr} fill="currentColor" />
         </svg>
         <Finish />
@@ -391,10 +385,8 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, tone }: { item: Lanyar
 
 export function TeamLanyardRail({
   items,
-  eyebrow,
-  heading,
-  caption,
-  action,
+  label = "Team",
+  hint = "Select a badge to read the profile.",
   autoplay = false,
   interval = 2800,
   active: activeProp,
@@ -474,7 +466,7 @@ export function TeamLanyardRail({
       const n = Math.max(1, live.current.count);
       const railW = Math.min(MAX_W, (width - 40) / (n * RAIL_PITCH_MIN + 0.4));
       const carousel = railW < MIN_RAIL_W;
-      const W = Math.round((carousel ? clamp(width * 0.3, 96, 118) : railW) * 4) / 4;
+      const W = Math.round((carousel ? clamp(width * 0.56, 148, 196) : railW) * 4) / 4;
       setSize((old) => (Math.abs(old.width - width) < 0.5 && old.carousel === carousel && old.W === W ? old : { width, W, carousel }));
     };
     measure(stage.clientWidth);
@@ -961,34 +953,25 @@ export function TeamLanyardRail({
   const person = current === null ? null : items[current] ?? null;
   const showingBack = current !== null && current === flipped;
   const centerIndex = size.carousel ? (active ?? live.current.carouselIndex) : null;
-  const line1 = person ? `${person.name} — ${person.role}` : caption;
-  const line2 = person ? (showingBack ? labels.back : labels.flip) : "";
 
   return (
-    <section
+    <div
       {...rest}
       data-slot="team-lanyard-rail"
       data-mode={size.carousel ? "carousel" : "rail"}
       data-active={active ?? ""}
       data-flipped={flipped ?? ""}
-      className={`relative isolate w-full overflow-hidden bg-background text-foreground ${className ?? ""}`}
+      className={`relative isolate w-full ${className ?? ""}`}
     >
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ background: "radial-gradient(closest-side at 50% 46%, color-mix(in oklab, var(--color-foreground) 7%, transparent), transparent)" }} />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ background: "radial-gradient(color-mix(in oklab, var(--color-foreground) 8%, transparent) 1px, transparent 1.3px) 0 0 / 18px 18px", maskImage: "radial-gradient(closest-side at 50% 50%, black 55%, transparent)", WebkitMaskImage: "radial-gradient(closest-side at 50% 50%, black 55%, transparent)" }} />
-      {(eyebrow || heading) && (
-        <header className="relative z-10 flex flex-col items-center gap-2 px-6 pt-7 text-center">
-          {eyebrow && <p className="text-center font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">{eyebrow}</p>}
-          {heading && <h2 className="max-w-[26ch] text-balance font-display text-[clamp(2.5rem,5.8vw,4.5rem)] font-semibold leading-[0.98] tracking-[-0.045em]">{heading}</h2>}
-        </header>
-      )}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ background: "radial-gradient(color-mix(in oklab, var(--color-foreground) 6%, transparent) 1px, transparent 1.3px) 0 0 / 20px 20px", maskImage: "radial-gradient(closest-side at 50% 50%, black 40%, transparent)", WebkitMaskImage: "radial-gradient(closest-side at 50% 50%, black 40%, transparent)" }} />
 
       <div
         ref={stageRef}
         data-stage
         role="group"
-        aria-label={heading ?? "Team"}
+        aria-label={label}
         aria-roledescription="lanyard rail"
-        className="relative mt-4 w-full touch-pan-y select-none"
+        className="relative mt-10 w-full touch-pan-y select-none sm:mt-12"
         style={{ height: g.height, overflowX: "clip" }}
         onPointerMove={onPointerMove}
         onPointerDown={onPointerDown}
@@ -1032,7 +1015,7 @@ export function TeamLanyardRail({
               <span aria-hidden="true" className="absolute block rounded-full" style={{ left: W / 2 - 4.5 * g.u, top: g.railY - g.ring, width: 9 * g.u, height: g.ring * 2, border: `${Math.max(1.6, 2.2 * g.u).toFixed(2)}px solid color-mix(in oklab, var(--color-muted-foreground) 45%, white)`, boxShadow: "inset 1px 0 0 color-mix(in oklab, black 25%, transparent), 1px 1px 2px color-mix(in oklab, black 20%, transparent)" }} />
               <span ref={(node) => { swings.current[i] = node; }} data-swing className="absolute inset-0 block" style={{ transformOrigin: `${W / 2}px ${g.pivotY}px` }}>
                 <span ref={(node) => { straps.current[i] = node; }} data-strap aria-hidden="true" className="absolute inset-0 block" style={{ ["--stretch" as string]: "0px" }}>
-                  <span className="absolute block bg-black/15 blur-[2px] dark:bg-black/45" style={{ left: W / 2 - g.strapW / 2 + 3 * g.u, top: g.pivotY + 3, width: g.strapW, height: strap }} />
+                  <span className="absolute block bg-black/15 blur-[2px]" style={{ left: W / 2 - g.strapW / 2 + 3 * g.u, top: g.pivotY + 3, width: g.strapW, height: strap }} />
                   <span
                     className="absolute block"
                     style={{
@@ -1074,7 +1057,7 @@ export function TeamLanyardRail({
                 </span>
                 <span ref={(node) => { hangs.current[i] = node; }} data-hang className="absolute left-0 block" style={{ top: clipTop, width: W, height: cardOffset + g.H, transformOrigin: `${W / 2}px 0px` }}>
                   <span aria-hidden="true" className="absolute left-0 block" style={{ top: cardOffset, width: W, height: g.H, filter: `blur(${Math.max(4, 8 * g.u).toFixed(1)}px)` }}>
-                    <span ref={(node) => { shadows.current[i] = node; }} data-shadow className="absolute inset-0 block rounded-[10px] bg-black/25 dark:bg-black/70" />
+                    <span ref={(node) => { shadows.current[i] = node; }} data-shadow className="absolute inset-0 block rounded-[10px] bg-black/20" />
                   </span>
                   <button
                     ref={(node) => { buttons.current[i] = node; }}
@@ -1135,15 +1118,23 @@ export function TeamLanyardRail({
         </div>
       )}
 
-      <div className="relative z-10 flex flex-col items-center gap-3 px-6 pb-7 pt-3 text-center">
-        <div id={`${uid}-caption`} aria-live="polite" className="min-h-[2.6rem]">
-          <p className="text-sm font-medium">{line1}</p>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">{line2}</p>
-          {showingBack && person?.bio && <span className="sr-only">{person.bio}</span>}
-        </div>
-        {action}
+      <div
+        id={`${uid}-caption`}
+        aria-live="polite"
+        className="relative z-10 mx-auto mt-6 flex min-h-[8.5rem] w-full max-w-2xl flex-col items-center justify-center gap-2 px-4 text-center sm:mt-8"
+      >
+        {person ? (
+          <>
+            <p className="font-heading text-lg font-semibold leading-tight tracking-[-0.01em] text-foreground">{person.name}</p>
+            <p className="text-sm text-muted-foreground">{person.role}</p>
+            {person.bio && <p className="max-w-[52ch] text-sm leading-relaxed text-muted-foreground text-pretty">{person.bio}</p>}
+            <p className="text-xs text-muted-foreground/75">{showingBack ? labels.back : labels.flip}</p>
+          </>
+        ) : (
+          <p className="max-w-[46ch] text-sm leading-relaxed text-muted-foreground text-pretty">{hint}</p>
+        )}
       </div>
-    </section>
+    </div>
   );
 }
 

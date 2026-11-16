@@ -103,8 +103,8 @@ export function DashboardShell({
   }
 
   return (
-    <div className="min-h-screen bg-secondary/40">
-      {/* Desktop sidebar — teachers only. Students navigate from the dock. */}
+    <div className="page-zoom-app page-zoom page-zoom-min-screen bg-secondary/40">
+      {/* Desktop sidebar, teachers only. Students navigate from the dock. */}
       {role === 'teacher' && (
       <aside
         className={cn(
@@ -151,15 +151,15 @@ export function DashboardShell({
       {/* Main column */}
       <div
         className={cn(
-          'flex min-h-screen flex-col transition-all duration-300',
+          'page-zoom-min-screen flex flex-col transition-all duration-300',
           role === 'teacher' && (collapsed ? 'lg:pl-[76px]' : 'lg:pl-64'),
         )}
       >
-        {/* Topbar — a ruled instrument rail: every zone is a cell divided by a
+        {/* Topbar, a ruled instrument rail: every zone is a cell divided by a
             hairline, so state reads as a gauge instead of a row of pills. */}
         <header className="sticky top-0 z-20 border-b border-rule bg-card/90 backdrop-blur-xl">
           <div className="flex h-16 items-stretch">
-            {/* Menu sheet — the only way to reach the full student route list,
+            {/* Menu sheet, the only way to reach the full student route list,
                 so it stays available at every width for students. */}
             <div className={cn('flex items-center pl-3', role === 'teacher' && 'lg:hidden')}>
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -186,7 +186,7 @@ export function DashboardShell({
               </Sheet>
             </div>
 
-            {/* Search — a recessed command field, not a floating pill */}
+            {/* Search, a recessed command field, not a floating pill */}
             <form onSubmit={handleSearch} className="flex min-w-0 flex-1 items-center px-3 sm:px-4">
               <div className="relative w-full max-w-[280px] md:max-w-[380px] lg:max-w-[300px] xl:max-w-[400px]">
                 <Search

@@ -23,7 +23,7 @@ type ApiResponse<T> = { data: T; error?: { message?: string } }
 const DIMENSIONS = ['pronunciation', 'fluency', 'intonation', 'grammar', 'vocabulary'] as const
 
 function formatDateTime(value: string | null) {
-  if (!value) return '—'
+  if (!value) return 'Belum ada'
   return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
@@ -277,7 +277,7 @@ export function SubmissionDetail({
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Ketepatan waktu</dt>
                 <dd className="font-medium text-foreground">
-                  {submission ? (submission.isLate ? 'Terlambat' : 'Tepat waktu') : '—'}
+                  {submission ? (submission.isLate ? 'Terlambat' : 'Tepat waktu') : 'Belum ada'}
                 </dd>
               </div>
             </dl>
