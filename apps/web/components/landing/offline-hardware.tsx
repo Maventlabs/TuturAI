@@ -125,100 +125,98 @@ export function OfflineHardware() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 sm:mt-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.5fr)_minmax(0,0.85fr)] lg:items-start">
-          <div className="order-2 flex flex-col gap-4 lg:order-1">
-            {features.map((feature) => (
-              <article
-                key={feature.title}
-                className="rounded-xl border border-border bg-secondary/60 p-5 transition-colors hover:border-primary/40"
-              >
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <feature.icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
-                </span>
-                <h3 className="mt-4 font-display text-base font-semibold tracking-[-0.01em] text-foreground">
-                  {feature.title}
-                </h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground text-pretty">
-                  {feature.body}
-                </p>
-                <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/80">
-                  {feature.meta}
-                </p>
-              </article>
-            ))}
-          </div>
-
-          <div className="order-1 lg:order-2">
-            <div
-              ref={stage}
-              className="relative h-[340px] overflow-hidden rounded-2xl border border-border bg-secondary/50 sm:h-[420px] lg:h-[480px]"
-            >
-              {ready ? (
-                <DeviceScene
-                  preset={preset}
-                  exploded={exploded}
-                  autoRotate={autoRotate}
-                  showTop={showTop}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                    Memuat model 3D
-                  </span>
-                </div>
-              )}
-              <span className="pointer-events-none absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/80 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground backdrop-blur">
+        <div className="mt-12 overflow-hidden rounded-lg border border-border bg-card sm:mt-16">
+          <div className="grid items-stretch lg:min-h-[620px] lg:grid-cols-[minmax(250px,0.9fr)_minmax(400px,1.5fr)_minmax(260px,0.9fr)]">
+            <figure className="relative order-1 h-80 overflow-hidden bg-secondary/50 sm:h-96 lg:order-2 lg:!h-full">
+              <div ref={stage} className="absolute inset-0">
+                {ready ? (
+                  <DeviceScene
+                    preset={preset}
+                    exploded={exploded}
+                    autoRotate={autoRotate}
+                    showTop={showTop}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      Memuat model 3D
+                    </span>
+                  </div>
+                )}
+              </div>
+              <span className="pointer-events-none absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-sm border border-border bg-card/90 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                 <Rotate3d className="h-3 w-3" aria-hidden />
                 Geser 360°
               </span>
+              <figcaption className="absolute inset-x-0 bottom-0 border-t border-border bg-card/90 px-4 py-3 text-center text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                Konsol ESP32-S3 dengan layar TFT, mikrofon, dan speaker. Semua penilaian berjalan di perangkat.
+              </figcaption>
+            </figure>
+
+            <div className="order-2 grid gap-3 p-4 sm:grid-cols-3 sm:p-5 lg:order-1 lg:grid-cols-1 lg:grid-rows-3 lg:gap-3">
+              {features.map((feature) => (
+                <article
+                  key={feature.title}
+                  className="flex h-full flex-col items-start rounded-md border border-border bg-secondary/40 p-4 transition-colors hover:border-primary/50 sm:p-4 lg:justify-center lg:p-5"
+                >
+                  <span className="inline-flex size-9 items-center justify-center rounded-sm bg-primary/10 text-primary">
+                    <feature.icon className="size-[18px]" strokeWidth={1.75} />
+                  </span>
+                  <h3 className="mt-3 font-heading text-base font-semibold tracking-[-0.01em] text-foreground">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground text-pretty">
+                    {feature.body}
+                  </p>
+                  <p className="mt-auto pt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/80">
+                    {feature.meta}
+                  </p>
+                </article>
+              ))}
             </div>
-            <p className="mt-4 text-center text-sm leading-relaxed text-muted-foreground text-pretty">
-              Konsol ESP32-S3 dengan layar TFT, mikrofon, dan speaker. Semua penilaian berjalan di
-              perangkat.
-            </p>
-          </div>
 
-          <div className="order-3 flex flex-col gap-4">
-            <div className="rounded-xl border border-border bg-secondary/60 p-5">
-              <h3 className="font-display text-sm font-semibold text-foreground">Tampilan</h3>
-              <div className="mt-2 flex flex-col">
-                <Toggle label="Urai (exploded)" checked={exploded} onChange={setExploded} />
-                <Toggle label="Putar otomatis" checked={autoRotate} onChange={setAutoRotate} />
-                <Toggle label="Casing atas" checked={showTop} onChange={setShowTop} />
-              </div>
+            <aside className="order-3 flex flex-col gap-3 border-t border-border p-4 sm:p-5 lg:border-l lg:border-t-0">
+              <div className="flex flex-1 flex-col rounded-md border border-border bg-secondary/40 p-4 sm:p-5">
+                <h3 className="font-heading text-sm font-semibold text-foreground">Tampilan</h3>
+                <div className="mt-2 flex flex-col">
+                  <Toggle label="Urai (exploded)" checked={exploded} onChange={setExploded} />
+                  <Toggle label="Putar otomatis" checked={autoRotate} onChange={setAutoRotate} />
+                  <Toggle label="Casing atas" checked={showTop} onChange={setShowTop} />
+                </div>
 
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                  Sudut pandang
-                </p>
-                <div className="mt-2.5 grid grid-cols-2 gap-2">
-                  {views.map((view) => (
-                    <button
-                      key={view.id}
-                      type="button"
-                      onClick={() => setPreset(view.id)}
-                      aria-pressed={preset === view.id}
-                      className={cn(
-                        'rounded-lg border px-2.5 py-2 text-xs font-medium transition-colors',
-                        preset === view.id
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border bg-card text-foreground hover:border-primary/50',
-                      )}
-                    >
-                      {view.label}
-                    </button>
-                  ))}
+                <div className="mt-4 border-t border-border pt-4">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Sudut pandang
+                  </p>
+                  <div className="mt-2.5 grid grid-cols-2 gap-2">
+                    {views.map((view) => (
+                      <button
+                        key={view.id}
+                        type="button"
+                        onClick={() => setPreset(view.id)}
+                        aria-pressed={preset === view.id}
+                        className={cn(
+                          'rounded-sm border px-2.5 py-2 text-xs font-medium transition-colors',
+                          preset === view.id
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-card text-foreground hover:border-primary/50',
+                        )}
+                      >
+                        {view.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <Link
-              href="/auth/sign-up"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Mulai Latihan Gratis
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
+              <Link
+                href="/auth/sign-up"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                Mulai Latihan Gratis
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </aside>
           </div>
         </div>
       </div>
