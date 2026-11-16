@@ -14,18 +14,21 @@ const DeviceScene = dynamic(() => import('./device-scene').then((m) => m.DeviceS
 const features = [
   {
     number: '01',
+    image: '/landing/hardware-offline-card.png',
     title: 'Tetap jalan offline',
     body: 'Speaking, reading, dan kuis dasar tetap aktif tanpa sinyal — termasuk di sekolah wilayah 3T.',
     meta: 'PWA + antrean microSD',
   },
   {
     number: '02',
+    image: '/landing/hardware-ai-card.png',
     title: 'AI di dalam perangkat',
     body: 'DS-CNN INT8 memproses suara langsung di ESP32-S3. Audio tidak dikirim ke cloud.',
     meta: 'INT8 · TFLite Micro',
   },
   {
     number: '03',
+    image: '/landing/hardware-battery-card.png',
     title: 'Baterai satu sesi kelas',
     body: '4,5 jam pemakaian terus-menerus, cukup untuk satu blok pelajaran tanpa mengecas.',
     meta: 'LiPo 5000 mAh',
@@ -80,27 +83,28 @@ export function OfflineHardware() {
   }, [])
 
   return (
-    <section id="offline" data-nav-theme="light" className="section-y scroll-mt-24 bg-background px-4 sm:px-6 lg:px-8">
+    <section id="offline" data-nav-theme="light" className="section-y scroll-mt-24 bg-secondary px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1400px]">
-        <header className="mx-auto max-w-3xl text-center">
+        <header className="mx-auto max-w-2xl text-center">
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Perangkat</p>
-          <h2 className="mt-4 font-display text-3xl font-medium leading-[1.08] tracking-[-0.025em] text-balance text-foreground sm:text-4xl lg:text-5xl">
-            Belajar tetap berjalan. <span className="text-primary">Dengan atau tanpa internet.</span>
+          <h2 className="mt-4 font-display text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-foreground text-balance sm:text-4xl lg:text-5xl">
+            <span className="block">Tanpa internet.</span>
+            <span className="block text-primary">Tanpa ponsel pribadi.</span>
           </h2>
-          <p className="mx-auto mt-5 max-w-[58ch] text-base leading-relaxed text-muted-foreground text-pretty sm:text-lg">
-            Satu konsol untuk seluruh kelas. Latihan dan penilaian dasar diproses langsung di perangkat, lalu disinkronkan saat koneksi kembali.
+          <p className="mx-auto mt-6 max-w-[58ch] text-base leading-relaxed text-muted-foreground text-pretty sm:text-lg">
+            Satu konsol untuk seluruh kelas. Penilaian dasar berjalan di perangkat, bukan di cloud.
           </p>
         </header>
 
         <div className="mt-10 grid gap-4 rounded-lg border border-border bg-card p-3 sm:mt-14 sm:p-4 lg:min-h-[660px] lg:grid-cols-[minmax(220px,0.78fr)_minmax(340px,1.35fr)_minmax(270px,0.9fr)] lg:gap-4 lg:p-5">
           <div className="order-2 grid gap-3 sm:grid-cols-3 lg:order-1 lg:grid-cols-1 lg:grid-rows-3">
-            {features.map((feature, index) => (
+            {features.map((feature) => (
               <article
                 key={feature.number}
                 className="group relative flex min-h-[210px] flex-col justify-end overflow-hidden rounded-md border border-border bg-secondary bg-cover bg-center p-5 text-white sm:min-h-[240px] lg:min-h-0"
                 style={{
-                  backgroundImage: `linear-gradient(180deg, rgba(9, 32, 73, ${0.12 + index * 0.04}) 8%, rgba(9, 32, 73, 0.9) 100%), url('/landing/hardware-card-art.png')`,
-                  backgroundPosition: `${50 + (index - 1) * 13}% center`,
+                  backgroundImage: `linear-gradient(180deg, rgba(9, 32, 73, 0.04) 12%, rgba(9, 32, 73, 0.9) 100%), url('${feature.image}')`,
+                  backgroundPosition: 'center',
                 }}
               >
                 <span className="mb-auto font-mono text-[10px] tracking-[0.16em] text-white/75">{feature.number} / 03</span>
