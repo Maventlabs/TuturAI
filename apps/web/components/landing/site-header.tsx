@@ -61,6 +61,7 @@ const navEntries: NavEntry[] = [
       { label: 'FAQ', href: '#faq' },
       { label: 'Harga & Paket', href: '#harga' },
       { label: 'Cara Kerja', href: '#fitur' },
+      { label: 'Tim TuturAI', href: '#tim' },
       { label: 'Mulai Sekarang', href: '/auth/sign-up' },
     ],
   },
