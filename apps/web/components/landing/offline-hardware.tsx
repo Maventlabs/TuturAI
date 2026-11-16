@@ -44,6 +44,12 @@ const views: { id: ViewPreset; label: string }[] = [
 
 const modes = ['Speaking', 'Reading', 'Kuis'] as const
 
+const modeDescriptions: Record<(typeof modes)[number], string> = {
+  Speaking: 'Latihan bicara tersimpan di perangkat hingga koneksi kembali.',
+  Reading: 'Latihan membaca tersedia tanpa koneksi internet.',
+  Kuis: 'Kuis dasar dapat dikerjakan langsung di konsol.',
+}
+
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
     <button
@@ -96,21 +102,19 @@ export function OfflineHardware() {
           </p>
         </header>
 
-        <div className="mt-10 grid gap-4 rounded-lg border border-border bg-card p-3 sm:mt-14 sm:p-4 lg:min-h-[660px] lg:grid-cols-[minmax(220px,0.78fr)_minmax(340px,1.35fr)_minmax(270px,0.9fr)] lg:gap-4 lg:p-5">
+        <div className="mt-10 grid gap-4 rounded-lg border border-border bg-card p-3 sm:mt-14 sm:p-4 lg:min-h-[720px] lg:grid-cols-[minmax(220px,0.78fr)_minmax(340px,1.35fr)_minmax(270px,0.9fr)] lg:gap-4 lg:p-5">
           <div className="order-2 grid gap-3 sm:grid-cols-3 lg:order-1 lg:grid-cols-1 lg:grid-rows-3">
             {features.map((feature) => (
               <article
                 key={feature.number}
                 className="group relative flex min-h-[210px] flex-col justify-end overflow-hidden rounded-md border border-border bg-secondary bg-cover bg-center p-5 text-white sm:min-h-[240px] lg:min-h-0"
-                style={{
-                  backgroundImage: `linear-gradient(180deg, rgba(9, 32, 73, 0.04) 12%, rgba(9, 32, 73, 0.9) 100%), url('${feature.image}')`,
-                  backgroundPosition: 'center',
-                }}
+                style={{ backgroundImage: `url('${feature.image}')`, backgroundPosition: 'center' }}
               >
-                <span className="mb-auto font-mono text-[10px] tracking-[0.16em] text-white/75">{feature.number} / 03</span>
-                <h3 className="max-w-[18ch] font-heading text-lg font-semibold leading-snug tracking-[-0.02em] sm:text-xl">{feature.title}</h3>
-                <p className="mt-2 text-[13px] leading-relaxed text-white/80">{feature.body}</p>
-                <p className="mt-4 border-t border-white/25 pt-3 font-mono text-[9px] uppercase tracking-[0.14em] text-white/70">{feature.meta}</p>
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/95 via-black/45 to-transparent" />
+                <span className="relative z-10 mb-auto font-mono text-[10px] tracking-[0.16em] text-white/75">{feature.number} / 03</span>
+                <h3 className="relative z-10 max-w-[18ch] font-heading text-lg font-semibold leading-snug tracking-[-0.02em] sm:text-xl">{feature.title}</h3>
+                <p className="relative z-10 mt-2 text-[13px] leading-relaxed text-white/90">{feature.body}</p>
+                <p className="relative z-10 mt-4 border-t border-white/30 pt-3 font-mono text-[9px] uppercase tracking-[0.14em] text-white/80">{feature.meta}</p>
               </article>
             ))}
           </div>
@@ -126,7 +130,7 @@ export function OfflineHardware() {
               )}
             </div>
             <span className="pointer-events-none absolute left-4 top-4 rounded-sm border border-primary/15 bg-white/75 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.15em] text-primary-deep backdrop-blur-sm">ESP32-S3 · TuturAI</span>
-            <span className="pointer-events-none absolute right-4 top-4 font-mono text-[9px] uppercase tracking-[0.15em] text-primary/65">Geser untuk memutar</span>
+            <span className="pointer-events-none absolute right-4 top-4 font-mono text-[9px] uppercase tracking-[0.15em] text-primary/65">Geser untuk memutar 360°</span>
             <figcaption className="absolute inset-x-4 bottom-4 rounded-sm border border-white/75 bg-white/75 px-4 py-3 text-center text-xs leading-relaxed text-foreground/75 backdrop-blur-md sm:inset-x-6 sm:bottom-6">
               Konsol belajar mandiri dengan layar TFT, mikrofon, dan speaker — dirancang untuk ruang kelas dengan koneksi terbatas.
             </figcaption>
@@ -168,11 +172,12 @@ export function OfflineHardware() {
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2" role="group" aria-label="Pilih aktivitas perangkat">
                 {modes.map((item) => (
-                  <button key={item} type="button" onClick={() => setMode(item)} aria-pressed={mode === item} className={cn('min-h-10 rounded-sm border px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', mode === item ? 'border-primary/30 bg-primary/10 text-primary-deep' : 'border-border bg-card text-foreground hover:border-primary/60')}>
+                  <button key={item} type="button" onClick={() => setMode(item)} aria-pressed={mode === item} className={cn('min-h-10 rounded-sm border px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', mode === item ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground hover:border-primary/60')}>
                     {item}
                   </button>
                 ))}
               </div>
+              <p aria-live="polite" className="mt-3 min-h-10 text-xs leading-relaxed text-muted-foreground">{modeDescriptions[mode]}</p>
             </div>
 
             <div className="mt-auto rounded-md border border-primary/15 bg-primary/5 p-4 sm:p-5">

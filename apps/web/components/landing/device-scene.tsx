@@ -10,9 +10,9 @@ import * as THREE from 'three'
 export type ViewPreset = 'isometri' | 'depan' | 'belakang' | 'samping'
 
 const VIEWS: Record<ViewPreset, [number, number, number]> = {
-  isometri: [4.6, 3.8, 4.6],
-  depan: [0, 1.2, 6.4],
-  belakang: [0, 1.2, -6.4],
+  isometri: [4.6, 3.8, -4.6],
+  depan: [0, 1.2, -6.4],
+  belakang: [0, 1.2, 6.4],
   samping: [6.4, 1.2, 0],
 }
 
@@ -89,16 +89,26 @@ function Device({ exploded, showTop }: { exploded: boolean; showTop: boolean }) 
   }, [model])
 
   useEffect(() => {
+    model.updateWorldMatrix(true, true)
     modelBounds.parts.forEach(({ mesh, center, originalPosition }) => {
       mesh.position.copy(originalPosition)
       mesh.visible = showTop || center.y <= modelBounds.splitHeight
 
       if (exploded) {
-        const direction = center.clone().sub(modelBounds.center).normalize()
-        mesh.position.addScaledVector(direction, modelBounds.largestDimension * 0.055)
+        const direction = center.clone().sub(modelBounds.center)
+        if (direction.lengthSq() < 0.001) direction.set(0, 1, 0)
+        direction.normalize()
+
+        const parent = mesh.parent
+        const distance = modelBounds.largestDimension * 0.16
+        const originalCenter = parent ? parent.worldToLocal(center.clone()) : center.clone()
+        const separatedCenter = parent
+          ? parent.worldToLocal(center.clone().addScaledVector(direction, distance))
+          : center.clone().addScaledVector(direction, distance)
+        mesh.position.add(separatedCenter.sub(originalCenter))
       }
     })
-    model.updateMatrixWorld(true)
+    model.updateWorldMatrix(true, true)
   }, [exploded, model, modelBounds, showTop])
 
   return (
@@ -130,12 +140,12 @@ export function DeviceScene({ preset, exploded, autoRotate, showTop }: DeviceSce
       dpr={[1, 1.5]}
       gl={{ antialias: true, alpha: true }}
       camera={{ position: VIEWS.isometri, zoom: 100, near: 0.1, far: 100 }}
-      aria-label="Model 3D konsol TuturAI. Gunakan kontrol sudut pandang atau geser untuk memutar."
+      aria-label="Model 3D konsol TuturAI. Gunakan kontrol sudut pandang atau geser ke segala arah untuk memutar penuh 360 derajat."
     >
       <ambientLight intensity={1.1} />
-      <directionalLight position={[5, 7, 4]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} />
-      <directionalLight position={[-5, 3, -4]} intensity={0.7} />
-      <directionalLight position={[0, 3, -6]} intensity={0.55} />
+      <directionalLight position={[5, 7, -4]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[-5, 3, 4]} intensity={0.7} />
+      <directionalLight position={[0, 3, 6]} intensity={0.55} />
 
       <Suspense fallback={null}>
         <Device exploded={exploded} showTop={showTop} />
@@ -153,12 +163,13 @@ export function DeviceScene({ preset, exploded, autoRotate, showTop }: DeviceSce
         makeDefault
         enablePan={false}
         enableZoom={false}
+        enableRotate
         autoRotate={autoRotate}
         autoRotateSpeed={1.1}
         enableDamping
         dampingFactor={0.08}
-        minPolarAngle={0.35}
-        maxPolarAngle={1.45}
+        minPolarAngle={0.001}
+        maxPolarAngle={Math.PI - 0.001}
       />
       <CameraRig preset={preset} />
       <FitCamera />
