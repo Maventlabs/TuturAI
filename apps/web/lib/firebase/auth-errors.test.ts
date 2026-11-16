@@ -34,7 +34,22 @@ describe('authErrorMessage', () => {
   it('distinguishes server-session failures from Firebase popup failures', () => {
     const error = new AuthFlowError('server-session', 500, 'FIREBASE_ADMIN_MISCONFIGURED')
 
-    expect(authErrorMessage(error, 'google')).toContain('server TuturAI gagal membuat sesi')
+    expect(authErrorMessage(error, 'google')).toContain('konfigurasi Firebase Admin')
+    expect(authErrorMessage(error, 'signup')).not.toContain('Akun Google')
+  })
+
+  it('explains incomplete onboarding data instead of blaming Google', () => {
+    const error = new AuthFlowError('onboarding', 400, 'VALIDATION_ERROR')
+
+    expect(authErrorMessage(error, 'google')).toContain('Data profil belum lengkap atau tidak valid')
+    expect(authErrorMessage(error, 'signup')).toContain('kelas/mata pelajaran')
+  })
+
+  it('does not describe email signup onboarding failures as Google failures', () => {
+    const error = new AuthFlowError('onboarding', 500, 'SESSION_CREATION_FAILED')
+
+    expect(authErrorMessage(error, 'signup')).toContain('Akun berhasil dibuat')
+    expect(authErrorMessage(error, 'signup')).not.toContain('Akun Google')
   })
 
   it('explains retryable Firebase verification network failures separately', () => {

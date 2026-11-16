@@ -44,6 +44,23 @@ export function SignUpForm() {
   }
 
   async function handleGoogleSignUp() {
+    const trimmedName = fullName.trim()
+    const trimmedSchool = school.trim()
+    const trimmedExtra = extra.trim()
+
+    if (trimmedName.length < 2 || trimmedName.length > 120) {
+      setError('Isi nama lengkap (2–120 karakter) sebelum melanjutkan dengan Google.')
+      return
+    }
+    if (trimmedSchool.length < 2 || trimmedSchool.length > 160) {
+      setError('Isi asal sekolah (2–160 karakter) sebelum melanjutkan dengan Google.')
+      return
+    }
+    if (!trimmedExtra || trimmedExtra.length > 120) {
+      setError(`Isi ${role === 'student' ? 'kelas' : 'mata pelajaran'} (maksimal 120 karakter) sebelum melanjutkan dengan Google.`)
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {

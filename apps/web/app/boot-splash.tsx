@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { StackLoader } from '@/components/ui/stack-loader'
 import { SITE_NAME } from '@/lib/site'
 
@@ -15,6 +15,11 @@ const LOADER_IMAGES = [
 export function BootSplash() {
   const [visible, setVisible] = useState(true)
   const handleComplete = useCallback(() => setVisible(false), [])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(handleComplete, 6000)
+    return () => window.clearTimeout(timeoutId)
+  }, [handleComplete])
 
   if (!visible) return null
 

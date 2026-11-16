@@ -8,7 +8,8 @@
  *  - Navigation requests are network-first with an offline fallback, so a fresh
  *    deploy is picked up immediately while a dropped connection still renders
  *    the offline shell instead of the browser's dinosaur page.
- *  - Static assets are cache-first because Next.js fingerprints their URLs.
+ *  - Images and fonts are cache-first. JavaScript and CSS stay network-first
+ *    so a deployment cannot mix chunks from different builds.
  */
 const CACHE_VERSION = 'v6'
 const CACHE_NAME = `tuturai-static-${CACHE_VERSION}`
@@ -87,10 +88,10 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Immutable build output and static media: cache-first.
+  // Only media is cache-first. Build chunks must always revalidate to avoid
+  // mixing JavaScript from different deployments in an active client.
   const isCacheable =
-    ['font', 'image', 'script', 'style'].includes(request.destination) ||
-    url.pathname.startsWith('/_next/static/') ||
+    ['font', 'image'].includes(request.destination) ||
     url.pathname.startsWith('/icons/') ||
     url.pathname.startsWith('/brand/')
 

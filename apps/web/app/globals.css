@@ -47,6 +47,8 @@
   --color-ink-deep: var(--ink-deep);
   --color-ink-foreground: var(--ink-foreground);
   --color-ink-muted: var(--ink-muted);
+  --color-team-night: var(--team-night);
+  --color-team-gold: var(--team-gold);
 
   /* Hairlines for the teacher instrument sheet: --rule divides panels,
      --grid draws chart gridlines one step lighter than --rule. */
@@ -84,6 +86,8 @@
   --ink-deep: #101014;
   --ink-foreground: #f5f5f7;
   --ink-muted: #a1a1a8;
+  --team-night: #160d57;
+  --team-gold: #f7c64a;
 
   /* precision-blue brand palette (AGENTS.md section 5) */
   --background: #f5f5f7;
@@ -463,6 +467,65 @@
 
 .tutur-scan-line {
   animation: tutur-scan 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.device-showcase-figure {
+  height: 340px;
+}
+
+.team-lanyard-rail {
+  min-height: 40rem;
+  padding: clamp(4.5rem, 8vw, 7.5rem) clamp(1rem, 4.5vw, 4rem) 1.5rem;
+  --background: var(--team-night);
+  --foreground: #fbf9ff;
+  --muted: rgb(255 255 255 / 8%);
+  --muted-foreground: #c9c3eb;
+  --card: #fffdf7;
+  --card-foreground: #1d1d1f;
+  --border: rgb(255 255 255 / 22%);
+}
+
+.team-lanyard-rail > header {
+  gap: 0.8rem;
+  padding: 0;
+}
+
+.team-lanyard-rail > header::before {
+  width: 2.5rem;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--team-gold);
+  content: '';
+}
+
+.team-lanyard-rail > header p {
+  color: var(--team-gold);
+}
+
+.team-lanyard-rail [data-stage] {
+  max-width: 84rem;
+  margin-inline: auto;
+  margin-top: clamp(2.25rem, 4vw, 3.5rem);
+}
+
+.team-lanyard-rail [data-face] {
+  --color-background: #fffdf7;
+  --color-foreground: #1d1d1f;
+  --color-muted: #eceff6;
+  --color-muted-foreground: #6e6e73;
+  --color-border: #d2d2d7;
+}
+
+@media (min-width: 40rem) {
+  .device-showcase-figure {
+    height: 440px;
+  }
+}
+
+@media (min-width: 64rem) {
+  .device-showcase-figure {
+    height: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

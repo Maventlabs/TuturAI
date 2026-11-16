@@ -6,6 +6,7 @@ import { Features } from '@/components/landing/features'
 import { OfflineHardware } from '@/components/landing/offline-hardware'
 import { Pricing } from '@/components/landing/pricing'
 import { Testimonials } from '@/components/landing/testimonials'
+import { Team } from '@/components/landing/team'
 import { FAQ } from '@/components/landing/faq'
 import { CTA } from '@/components/landing/cta'
 import { SiteFooter } from '@/components/landing/site-footer'
@@ -49,6 +50,7 @@ export default function HomePage() {
         <OfflineHardware />
         <Pricing />
         <Testimonials />
+        <Team />
         <FAQ />
         <CTA />
       </main>
