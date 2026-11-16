@@ -62,7 +62,7 @@ export function Team() {
       id="tim"
       data-nav-theme="dark"
       items={members}
-      eyebrow="THE PEOPLE BEHIND THE PRACTICE · 05 PROFILES"
+      eyebrow="THE PEOPLE BEHIND THE PRACTICE"
       heading="Meet the Team — People Behind TuturAI"
       caption="Satu tim, satu tujuan: membuat latihan bicara terasa lebih aman dan dekat dengan setiap siswa. Pilih kartu, lalu klik atau tekan Enter untuk membuka profil; tekan Esc untuk kembali."
       labels={{

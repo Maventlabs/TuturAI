@@ -2,7 +2,9 @@
 
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { ContactShadows, OrbitControls, useGLTF } from '@react-three/drei'
+import { ContactShadows } from '@react-three/drei/core/ContactShadows'
+import { OrbitControls } from '@react-three/drei/core/OrbitControls'
+import { useGLTF } from '@react-three/drei/core/Gltf'
 import * as THREE from 'three'
 
 export type ViewPreset = 'isometri' | 'depan' | 'belakang' | 'samping'
