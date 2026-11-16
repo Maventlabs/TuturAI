@@ -127,7 +127,7 @@ export function OfflineHardware() {
 
         <div className="mt-12 overflow-hidden rounded-lg border border-border bg-card sm:mt-16">
           <div className="grid items-stretch lg:min-h-[620px] lg:grid-cols-[minmax(250px,0.9fr)_minmax(400px,1.5fr)_minmax(260px,0.9fr)]">
-            <figure className="relative order-1 h-80 overflow-hidden bg-secondary/50 sm:h-96 lg:order-2 lg:!h-full">
+            <figure className="device-showcase-figure relative order-1 overflow-hidden bg-secondary/50 lg:order-2">
               <div ref={stage} className="absolute inset-0">
                 {ready ? (
                   <DeviceScene

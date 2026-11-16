@@ -465,6 +465,22 @@
   animation: tutur-scan 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
+.device-showcase-figure {
+  height: 340px;
+}
+
+@media (min-width: 40rem) {
+  .device-showcase-figure {
+    height: 440px;
+  }
+}
+
+@media (min-width: 64rem) {
+  .device-showcase-figure {
+    height: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .illo-anim,
   .mock-shimmer,
