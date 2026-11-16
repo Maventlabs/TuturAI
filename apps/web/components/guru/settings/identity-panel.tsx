@@ -59,7 +59,7 @@ export function IdentityPanel({ profile, error }: { profile: TeacherProfile | nu
 
       <SheetNote>
         NIP, kota/kabupaten, dan tahun ajaran belum tersedia di profil Firebase. Lengkapi lewat onboarding
-        berikutnya — halaman ini tidak menyimpan perubahan identitas.
+        berikutnya. Halaman ini tidak menyimpan perubahan identitas.
       </SheetNote>
       {error && <SheetNote tone="error">{error}</SheetNote>}
     </section>

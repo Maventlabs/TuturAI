@@ -8,7 +8,7 @@ export type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'error'
 interface VoiceOrbProps {
   state: OrbState
   /**
-   * Reads the live 0..1 energy of whichever audio source is active — the
+   * Reads the live 0..1 energy of whichever audio source is active, the
    * microphone while listening, the spoken reply while speaking. Read inside
    * the animation frame so the orb never re-renders React at 60fps.
    */

@@ -156,13 +156,13 @@ export function ExamSheet() {
                       <div className="flex gap-2">
                         <dt className="w-[86px] shrink-0 uppercase tracking-[0.1em] text-muted-foreground">Jawabanmu</dt>
                         <dd className={entry.isCorrect ? 'text-foreground' : 'text-destructive'}>
-                          {chosen === null ? '—' : item.options[chosen]}
+                          {chosen === null ? 'Belum ada' : item.options[chosen]}
                         </dd>
                       </div>
                       <div className="flex gap-2">
                         <dt className="w-[86px] shrink-0 uppercase tracking-[0.1em] text-muted-foreground">Kunci</dt>
                         <dd className="text-foreground">
-                          {entry.correctOption === null ? '—' : item.options[entry.correctOption]}
+                          {entry.correctOption === null ? 'Belum ada' : item.options[entry.correctOption]}
                         </dd>
                       </div>
                     </dl>

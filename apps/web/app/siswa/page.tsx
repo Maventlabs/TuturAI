@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ActivityHeatmap, type ActivityDay } from '@/components/student/activity-heatmap'
+import SplitText from '@/components/ui/split-text'
 
 function greeting() {
   const h = new Date().getHours()
@@ -193,7 +194,7 @@ export default function StudentHomePage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      {/* Session console — the day's state and the one action that matters. */}
+      {/* Session console, the day's state and the one action that matters. */}
       <section className="pb-8">
         <div className="flex items-baseline justify-between gap-4 border-b border-rule pb-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{todayLabel}</p>
@@ -205,9 +206,12 @@ export default function StudentHomePage() {
         <div className="mt-7 grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-end">
           <div>
             <h1 className="font-display text-[2.5rem] leading-[1.04] tracking-[-0.02em] text-foreground sm:text-[3.25rem]">
-              {greeting()},
-              <br />
-              {firstName}.
+              <span className="block">
+                <SplitText text={`${greeting()},`} />
+              </span>
+              <span className="block">
+                <SplitText text={`${firstName}.`} delay={0.12} />
+              </span>
             </h1>
             <p className="mt-4 max-w-sm text-pretty text-[15px] leading-relaxed text-muted-foreground">
               {profile?.streak
@@ -238,14 +242,14 @@ export default function StudentHomePage() {
         </div>
       </section>
 
-      {/* Instrument strip — four readouts divided by hairlines, not four cards. */}
+      {/* Instrument strip, four readouts divided by hairlines, not four cards. */}
       <section aria-label="Ringkasan progres" className="grid grid-cols-2 gap-px border border-rule bg-rule sm:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className="bg-card px-4 py-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{stat.label}</p>
             <p className="mt-2 flex items-baseline gap-1.5 font-mono text-[1.9rem] leading-none tabular-nums text-foreground">
               {stat.value === null ? (
-                <span className="text-muted-foreground">—</span>
+                <span className="text-muted-foreground">Belum ada</span>
               ) : (
                 stat.format(stat.value)
               )}
@@ -264,7 +268,7 @@ export default function StudentHomePage() {
             <div className="flex items-baseline justify-between gap-4">
               <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Minggu ini</h2>
               <p className="font-mono text-[11px] tabular-nums text-foreground">
-                {target ? `${target.completed} / ${target.target}` : '—'}
+                {target ? `${target.completed} / ${target.target}` : 'Belum ada'}
                 <span className="ml-1.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">latihan</span>
               </p>
             </div>
@@ -414,12 +418,12 @@ export default function StudentHomePage() {
         </div>
       </div>
 
-      {/* Year-scale ledger — the week matrix above answers "this week", this answers "did I keep the rhythm". */}
+      {/* Year-scale ledger, the week matrix above answers "this week", this answers "did I keep the rhythm". */}
       <section className="mt-10">
         <ActivityHeatmap days={activity} loading={!activity && !activityError} error={activityError} />
       </section>
 
-      {/* Launcher — the practice modes the dock no longer carries. */}
+      {/* Launcher, the practice modes the dock no longer carries. */}
       <section className="mt-10">
         <div className="flex items-baseline justify-between gap-4">
           <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Mode latihan</h2>

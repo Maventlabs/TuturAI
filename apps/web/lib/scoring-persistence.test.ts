@@ -1,5 +1,5 @@
 /**
- * SCORING-015 — Canonical scoring persistence read-back.
+ * SCORING-015, Canonical scoring persistence read-back.
  *
  * Runs only against the local Firestore emulator. When the emulator is not
  * running, the durable tests skip dynamically (`ctx.skip()`) and a sentinel
@@ -11,7 +11,7 @@
  * not allow top-level await, so the probe/init is a fire-and-await promise.
  *
  * firebase-admin parses `cert()` private keys eagerly, so a stub string always
- * throws; the emulator path generates a throwaway RSA keypair at runtime — a
+ * throws; the emulator path generates a throwaway RSA keypair at runtime, a
  * test fixture, never a secret.
  */
 import { afterAll, describe, expect, it } from 'vitest'

@@ -89,8 +89,8 @@ export default function ProfilPage() {
   const stats = profile ? [
     { label: 'Level', value: String(profile.level) },
     { label: 'Total XP', value: profile.xp.toLocaleString('id-ID') },
-    { label: 'Streak', value: profile.streak === null ? '—' : `${profile.streak} hari` },
-    { label: 'Peringkat', value: profile.rank === null ? '—' : `#${profile.rank}` },
+    { label: 'Streak', value: profile.streak === null ? 'Belum ada' : `${profile.streak} hari` },
+    { label: 'Peringkat', value: profile.rank === null ? 'Belum ada' : `#${profile.rank}` },
   ] : []
 
   return (
@@ -114,7 +114,7 @@ export default function ProfilPage() {
               <p className="text-sm text-muted-foreground">{classroomName ?? 'Belum bergabung classroom'}</p>
             </div>
             <Badge className="bg-primary/10 text-primary hover:bg-primary/10">
-              Level {profile?.level ?? '—'}
+              Level {profile?.level ?? 'Belum ada'}
             </Badge>
             <p className="text-center text-xs text-muted-foreground">{profile ? `${profile.xp.toLocaleString('id-ID')} XP tersimpan` : 'Memuat XP...'}</p>
           </Card>

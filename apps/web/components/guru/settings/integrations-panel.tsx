@@ -22,9 +22,9 @@ const VOICE_LABELS: Record<string, { label: string; tone: StatusTone }> = {
 }
 
 function formatStamp(value: string | null) {
-  if (!value) return '—'
+  if (!value) return 'Belum ada'
   const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? '—' : parsed.toISOString().slice(0, 10)
+  return Number.isNaN(parsed.getTime()) ? 'Belum ada' : parsed.toISOString().slice(0, 10)
 }
 
 interface IntegrationsPanelProps {
@@ -128,7 +128,7 @@ export function IntegrationsPanel({
         <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-[9px] uppercase tracking-[0.1em]">
           <div className="flex gap-1.5">
             <dt className="text-muted-foreground/60">Scope</dt>
-            <dd className="text-foreground/70">{drive?.scope ?? '—'}</dd>
+            <dd className="text-foreground/70">{drive?.scope ?? 'Belum ada'}</dd>
           </div>
           <div className="flex gap-1.5">
             <dt className="text-muted-foreground/60">Diperbarui</dt>

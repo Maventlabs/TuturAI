@@ -311,7 +311,7 @@ export function ReadingAnalysis() {
               <MonoLabel>Pertanyaan</MonoLabel>
               <p className="text-pretty text-[16px] leading-[1.65] text-foreground">{current.prompt}</p>
               <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                Jawabanmu: {chosen === null ? '—' : current.options[chosen]}
+                Jawabanmu: {chosen === null ? 'Belum ada' : current.options[chosen]}
               </p>
             </div>
             <div className="absolute inset-0 flex flex-col justify-between border border-rule bg-secondary/60 p-5 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
@@ -325,7 +325,7 @@ export function ReadingAnalysis() {
               </div>
               <div>
                 <p className="text-[15px] leading-relaxed text-foreground">
-                  {entry.correctOption === null ? '—' : current.options[entry.correctOption]}
+                  {entry.correctOption === null ? 'Belum ada' : current.options[entry.correctOption]}
                 </p>
                 {current.explanation ? (
                   <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{current.explanation}</p>

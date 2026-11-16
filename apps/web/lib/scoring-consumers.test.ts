@@ -1,5 +1,5 @@
 /**
- * SCORING-016 — Analytics/adaptive canonical consumption verification.
+ * SCORING-016, Analytics/adaptive canonical consumption verification.
  *
  * Confirms the aggregate consumers read persisted canonical `overall`/dimension
  * values, reject non-canonical values, and never re-derive scores client-side.

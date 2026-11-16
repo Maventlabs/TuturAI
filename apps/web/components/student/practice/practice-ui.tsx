@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import SplitText from '@/components/ui/split-text'
 
 /**
  * Shared instrument primitives for the six student practice screens.
@@ -69,9 +70,11 @@ export function PracticeHeader({
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
         <div className="min-w-0">
           <MonoLabel className="text-primary-deep">{eyebrow}</MonoLabel>
-          <h1 className="mt-2.5 text-balance font-heading text-[26px] font-extrabold leading-[1.08] tracking-[-0.025em] text-foreground sm:text-[32px]">
-            {title}
-          </h1>
+          <SplitText
+            as="h1"
+            text={title}
+            className="mt-2.5 text-balance font-heading text-[26px] font-extrabold leading-[1.08] tracking-[-0.025em] text-foreground sm:text-[32px]"
+          />
           {description ? (
             <p className="mt-2 max-w-[64ch] text-pretty text-[13px] leading-relaxed text-muted-foreground">
               {description}

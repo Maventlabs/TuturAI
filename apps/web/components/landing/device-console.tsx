@@ -46,7 +46,7 @@ export function DeviceConsole({ className }: { className?: string }) {
       <div aria-hidden className="absolute -top-2 right-6 h-4 w-16 rounded-t-lg bg-ink-deep sm:right-8 sm:w-24" />
 
       <div className="relative grid grid-cols-[58px_1fr_58px] overflow-hidden rounded-lg border border-black/30 bg-ink-deep shadow-[0_40px_90px_-30px_rgba(0,0,0,0.55)] sm:grid-cols-[104px_1fr_104px]">
-        {/* Left grip — red */}
+        {/* Left grip, red */}
         <div className="relative flex flex-col bg-[#c62f2f] px-1.5 py-4 sm:px-2.5 sm:py-5">
           <Screw className="left-1.5 top-1.5 sm:left-2 sm:top-2" />
           <Screw className="right-1.5 top-1.5 sm:right-2 sm:top-2" />
@@ -64,7 +64,7 @@ export function DeviceConsole({ className }: { className?: string }) {
           <Grill className="mx-auto mt-auto pt-6 sm:pt-8" />
         </div>
 
-        {/* Center — black bezel + TFT */}
+        {/* Center, black bezel + TFT */}
         <div className="flex flex-col bg-ink-deep px-0.5 py-1.5 sm:py-2">
           <div className="overflow-hidden rounded-lg bg-[#0b1e3a] ring-1 ring-white/15">
             <div className="flex items-center justify-between px-2 py-1 font-mono text-[7px] text-white/70 sm:px-3 sm:py-1.5 sm:text-[9px]">
@@ -128,7 +128,7 @@ export function DeviceConsole({ className }: { className?: string }) {
           </div>
         </div>
 
-        {/* Right grip — orange */}
+        {/* Right grip, orange */}
         <div className="relative flex flex-col bg-[#e0701c] px-1.5 py-4 sm:px-2.5 sm:py-5">
           <Screw className="left-1.5 top-1.5 sm:left-2 sm:top-2" />
           <Screw className="right-1.5 top-1.5 sm:right-2 sm:top-2" />

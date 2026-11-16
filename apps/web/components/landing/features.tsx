@@ -14,52 +14,58 @@ type Tile = {
   objectClass?: string
 }
 
+/*
+ * Every tile owns a fixed aspect ratio so the background photo can be generated
+ * at that exact ratio and never gets cropped. Desktop ratios are locked by the
+ * grid's own aspect-ratio, so they hold at every width above lg:
+ *   speaking 5:8 · dashboard 21:9 · the four small tiles 7:5
+ */
 const tiles: Tile[] = [
   {
     id: 'speaking',
     label: 'Speaking AI',
     caption:
       'Speaking practice, AI conversation, dan pronunciation lab. Dinilai lima dimensi, bukan satu angka.',
-    src: '/hero-student.webp',
+    src: '/feature-speaking.webp',
     alt: 'Siswa SMA berlatih speaking dengan partner AI TuturAI',
-    placement: 'min-h-[380px] lg:col-start-1 lg:row-start-1 lg:row-span-4 lg:min-h-0',
-    sizes: '(min-width: 1024px) 45vw, 100vw',
-    objectClass: 'object-[center_28%] lg:object-center',
+    placement: 'aspect-[4/5] lg:aspect-auto lg:col-start-1 lg:row-start-1 lg:row-span-3',
+    sizes: '(min-width: 1024px) 42vw, 100vw',
+    objectClass: 'object-[center_30%] lg:object-center',
   },
   {
     id: 'dashboard',
     label: 'Dashboard guru',
     caption: 'Analitik kelas, antrean penilaian, dan rekap kesalahan umum dalam satu layar.',
-    src: '/feature-dashboard.png',
+    src: '/feature-dashboard.webp',
     alt: 'Laptop menampilkan dashboard analitik kelas',
-    placement: 'min-h-[220px] lg:col-start-2 lg:col-span-2 lg:row-start-1 lg:min-h-0',
+    placement: 'aspect-[16/9] lg:aspect-auto lg:col-start-2 lg:col-span-2 lg:row-start-1',
     sizes: '(min-width: 1024px) 55vw, 100vw',
   },
   {
     id: 'kuis',
     label: 'Kuis per kata',
     caption: 'Vocabulary, kuis terpadu, dan tes pedagogis. Tiap kata punya level Easy, Medium, Hard.',
-    src: '/feature-flashcards.png',
+    src: '/feature-flashcards.webp',
     alt: 'Tumpukan kartu flashcard di atas meja',
-    placement: 'min-h-[200px] lg:col-start-2 lg:row-start-2 lg:min-h-0',
+    placement: 'aspect-[4/3] lg:aspect-auto lg:col-start-2 lg:row-start-2',
     sizes: '(min-width: 1024px) 28vw, 100vw',
   },
   {
     id: 'listening',
     label: 'Listening',
     caption: 'Mode santai atau baku, tiga level, satu menit audio, delapan soal per set.',
-    src: '/feature-listening.png',
+    src: '/feature-listening.webp',
     alt: 'Headphone di atas buku catatan',
-    placement: 'min-h-[200px] lg:col-start-3 lg:row-start-2 lg:min-h-0',
+    placement: 'aspect-[4/3] lg:aspect-auto lg:col-start-3 lg:row-start-2',
     sizes: '(min-width: 1024px) 28vw, 100vw',
   },
   {
     id: 'adaptive',
     label: 'Adaptive learning',
     caption: 'Jalur belajar dan modul PDF yang menyesuaikan level, plus progres dan pencapaian.',
-    src: '/feature-adaptive.png',
+    src: '/feature-adaptive.webp',
     alt: 'Tablet menampilkan modul belajar di atas meja',
-    placement: 'min-h-[220px] lg:col-start-2 lg:row-start-3 lg:row-span-2 lg:min-h-0',
+    placement: 'aspect-[4/3] lg:aspect-auto lg:col-start-2 lg:row-start-3',
     sizes: '(min-width: 1024px) 28vw, 100vw',
   },
   {
@@ -67,9 +73,9 @@ const tiles: Tile[] = [
     label: 'Perangkat offline',
     caption:
       'Latihan tetap jalan tanpa internet. Hasil tersimpan di perangkat, lalu sinkron otomatis begitu tersambung lagi.',
-    src: '/feature-device.png',
+    src: '/feature-device.webp',
     alt: 'Perangkat belajar genggam di atas meja kelas',
-    placement: 'min-h-[240px] lg:col-start-3 lg:row-start-3 lg:row-span-2 lg:min-h-0',
+    placement: 'aspect-[4/3] lg:aspect-auto lg:col-start-3 lg:row-start-3',
     sizes: '(min-width: 1024px) 28vw, 100vw',
   },
 ]
@@ -98,19 +104,19 @@ export function Features() {
               data-line
               className="mt-6 max-w-[58ch] text-base leading-relaxed text-muted-foreground text-pretty sm:text-lg"
             >
-              Sembilan alat yang saling terhubung — dari latihan speaking real-time sampai laporan
+              Sembilan alat yang saling terhubung, dari latihan speaking real-time sampai laporan
               PDF untuk guru. Semuanya berbagi satu profil belajar.
             </p>
           </GSAPLines>
         </div>
 
         <GSAPReveal delay={0.15} className="mt-12 sm:mt-16">
-          <div className="rounded-sm bg-ink-deep p-2.5 sm:p-3.5">
-            <div className="grid gap-2.5 sm:gap-3 lg:h-[800px] lg:grid-cols-[1.6fr_1fr_1fr] lg:grid-rows-4">
+          <div className="rounded-sm bg-primary p-2.5 sm:p-3.5">
+            <div className="grid gap-2.5 sm:gap-3 lg:aspect-[1.5] lg:grid-cols-[1.48fr_1fr_1fr] lg:grid-rows-[1.2fr_1fr_1fr]">
               {tiles.map((tile) => (
                 <article
                   key={tile.id}
-                  className={`group relative overflow-hidden rounded-sm bg-ink-deep ${tile.placement}`}
+                  className={`group relative overflow-hidden rounded-sm bg-primary-deep ${tile.placement}`}
                 >
                   <Image
                     src={tile.src}
@@ -121,13 +127,13 @@ export function Features() {
                   />
                   <div
                     aria-hidden
-                    className="absolute inset-0 bg-linear-to-t from-ink-deep/92 via-ink-deep/50 to-ink-deep/5"
+                    className="absolute inset-x-0 bottom-0 h-[76%] bg-linear-to-t from-primary-ink/96 via-primary-ink/65 to-transparent"
                   />
                   <div className="relative flex h-full flex-col justify-end p-5 sm:p-6">
                     <h3 className="font-heading text-xl font-bold tracking-[-0.01em] text-white sm:text-2xl">
                       {tile.label}
                     </h3>
-                    <p className="mt-1.5 max-w-[38ch] text-sm leading-relaxed text-white/75 text-pretty">
+                    <p className="mt-1.5 max-w-[38ch] text-sm leading-relaxed text-white/90 text-pretty">
                       {tile.caption}
                     </p>
                   </div>

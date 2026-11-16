@@ -44,7 +44,7 @@ export function OnboardingForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg items-center px-6 py-12">
+    <main className="page-zoom-app page-zoom page-zoom-min-screen mx-auto flex max-w-lg items-center px-6 py-12">
       <form onSubmit={submit} className="w-full space-y-6 rounded-2xl border bg-card p-6">
         <div><p className="text-sm font-medium text-primary">Langkah terakhir</p><h1 className="mt-1 text-2xl font-semibold">Lengkapi profil TuturAI</h1><p className="mt-2 text-sm text-muted-foreground">Role disimpan permanen untuk menjaga akses data tetap aman.</p></div>
         <div className="grid grid-cols-2 gap-3"><Button type="button" variant={role === 'student' ? 'default' : 'outline'} onClick={() => setRole('student')}>Siswa</Button><Button type="button" variant={role === 'teacher' ? 'default' : 'outline'} onClick={() => setRole('teacher')}>Guru</Button></div>

@@ -199,7 +199,7 @@ export function MatchStage({
         <div className="hidden shrink-0 border-l border-white/10 pl-5 text-right sm:block">
           <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-muted">Online</p>
           <p className="mt-1 font-mono text-2xl leading-none tabular-nums">
-            {onlineCount === null ? '—' : onlineCount}
+            {onlineCount === null ? 'Belum ada' : onlineCount}
           </p>
         </div>
       </div>

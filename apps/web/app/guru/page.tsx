@@ -16,6 +16,7 @@ import { ReviewQueue } from '@/components/guru/overview/review-queue'
 import { ClassRoster } from '@/components/guru/overview/class-roster'
 import { PeriodSwitch, type AnalyticsPeriod } from '@/components/guru/overview/period-switch'
 import type { TeacherReviewQueueItem } from '@/lib/submissions'
+import SplitText from '@/components/ui/split-text'
 
 type ClassroomMember = {
   studentId: string
@@ -60,7 +61,7 @@ type TeacherAnalytics = {
 const TARGET = 75
 
 // The date is formatted in the viewer's timezone, so it is read only after
-// hydration — the server snapshot stays null to keep SSR and client in sync.
+// hydration, the server snapshot stays null to keep SSR and client in sync.
 const subscribeToNothing = () => () => {}
 const getTodayLabel = () =>
   new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date())
@@ -178,7 +179,7 @@ export default function TeacherHome() {
         const payload = (await response.json()) as ApiResponse<TeacherAnalytics>
         if (!controller.signal.aborted) setAnalytics(payload.data ?? null)
       } catch {
-        // Analytics is supplementary — classroom data still renders without it.
+        // Analytics is supplementary, classroom data still renders without it.
       }
     }
 
@@ -229,13 +230,13 @@ export default function TeacherHome() {
     },
     {
       label: 'Akurasi Latihan',
-      value: accuracy === null ? '—' : String(accuracy),
+      value: accuracy === null ? 'Belum ada' : String(accuracy),
       unit: accuracy === null ? undefined : '%',
       note: `${attempts} attempt`,
     },
     {
       label: 'Skor Speaking',
-      value: speaking === null ? '—' : String(speaking),
+      value: speaking === null ? 'Belum ada' : String(speaking),
       note: `${assessmentCount} sesi dinilai`,
     },
     {
@@ -268,9 +269,11 @@ export default function TeacherHome() {
             </p>
             <PeriodSwitch value={period} onChange={setPeriod} />
           </div>
-          <h1 className="mt-4 max-w-[48ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]">
-            {loading ? 'Memuat data kelas…' : insight}
-          </h1>
+          <SplitText
+            as="h1"
+            text={loading ? 'Memuat data kelas…' : insight}
+            className="mt-4 max-w-[48ch] text-balance font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]"
+          />
         </div>
 
         <ReadoutStrip items={readouts} />

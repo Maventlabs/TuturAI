@@ -315,7 +315,7 @@ function Composer({
             onChange={(event) => setBody(event.target.value)}
             placeholder={
               isAssignment
-                ? 'Tulis instruksi untuk siswa — topik, durasi rekaman, dan aspek yang dinilai.'
+                ? 'Tulis instruksi untuk siswa: topik, durasi rekaman, dan aspek yang dinilai.'
                 : 'Tulis ringkasan materi, poin kunci, atau tautan referensi.'
             }
             className="mt-3 min-h-32 w-full resize-none border-0 bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60"

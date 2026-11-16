@@ -79,7 +79,7 @@ export function SystemStatus({ showDevice }: { showDevice: boolean }) {
                 isOnline ? 'text-foreground' : 'text-warning',
               )}
             >
-              {isOnline ? (queueUnavailable ? '—' : queued) : 'Luring'}
+              {isOnline ? (queueUnavailable ? 'Belum ada' : queued) : 'Luring'}
             </span>
           </span>
 
@@ -94,7 +94,7 @@ export function SystemStatus({ showDevice }: { showDevice: boolean }) {
 
           <RailReadout label="Antrean" className="hidden sm:flex">
             <RailValue tone={hasQueue ? 'attention' : 'default'}>
-              {queueUnavailable ? '—' : queued}
+              {queueUnavailable ? 'Belum ada' : queued}
             </RailValue>
             <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground">tertunda</span>
           </RailReadout>

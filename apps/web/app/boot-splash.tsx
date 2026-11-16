@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { StackLoader } from '@/components/ui/stack-loader'
 import { SITE_NAME } from '@/lib/site'
 
@@ -13,6 +14,7 @@ const LOADER_IMAGES = [
 ]
 
 export function BootSplash() {
+  const pathname = usePathname()
   const [visible, setVisible] = useState(true)
   const handleComplete = useCallback(() => setVisible(false), [])
 
@@ -21,7 +23,9 @@ export function BootSplash() {
     return () => window.clearTimeout(timeoutId)
   }, [handleComplete])
 
-  if (!visible) return null
+  // Only the marketing landing page gets the splash on a hard load. Every other
+  // route paints immediately, and client-side navigation never remounts this.
+  if (pathname !== '/' || !visible) return null
 
   return (
     <StackLoader
@@ -30,7 +34,7 @@ export function BootSplash() {
       images={LOADER_IMAGES}
       leftText="Berani bicara"
       rightText="Percaya diri"
-      caption={`${SITE_NAME} — latihan speaking tanpa takut salah.`}
+      caption={`${SITE_NAME}: latihan speaking tanpa takut salah.`}
       imageSize={2}
       duration={0.8}
       fadeOutDuration={0.5}

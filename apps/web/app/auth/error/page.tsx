@@ -5,7 +5,7 @@ import { TriangleAlert } from 'lucide-react'
 
 export default function AuthErrorPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-6 py-10">
+    <main className="page-zoom-app page-zoom page-zoom-min-screen flex flex-col items-center justify-center px-6 py-10">
       <div className="w-full max-w-md text-center">
         <div className="mb-8 flex justify-center">
           <Logo />

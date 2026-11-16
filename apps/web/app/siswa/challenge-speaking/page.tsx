@@ -7,6 +7,7 @@ import { SettingsConsole, HowItWorks } from '@/components/student/challenge-spea
 import { RoomStage } from '@/components/student/challenge-speaking/room-stage'
 import { useLiveKit } from '@/hooks/use-livekit'
 import { usePresence } from '@/hooks/use-presence'
+import SplitText from '@/components/ui/split-text'
 import {
   createRoom,
   joinRoom,
@@ -260,9 +261,11 @@ export default function ChallengeSpeakingPage() {
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             Matchmaking
           </p>
-          <h1 className="mt-1.5 text-balance font-heading text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
-            Challenge Speaking
-          </h1>
+          <SplitText
+            as="h1"
+            text="Challenge Speaking"
+            className="mt-1.5 text-balance font-heading text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl"
+          />
           <p className="mt-1.5 max-w-lg text-pretty text-sm leading-relaxed text-muted-foreground">
             Latih kemampuan berbicara Bahasa Inggris dengan siswa lain secara real-time. Pilih mode,
             lalu cari partner.
@@ -273,7 +276,7 @@ export default function ChallengeSpeakingPage() {
           <div className="mb-3 flex items-start gap-2.5 border border-warning/30 bg-warning/10 px-3.5 py-2.5">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
             <p className="text-[12px] leading-relaxed text-foreground">
-              Mode demo — Firebase Realtime Database belum terkonfigurasi. Isi{' '}
+              Mode demo: Firebase Realtime Database belum terkonfigurasi. Isi{' '}
               <code className="font-mono text-[11px]">NEXT_PUBLIC_FIREBASE_DATABASE_URL</code> di{' '}
               <code className="font-mono text-[11px]">.env.local</code> lalu restart dev server.
             </p>
@@ -344,9 +347,11 @@ export default function ChallengeSpeakingPage() {
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             Matchmaking
           </p>
-          <h1 className="mt-1.5 font-heading text-2xl font-extrabold tracking-tight text-foreground">
-            Mencari partner
-          </h1>
+          <SplitText
+            as="h1"
+            text="Mencari partner"
+            className="mt-1.5 font-heading text-2xl font-extrabold tracking-tight text-foreground"
+          />
           <p className="mt-1.5 text-pretty text-sm leading-relaxed text-muted-foreground">
             Sistem sedang mencarikan partner yang sesuai. Jangan tutup halaman ini.
           </p>

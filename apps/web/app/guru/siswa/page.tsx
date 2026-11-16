@@ -342,15 +342,15 @@ function StudentMobileRow({ student }: { student: StudentRow }) {
             {student.name}
           </Link>
           <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-            {student.speakingScore === null ? '—' : `${student.speakingScore}/100`}
+            {student.speakingScore === null ? 'Belum ada' : `${student.speakingScore}/100`}
           </span>
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span className="truncate">{student.className}</span>
           <span aria-hidden="true">·</span>
-          <span>{student.level === null ? 'Level —' : `Level ${student.level}`}</span>
+          <span>{student.level === null ? 'Level belum ada' : `Level ${student.level}`}</span>
           <span aria-hidden="true">·</span>
-          <span>{student.streak === null ? 'Streak —' : `${student.streak} hari`}</span>
+          <span>{student.streak === null ? 'Streak belum ada' : `${student.streak} hari`}</span>
         </div>
       </div>
     </div>
@@ -395,7 +395,7 @@ function SortBtn({
 }
 
 function ScoreCell({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-xs text-muted-foreground">—</span>
+  if (score === null) return <span className="text-xs text-muted-foreground">Belum ada</span>
   const clamped = Math.min(100, Math.max(0, score))
   return (
     <div className="flex items-center gap-2">
@@ -408,7 +408,7 @@ function ScoreCell({ score }: { score: number | null }) {
 }
 
 function MetricCell({ value, icon }: { value: number | null; icon?: ReactNode }) {
-  if (value === null) return <span className="text-xs text-muted-foreground">—</span>
+  if (value === null) return <span className="text-xs text-muted-foreground">Belum ada</span>
   return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold tabular-nums text-foreground">
       {icon}

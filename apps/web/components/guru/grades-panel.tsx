@@ -112,7 +112,7 @@ export function GradesPanel({
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="font-heading text-xl font-bold tabular-nums text-foreground">{classAverage ?? '—'}</p>
+            <p className="font-heading text-xl font-bold tabular-nums text-foreground">{classAverage ?? 'Belum ada'}</p>
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Rata-rata kelas</p>
           </div>
           <div className="text-right">
@@ -199,7 +199,7 @@ export function GradesPanel({
 
                 <TableCell className="pr-4 text-right">
                   <span className="font-mono text-sm font-bold tabular-nums text-foreground">
-                    {averages[index] ?? '—'}
+                    {averages[index] ?? 'Belum ada'}
                   </span>
                 </TableCell>
               </TableRow>

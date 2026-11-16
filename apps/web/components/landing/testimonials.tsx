@@ -55,7 +55,7 @@ const testimonials: Testimonial[] = [
   },
   {
     quote:
-      'Yang aku suka, penilaiannya jujur. Kalau bukti audionya belum cukup, pronunciation ditandai belum bisa dinilai — bukan dikira-kira asal ada angka.',
+      'Yang aku suka, penilaiannya jujur. Kalau bukti audionya belum cukup, pronunciation ditandai belum bisa dinilai, bukan dikira-kira asal ada angka.',
     name: 'Andi Prasetyo',
     role: 'Guru Bahasa Inggris, SMK',
     initials: 'AP',

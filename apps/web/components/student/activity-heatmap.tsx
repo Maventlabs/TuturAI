@@ -125,7 +125,7 @@ interface ActivityHeatmapProps {
 /**
  * A contribution-style ledger of practice days: one square per day, weeks as
  * columns, four accent tints for how busy a day was. It answers "did I keep the
- * rhythm?" — the week matrix above it answers "what did I do this week?".
+ * rhythm?", the week matrix above it answers "what did I do this week?".
  *
  * The grid is sized by the panel, not by a fixed cell width, so a full year
  * always fits without a sideways scroll that hides the older months.

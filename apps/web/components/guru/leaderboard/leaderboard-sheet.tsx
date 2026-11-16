@@ -5,6 +5,7 @@ import { ArrowUpRight } from 'lucide-react'
 import { Panel, EmptyNote } from '@/components/guru/overview/panel'
 import { ReadoutStrip, type Readout } from '@/components/guru/overview/readout-strip'
 import { cn } from '@/lib/utils'
+import SplitText from '@/components/ui/split-text'
 
 export type LeaderboardRow = {
   studentId: string
@@ -183,17 +184,17 @@ export function LeaderboardSheet({
     },
     {
       label: 'XP tertinggi',
-      value: leader ? compactFormat.format(leader.xp) : '—',
+      value: leader ? compactFormat.format(leader.xp) : 'Belum ada',
       note: 'tertinggi di papan',
     },
     {
       label: 'Median XP',
-      value: medianXp === null ? '—' : compactFormat.format(medianXp),
+      value: medianXp === null ? 'Belum ada' : compactFormat.format(medianXp),
       note: 'seluruh siswa',
     },
     {
       label: 'Speaking',
-      value: speakingAverage === null ? '—' : String(speakingAverage),
+      value: speakingAverage === null ? 'Belum ada' : String(speakingAverage),
       unit: speakingAverage === null ? undefined : '%',
       note: `${scored.length} siswa dinilai`,
     },
@@ -228,9 +229,11 @@ export function LeaderboardSheet({
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 Klasemen XP{today ? ` · ${today}` : ''}
               </p>
-              <h1 className="mt-3 font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]">
-                Papan Peringkat
-              </h1>
+              <SplitText
+                as="h1"
+                text="Papan Peringkat"
+                className="mt-3 font-sans text-[24px] font-medium leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[30px] lg:text-[34px]"
+              />
               <p className="mt-2 max-w-[64ch] text-pretty text-[13px] leading-relaxed text-muted-foreground">
                 {loading ? 'Membaca XP siswa dari kelas Anda…' : lead}
               </p>
@@ -404,7 +407,7 @@ export function LeaderboardSheet({
                           <span className="ml-1 text-[9px] uppercase tracking-[0.1em] text-muted-foreground">XP</span>
                         </div>
                         <div className="w-12 shrink-0 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
-                          {row.speakingScore === null ? '—' : `${row.speakingScore}%`}
+                          {row.speakingScore === null ? 'Belum ada' : `${row.speakingScore}%`}
                         </div>
                       </li>
                     )

@@ -43,7 +43,7 @@ function warnOnce(cause: unknown) {
   if (warnedAboutRedisFailure) return
   warnedAboutRedisFailure = true
   const message = cause instanceof Error ? cause.message : String(cause)
-  // Never log credentials — only the failure shape.
+  // Never log credentials, only the failure shape.
   console.warn(JSON.stringify({ event: 'cache_redis_unavailable', message }))
 }
 
@@ -58,7 +58,7 @@ export function resetCacheWarningForTests() {
  * Segments are joined with `:`, so any segment that itself contains a `:`
  * would be indistinguishable from two segments. Firestore ids and uids are
  * opaque strings, so a value like `a:b` plus `c` could otherwise collapse onto
- * the same key as `a` plus `b:c` — one classroom's rows served to another.
+ * the same key as `a` plus `b:c`, one classroom's rows served to another.
  * Such segments are hashed, which makes the separator unambiguous.
  */
 export function buildCacheKey(...segments: Array<string | number | undefined | null>): string {

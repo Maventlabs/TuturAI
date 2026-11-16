@@ -6,7 +6,7 @@ import { buildCacheKey } from '@/lib/cache'
  * These are deliberately short. A classroom roster or leaderboard that is a
  * few seconds stale is harmless, and a short TTL bounds the damage from any
  * invalidation path we ever miss. Everything here is still invalidated
- * explicitly on write — the TTL is a safety net, not the correctness mechanism.
+ * explicitly on write, the TTL is a safety net, not the correctness mechanism.
  */
 export const CACHE_TTL = {
   /** Session profile: changes only on onboarding or account edits. */

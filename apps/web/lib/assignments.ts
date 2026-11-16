@@ -62,8 +62,8 @@ export async function createTeacherAssignment(classroomId: string, teacherId: st
 
 export async function listClassroomAssignments(classroomId: string, actor: { role: 'teacher' | 'student'; uid: string }) {
   // The membership/ownership check is the authorization gate for this list and
-  // stays uncached, so it re-runs on every request. Only the list itself — which
-  // is identical for every authorized caller — is cached. The role is part of
+  // stays uncached, so it re-runs on every request. Only the list itself, which
+  // is identical for every authorized caller, is cached. The role is part of
   // the key because students only ever see published work.
   if (actor.role === 'teacher') await assertTeacherOwnsClassroom(classroomId, actor.uid)
   else await assertStudentMember(classroomId, actor.uid)

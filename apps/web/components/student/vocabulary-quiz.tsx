@@ -266,7 +266,7 @@ export function VocabularyQuiz() {
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Panel>
-            <PanelHeader label={`Benar — ${right.length}`} />
+            <PanelHeader label={`Benar: ${right.length}`} />
             <ul className="divide-y divide-rule">
               {right.length === 0 ? (
                 <li className="px-4 py-3 text-[12px] text-muted-foreground">Belum ada jawaban benar.</li>
@@ -285,7 +285,7 @@ export function VocabularyQuiz() {
             </ul>
           </Panel>
           <Panel>
-            <PanelHeader label={`Salah — ${wrong.length}`} />
+            <PanelHeader label={`Salah: ${wrong.length}`} />
             <ul className="divide-y divide-rule">
               {wrong.length === 0 ? (
                 <li className="px-4 py-3 text-[12px] text-muted-foreground">Tidak ada jawaban salah.</li>
@@ -387,7 +387,7 @@ export function VocabularyQuiz() {
               <X className="size-4 text-destructive" aria-hidden="true" />
             )}
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-foreground">
-              {chosen === word.meaning ? 'Benar' : `Salah — jawaban: ${word.meaning}`}
+              {chosen === word.meaning ? 'Benar' : `Salah, jawaban: ${word.meaning}`}
             </p>
           </div>
           {word.tip ? (

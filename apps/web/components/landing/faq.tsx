@@ -18,7 +18,7 @@ const faqs = [
   {
     question: 'Bagaimana AI menilai kemampuan bicaraku?',
     answer:
-      'Setiap sesi dinilai pada lima dimensi. Transkrip dari browser hanya bisa menilai grammar, vocabulary, dan fluency — pronunciation dan intonation butuh audio asli, jadi ditandai bukti belum cukup, bukan dikira-kira.',
+      'Setiap sesi dinilai pada lima dimensi. Transkrip dari browser hanya bisa menilai grammar, vocabulary, dan fluency, pronunciation dan intonation butuh audio asli, jadi ditandai bukti belum cukup, bukan dikira-kira.',
   },
   {
     question: 'Bisa dipakai tanpa internet?',

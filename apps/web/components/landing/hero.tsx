@@ -17,6 +17,8 @@ import {
   SiTypescript,
 } from 'react-icons/si'
 import LogoLoop from '@/components/ui/logo-loop'
+import RotatingText from '@/components/ui/rotating-text'
+import ShinyText from '@/components/ui/shiny-text'
 
 const stackLogos = [
   { node: <SiNextdotjs />, title: 'Next.js', hoverColor: '#101014' },
@@ -56,7 +58,7 @@ export function Hero() {
       ref={sectionRef}
       id="hero"
       data-nav-theme="light"
-      className="relative flex h-dvh min-h-[640px] flex-col overflow-hidden bg-background"
+      className="page-zoom-screen relative flex min-h-[640px] flex-col overflow-hidden bg-background"
     >
       {/* Full-viewport background illustration, sitting behind the transparent navbar */}
       <div className="absolute inset-0" aria-hidden>
@@ -94,8 +96,18 @@ export function Hero() {
           <span data-hero-line className="block text-white">
             Berani Berbicara
           </span>
-          <span data-hero-line className="block">
-            Tumbuh <em className="italic text-accent-glow">Percaya Diri</em>
+          <span data-hero-line className="flex flex-wrap items-baseline justify-center gap-x-3">
+            <span>Tumbuh</span>
+            <RotatingText
+              texts={['Percaya Diri', 'Lebih Berani', 'Tanpa Takut', 'Setiap Hari']}
+              effect="slide"
+              direction="up"
+              staggerFrom="last"
+              staggerDuration={0.022}
+              rotationInterval={2600}
+              splitLevelClassName="overflow-hidden pb-[0.12em]"
+              mainClassName="italic text-accent-glow"
+            />
           </span>
         </h1>
 
@@ -103,8 +115,8 @@ export function Hero() {
           data-hero-sub
           className="mt-6 max-w-[52ch] text-base leading-relaxed text-white/85 text-pretty sm:text-lg"
         >
-          Partner latihan speaking berbasis AI untuk siswa SMA/SMK — umpan balik personal,
-          progres terukur.
+          Partner latihan speaking berbasis AI untuk siswa SMA/SMK, dengan umpan balik personal
+          dan progres terukur.
         </p>
 
         <div data-hero-cta className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -130,7 +142,7 @@ export function Hero() {
         className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-14 sm:px-6 sm:pb-16"
       >
         <p className="mb-4 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/70">
-          Dibangun dengan teknologi
+          <ShinyText speed={6}>Dibangun dengan teknologi</ShinyText>
         </p>
         <LogoLoop
           logos={stackLogos}
