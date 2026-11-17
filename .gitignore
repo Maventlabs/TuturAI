@@ -64,6 +64,11 @@ audit-*.png
 *.m4a
 *.webm
 models/
+
+# The pronunciation bank ships with the app: the model recordings are small,
+# curated, and must play without a TTS call at runtime.
+!apps/web/public/audio/pronunciation/
+!apps/web/public/audio/pronunciation/*.wav
 __pycache__/
 .ipynb_checkpoints/
 

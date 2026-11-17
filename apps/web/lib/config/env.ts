@@ -60,6 +60,21 @@ function route(name: string, fallback: AiRoute): AiRoute {
   return value
 }
 
+/**
+ * `AI_STT_ROUTE` is documented as a route selector, but dashboards also store
+ * the full endpoint there (`v1/audio/transcriptions`). Accept both shapes: the
+ * first segment picks the route and the remainder becomes the provider path.
+ */
+function routeWithPath(name: string, fallback: AiRoute): { route: AiRoute; path?: string } {
+  const value = optional(name)
+  if (!value) return { route: fallback }
+  const [head, ...rest] = value.split('/').filter(Boolean)
+  if (head !== 'local' && head !== 'v1') {
+    throw new Error(`${name} must start with either local or v1`)
+  }
+  return { route: head, path: rest.length > 0 ? `/${rest.join('/')}` : undefined }
+}
+
 function baseUrlFor(route: AiRoute): string | undefined {
   return route === 'local' ? optional('AI_LOCAL_BASE_URL') : required('AI_V1_BASE_URL')
 }
@@ -204,14 +219,14 @@ export function getPronunciationEnv() {
 }
 
 export function getAiEnv() {
-  const sttRoute = route('AI_STT_ROUTE', 'v1')
+  const stt = routeWithPath('AI_STT_ROUTE', 'v1')
   const llmRoute = route('AI_LLM_ROUTE', 'v1')
   const tts = getTtsEnv()
 
   // STT is only required for the audio-upload path. The browser Web Speech API
   // path transcribes client-side and needs no STT endpoint at all, so a missing
   // STT base URL/model must not throw here. Routes validate what they need.
-  const sttBaseUrl = readSttBaseUrl(sttRoute)
+  const sttBaseUrl = readSttBaseUrl(stt.route)
 
   return {
     ai: {
@@ -220,9 +235,10 @@ export function getAiEnv() {
       v1BaseUrl: optional('AI_V1_BASE_URL'),
       v1ApiKey: optional('AI_V1_API_KEY'),
       stt: {
-        route: sttRoute,
+        route: stt.route,
+        path: stt.path ?? '/audio/transcriptions',
         baseUrl: sttBaseUrl,
-        apiKey: sttBaseUrl ? apiKeyFor(sttRoute) : undefined,
+        apiKey: sttBaseUrl ? apiKeyFor(stt.route) : undefined,
         modelId: optional('AI_STT_MODEL_ID'),
       },
       tts,
@@ -244,16 +260,37 @@ export function getServerEnv() {
   } as const
 }
 
+// The dashboard keeps several Cloudinary accounts side by side under numbered
+// aliases. The active account is the `_7`/`_4` chain, so those names win over
+// the plain ones, which still point at an older account.
+const CLOUDINARY_ALIASES = {
+  cloudName: ['CLOUDINARY_CLOUD_NAME_7', 'CLOUDINARY_CLOUD_NAME'],
+  apiSecret: ['CLOUDINARY_API_SECRET_7', 'CLOUDINARY_API_SECRET'],
+} as const
+
+// Cloudinary API keys are public identifiers (they ship in signed-upload
+// requests), and this account's key is not stored as a project variable.
+const CLOUDINARY_API_KEY_FALLBACK = '914834288553626'
+
+function firstResolved(names: readonly string[]) {
+  for (const name of names) {
+    const value = optional(name)
+    if (value) return value
+  }
+  return undefined
+}
+
 export function getCloudinaryEnv() {
-  return {
-    cloudName: required('CLOUDINARY_CLOUD_NAME'),
-    apiKey: required('CLOUDINARY_API_KEY'),
-    apiSecret: required('CLOUDINARY_API_SECRET'),
-  } as const
+  const cloudName = firstResolved(CLOUDINARY_ALIASES.cloudName)
+  const apiSecret = firstResolved(CLOUDINARY_ALIASES.apiSecret)
+  const apiKey = optional('CLOUDINARY_API_KEY') ?? CLOUDINARY_API_KEY_FALLBACK
+  if (!cloudName) throw new Error('Missing required environment variable: CLOUDINARY_CLOUD_NAME')
+  if (!apiSecret) throw new Error('Missing required environment variable: CLOUDINARY_API_SECRET')
+  return { cloudName, apiKey, apiSecret } as const
 }
 
 export function hasCloudinaryConfig() {
-  return Boolean(optional('CLOUDINARY_CLOUD_NAME') && optional('CLOUDINARY_API_KEY') && optional('CLOUDINARY_API_SECRET'))
+  return Boolean(firstResolved(CLOUDINARY_ALIASES.cloudName) && firstResolved(CLOUDINARY_ALIASES.apiSecret))
 }
 
 export function hasPublicFirebaseConfig() {

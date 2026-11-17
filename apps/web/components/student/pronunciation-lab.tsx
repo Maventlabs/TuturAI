@@ -1,7 +1,20 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Mic, MicOff, Minus, Square, Volume2 } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  AlertTriangle,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Mic,
+  MicOff,
+  Minus,
+  Pause,
+  Play,
+  RotateCcw,
+  Square,
+  Volume2,
+} from 'lucide-react'
 import type { QuestionBankItem } from '@tuturai/domain'
 import { Button } from '@/components/ui/button'
 import { useMicrophone } from '@/hooks/use-microphone'
@@ -15,52 +28,54 @@ type PronunciationResult = {
   questionId: string
   targetText: string
   transcript: string
+  heardWord: string
   score: number
   confidence: number | null
+  verdict: 'correct' | 'close' | 'incorrect'
   feedback: string
-  words: Array<{
-    word: string
-    expected: string
-    actual: string
-    score: number
-    confidence: number | null
-    phonemes: Array<{
-      phoneme: string
-      expected: string
-      actual: string | null
-      score: number
-      confidence: number | null
-      startMs: number
-      endMs: number
-      issue: string | null
-    }>
-  }>
+  segments: Array<{ target: string; heard: string | null; match: boolean }>
 }
 
-function verdict(score: number) {
-  if (score >= 85) return { label: 'Tepat', Icon: Check, tone: 'text-success' as const }
-  if (score >= 70) return { label: 'Hampir', Icon: Minus, tone: 'text-warning' as const }
-  return { label: 'Kurang tegas', Icon: AlertTriangle, tone: 'text-destructive' as const }
-}
+const VERDICT = {
+  correct: { label: 'Tepat', Icon: Check, tone: 'text-success' },
+  close: { label: 'Hampir', Icon: Minus, tone: 'text-warning' },
+  incorrect: { label: 'Kurang tepat', Icon: AlertTriangle, tone: 'text-destructive' },
+} as const
 
 function levelLabel(level: QuestionBankItem['level']) {
   return level === 'beginner' ? 'Pemula' : level === 'intermediate' ? 'Menengah' : 'Lanjutan'
 }
 
-export function PronunciationLab({ words, initialIndex }: { words: QuestionBankItem[]; initialIndex: number }) {
-  const [index, setIndex] = useState(initialIndex)
+export function PronunciationLab({
+  words,
+  levelName,
+  onExit,
+}: {
+  words: QuestionBankItem[]
+  levelName: string
+  onExit: () => void
+}) {
+  const [index, setIndex] = useState(0)
   const [result, setResult] = useState<PronunciationResult | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [modelAudioNote, setModelAudioNote] = useState<string | null>(null)
-  const [selectedWord, setSelectedWord] = useState(0)
-  const [scoreOpen, setScoreOpen] = useState(false)
+  const [scores, setScores] = useState<Record<string, number>>({})
+  const [summaryOpen, setSummaryOpen] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const [audioError, setAudioError] = useState<string | null>(null)
   const submittedAudio = useRef<Blob | null>(null)
+  const scoresRef = useRef<Record<string, number>>({})
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   const mic = useMicrophone()
   const { peaks, duration } = useAudioPeaks(mic.audioUrl)
   const word = words[index]
   const recording = mic.status === 'recording'
   const micBlocked = mic.status === 'denied' || mic.status === 'error' || mic.status === 'unsupported'
+  const scoredCount = Object.keys(scores).length
+  const average = scoredCount > 0
+    ? Math.round(Object.values(scores).reduce((total, value) => total + value, 0) / scoredCount)
+    : 0
+  const complete = words.length > 0 && scoredCount === words.length
 
   useEffect(() => {
     if (!words.length) return
@@ -73,11 +88,18 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
     })
       .then(async (response) => {
         const payload = (await response.json()) as { data?: PronunciationResult; error?: { message?: string } }
-        if (!response.ok || !payload.data || payload.data.questionId !== word?.id) {
+        if (!response.ok || !payload.data) {
           throw new Error(payload.error?.message ?? 'Hasil pronunciation tidak tersedia untuk latihan ini.')
         }
-        setResult(payload.data)
-        setMessage(payload.data.feedback)
+        const attempt = payload.data
+        const targetIndex = words.findIndex((item) => item.id === attempt.questionId)
+        if (targetIndex < 0) throw new Error('Hasil pronunciation tidak tersedia untuk latihan ini.')
+        setIndex(targetIndex)
+        setResult(attempt)
+        setMessage(attempt.feedback)
+        const nextScores = { ...scoresRef.current, [attempt.questionId]: attempt.score }
+        scoresRef.current = nextScores
+        setScores(nextScores)
       })
       .catch((cause) => {
         if (!controller.signal.aborted) {
@@ -85,23 +107,28 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
         }
       })
     return () => controller.abort()
-  }, [words, word?.id])
+  }, [words])
 
   useEffect(() => {
-    if (!mic.audioBlob || mic.audioBlob === submittedAudio.current || !word || recording || submitting) return
-    submittedAudio.current = mic.audioBlob
+    setPlaying(false)
+    setAudioError(null)
+  }, [word?.id])
+
+  useEffect(() => {
+    const blob = mic.audioBlob
+    if (!blob || blob === submittedAudio.current || !word || recording) return
+    submittedAudio.current = blob
     const controller = new AbortController()
     const submit = async () => {
       setSubmitting(true)
       setResult(null)
       setMessage(null)
-      setSelectedWord(0)
       try {
         const idempotencyKey =
           typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${word.id}-${Date.now()}`
         const form = new FormData()
         form.append('questionId', word.id)
-        form.append('audio', mic.audioBlob as Blob, 'pronunciation.webm')
+        form.append('audio', blob, 'pronunciation.webm')
         const response = await fetch('/api/student/pronunciation', {
           method: 'POST',
           headers: { 'Idempotency-Key': idempotencyKey },
@@ -110,12 +137,15 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
         })
         const payload = (await response.json()) as { data?: PronunciationResult; error?: { message?: string } }
         if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? 'Latihan pronunciation gagal disimpan.')
-        if (payload.data.questionId !== word.id || !Array.isArray(payload.data.words) || payload.data.words.length === 0) {
-          throw new Error('Hasil phoneme tidak valid.')
+        if (payload.data.questionId !== word.id || !Array.isArray(payload.data.segments)) {
+          throw new Error('Hasil penilaian tidak valid.')
         }
         setResult(payload.data)
         setMessage(payload.data.feedback)
-        setScoreOpen(true)
+        const nextScores = { ...scoresRef.current, [word.id]: payload.data.score }
+        scoresRef.current = nextScores
+        setScores(nextScores)
+        if (Object.keys(nextScores).length === words.length) setSummaryOpen(true)
         const url = new URL(window.location.href)
         url.searchParams.set('attemptId', payload.data.id)
         window.history.replaceState(null, '', url)
@@ -129,18 +159,29 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
     }
     void submit()
     return () => controller.abort()
-  }, [mic.audioBlob, word, recording, submitting])
+  }, [mic.audioBlob, word, recording, words.length])
+
+  const toggleModelAudio = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (!audio.paused) {
+      audio.pause()
+      return
+    }
+    audio.currentTime = 0
+    void audio.play().catch(() => setAudioError('Browser memblokir pemutaran audio. Tekan tombol sekali lagi.'))
+  }, [])
 
   async function toggleRecord() {
     if (recording) {
       mic.stop()
       setResult(null)
-      setMessage('Memproses pronunciation dengan provider AI…')
+      setMessage('Menilai pelafalan dengan speech recognition…')
       return
     }
     setResult(null)
     setMessage(null)
-    setModelAudioNote(null)
+    setAudioError(null)
     mic.reset()
     submittedAudio.current = null
     await mic.start()
@@ -157,17 +198,24 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
     }
     setResult(null)
     setMessage(null)
-    setModelAudioNote(null)
-    setSelectedWord(0)
-    setScoreOpen(false)
+    mic.reset()
+    submittedAudio.current = null
+  }
+
+  function restartLevel() {
+    setIndex(0)
+    setResult(null)
+    setMessage(null)
+    setScores({})
+    scoresRef.current = {}
+    setSummaryOpen(false)
     mic.reset()
     submittedAudio.current = null
   }
 
   if (!word) return null
 
-  const activeWord = result?.words[selectedWord] ?? null
-  const scored = result !== null
+  const verdict = result ? VERDICT[result.verdict] : null
 
   return (
     <div className="mx-auto w-full max-w-[780px]">
@@ -181,12 +229,23 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
               key={item.id}
               className={cn(
                 'h-[3px] flex-1 rounded-[1px]',
-                itemIndex < index ? 'bg-primary' : itemIndex === index ? 'bg-foreground' : 'bg-border',
+                scores[item.id] !== undefined
+                  ? 'bg-primary'
+                  : itemIndex === index
+                    ? 'bg-foreground'
+                    : 'bg-border',
               )}
             />
           ))}
         </ol>
         <MonoLabel className="shrink-0">{levelLabel(word.level)}</MonoLabel>
+        <button
+          type="button"
+          onClick={onExit}
+          className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Ganti level
+        </button>
       </div>
 
       <div className="pt-10 text-center">
@@ -196,19 +255,39 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
         <p className="mt-3 font-mono text-[15px] leading-none text-muted-foreground">{word.ipa}</p>
 
         <div className="mt-6 flex flex-col items-center gap-2">
+          <audio
+            key={word.id}
+            ref={audioRef}
+            src={word.audioUrl}
+            preload="auto"
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onEnded={() => setPlaying(false)}
+            onError={() => setAudioError('Audio model tidak dapat dimuat.')}
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={() =>
-              setModelAudioNote(
-                'Audio model belum tersedia karena provider TTS belum dikonfigurasi. Suara sintetis browser tidak dipakai sebagai pengganti.',
-              )
-            }
-            className="inline-flex items-center gap-2 rounded-sm border border-rule px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground transition-colors hover:border-foreground/30 hover:bg-secondary"
+            onClick={toggleModelAudio}
+            disabled={!word.audioUrl}
+            aria-pressed={playing}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-sm border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors',
+              playing
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-rule text-foreground hover:border-foreground/30 hover:bg-secondary',
+              !word.audioUrl && 'cursor-not-allowed opacity-50',
+            )}
           >
-            <Volume2 className="size-3.5" aria-hidden="true" /> Dengarkan model
+            {playing ? (
+              <Pause className="size-3.5" aria-hidden="true" />
+            ) : (
+              <Volume2 className="size-3.5" aria-hidden="true" />
+            )}
+            {playing ? 'Hentikan audio' : 'Dengarkan model'}
           </button>
-          {modelAudioNote ? (
-            <p className="max-w-[46ch] text-pretty text-[11px] leading-relaxed text-muted-foreground">{modelAudioNote}</p>
+          {audioError ? (
+            <p className="max-w-[46ch] text-pretty text-[11px] leading-relaxed text-destructive">{audioError}</p>
           ) : null}
         </div>
       </div>
@@ -261,8 +340,8 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
             : recording
               ? 'Merekam, tekan untuk berhenti'
               : submitting
-                ? 'Menilai dengan provider'
-                : 'Tekan dan ucapkan kata di atas'}
+                ? 'Menilai dengan speech recognition'
+                : 'Tekan dan ucapkan satu kata di atas'}
         </p>
 
         {micBlocked && mic.errorMessage ? (
@@ -280,93 +359,71 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
         ) : null}
       </div>
 
-      {scored ? (
+      {result && verdict ? (
         <div className="space-y-4">
           <div className="flex items-end justify-between gap-4 border-y border-rule py-4">
             <div>
-              <MonoLabel>Skor provider</MonoLabel>
+              <MonoLabel>Skor pelafalan</MonoLabel>
               <p className="mt-2 font-mono text-[44px] font-semibold leading-none tabular-nums text-foreground">
                 {result.score}
                 <span className="ml-1.5 text-[12px] uppercase tracking-[0.12em] text-muted-foreground">/100</span>
               </p>
             </div>
-            <div className="text-right">
+            <div className="flex flex-col items-end gap-2">
+              <span className={cn('inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em]', verdict.tone)}>
+                <verdict.Icon className="size-3.5" aria-hidden="true" />
+                {verdict.label}
+              </span>
               <Readout
-                label="Confidence"
-                value={result.confidence === null ? 'n/a' : `${Math.round(result.confidence * 100)}%`}
+                label="Sesi"
+                value={`${scoredCount}/${words.length}`}
                 className="items-end"
               />
             </div>
           </div>
 
           <Panel>
-            <PanelHeader label="Yang terdengar" />
+            <PanelHeader
+              label="Yang terdengar"
+              right={
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                  {result.heardWord || 'tidak terdeteksi'}
+                </span>
+              }
+            />
             <p className="px-4 py-3 font-mono text-[13px] leading-relaxed text-foreground">
               {result.transcript || 'Belum ada'}
             </p>
           </Panel>
 
-          <div>
-            <MonoLabel>Umpan balik per kata</MonoLabel>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {result.words.map((entry, entryIndex) => {
-                const { label, Icon, tone } = verdict(entry.score)
-                const active = entryIndex === selectedWord
-                return (
-                  <button
-                    key={`${entry.expected}-${entryIndex}`}
-                    type="button"
-                    onClick={() => setSelectedWord(entryIndex)}
-                    aria-pressed={active}
+          {result.segments.length > 0 ? (
+            <div>
+              <MonoLabel>Perbandingan huruf</MonoLabel>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {result.segments.map((segment, segmentIndex) => (
+                  <span
+                    key={`${segment.target}-${segmentIndex}`}
                     className={cn(
-                      'inline-flex items-center gap-2 rounded-sm border px-2.5 py-1.5 transition-colors',
-                      active ? 'border-foreground/40 bg-secondary' : 'border-rule hover:border-foreground/25',
+                      'inline-flex items-center gap-1 rounded-sm border px-2 py-1 font-mono text-[11px]',
+                      segment.match
+                        ? 'border-rule text-muted-foreground'
+                        : 'border-destructive/40 bg-destructive/[0.06] text-destructive',
                     )}
                   >
-                    <Icon className={cn('size-3.5 shrink-0', tone)} aria-hidden="true" />
-                    <span className="font-mono text-[11px] text-foreground">{entry.expected}</span>
-                    <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {activeWord ? (
-            <Panel>
-              <PanelHeader
-                label={`Fonem: ${activeWord.expected}`}
-                right={
-                  <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-                    {activeWord.score}/100
+                    {segment.target || '∅'}
+                    {segment.match ? null : (
+                      <span className="text-muted-foreground">→ {segment.heard || '∅'}</span>
+                    )}
                   </span>
-                }
-              />
-              <ul className="divide-y divide-rule">
-                {activeWord.phonemes.map((phoneme, phonemeIndex) => {
-                  const { label, Icon, tone } = verdict(phoneme.score)
-                  return (
-                    <li
-                      key={`${phoneme.phoneme}-${phonemeIndex}`}
-                      className="flex items-center justify-between gap-3 px-4 py-2.5"
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <Icon className={cn('size-3.5 shrink-0', tone)} aria-hidden="true" />
-                        <span className="font-mono text-[12px] text-foreground">/{phoneme.expected}/</span>
-                        <span className="font-mono text-[11px] text-muted-foreground">
-                          → {phoneme.actual ? `/${phoneme.actual}/` : 'tidak terdeteksi'}
-                        </span>
-                      </span>
-                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                        {label}
-                        {phoneme.issue ? ` · ${phoneme.issue}` : ''}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </Panel>
+                ))}
+              </div>
+            </div>
           ) : null}
+
+          <Panel tone="sunken">
+            <PanelHeader label="Umpan balik" />
+            <p className="px-4 py-3 text-pretty text-[12px] leading-relaxed text-muted-foreground">{result.feedback}</p>
+          </Panel>
 
           {mic.audioUrl ? (
             <div>
@@ -377,12 +434,42 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
         </div>
       ) : null}
 
-      {message && !scored ? (
+      {message && !result ? (
         <Panel tone="sunken" className="mt-2">
           <PanelHeader label="Belum bisa dinilai" />
           <div className="flex items-start gap-2 px-4 py-3">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <p className="text-pretty text-[12px] leading-relaxed text-muted-foreground">{message}</p>
+          </div>
+        </Panel>
+      ) : null}
+
+      {complete ? (
+        <Panel className="mt-6">
+          <PanelHeader
+            label={`Sesi ${levelName} selesai`}
+            right={
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {scoredCount}/{words.length} kata
+              </span>
+            }
+          />
+          <div className="flex flex-wrap items-end justify-between gap-4 px-4 py-4">
+            <div>
+              <MonoLabel>Rata-rata skor</MonoLabel>
+              <p className="mt-2 font-mono text-[36px] font-semibold leading-none tabular-nums text-foreground">
+                {average}
+                <span className="ml-1.5 text-[12px] uppercase tracking-[0.12em] text-muted-foreground">/100</span>
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={restartLevel} className="gap-1">
+                <RotateCcw className="size-3.5" aria-hidden="true" /> Ulangi level
+              </Button>
+              <Button size="sm" onClick={onExit} className="gap-1">
+                Pilih level lain <ChevronRight className="size-3.5" aria-hidden="true" />
+              </Button>
+            </div>
           </div>
         </Panel>
       ) : null}
@@ -397,11 +484,11 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
       </div>
 
       <ScoreDialog
-        open={scoreOpen}
-        eyebrow="Latihan pronunciation selesai"
-        score={result?.score ?? null}
-        detail={result?.confidence == null ? 'Confidence n/a' : `Confidence ${Math.round(result.confidence * 100)}%`}
-        onClose={() => setScoreOpen(false)}
+        open={summaryOpen}
+        eyebrow={`Sesi pronunciation ${levelName} selesai`}
+        score={average}
+        detail={`${scoredCount} kata dinilai`}
+        onClose={() => setSummaryOpen(false)}
       />
     </div>
   )

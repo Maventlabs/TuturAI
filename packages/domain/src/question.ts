@@ -31,6 +31,8 @@ export interface QuestionBankItem {
   ipa?: string
   tip?: string
   audioText?: string
+  /** Pre-rendered model recording, served from the app's public audio bank. */
+  audioUrl?: string
 }
 
 export interface QuestionAnswerInput {

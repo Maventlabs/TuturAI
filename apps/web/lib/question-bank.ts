@@ -37,6 +37,7 @@ function questionFromData(id: string, data: DocumentData): QuestionBankItem {
     ipa: typeof data.ipa === 'string' ? data.ipa : undefined,
     tip: typeof data.tip === 'string' ? data.tip : undefined,
     audioText: typeof data.audioText === 'string' ? data.audioText : undefined,
+    audioUrl: typeof data.audioUrl === 'string' ? data.audioUrl : undefined,
   }
 }
 

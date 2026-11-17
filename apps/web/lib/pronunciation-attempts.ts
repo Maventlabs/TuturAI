@@ -1,5 +1,5 @@
 import { Timestamp } from 'firebase-admin/firestore'
-import type { NormalizedPronunciationResult } from '@/lib/ai/pronunciation-provider'
+import type { SingleWordPronunciationScore } from '@/lib/ai/pronunciation-scoring'
 import { invalidateNamespaces } from '@/lib/cache'
 import { getAdminDb } from '@/lib/firebase/admin'
 import { awardAttemptXp, xpCacheNamespaces } from '@/lib/xp-award'
@@ -11,7 +11,7 @@ export interface PronunciationAttemptInput {
   requestHash: string
 }
 
-export interface StoredPronunciationResult extends NormalizedPronunciationResult {
+export interface StoredPronunciationResult extends SingleWordPronunciationScore {
   id: string
   studentId: string
   questionId: string
@@ -33,16 +33,21 @@ function toIso(value: unknown) {
 }
 
 function publicResult(id: string, data: Record<string, unknown>): StoredPronunciationResult {
+  const score = typeof data.score === 'number' ? data.score : 1
   return {
     id,
     studentId: String(data.studentId),
     questionId: String(data.questionId),
     targetText: String(data.targetText),
     transcript: String(data.transcript),
-    score: data.score as number,
+    heardWord: typeof data.heardWord === 'string' ? data.heardWord : '',
+    score,
     confidence: typeof data.confidence === 'number' ? data.confidence : null,
+    verdict: data.verdict === 'correct' || data.verdict === 'close' || data.verdict === 'incorrect'
+      ? data.verdict
+      : score >= 85 ? 'correct' : score >= 65 ? 'close' : 'incorrect',
     feedback: String(data.feedback),
-    words: data.words as StoredPronunciationResult['words'],
+    segments: Array.isArray(data.segments) ? data.segments as StoredPronunciationResult['segments'] : [],
     createdAt: toIso(data.createdAt),
   }
 }
@@ -73,7 +78,7 @@ export async function getStudentPronunciationAttemptState(studentId: string, ide
 }
 
 export async function saveStudentPronunciationResult(input: PronunciationAttemptInput & {
-  result: NormalizedPronunciationResult
+  result: SingleWordPronunciationScore
   modelId: string
 }) {
   const db = getAdminDb()
@@ -105,10 +110,12 @@ export async function saveStudentPronunciationResult(input: PronunciationAttempt
       questionId: input.questionId,
       targetText: input.result.targetText,
       transcript: input.result.transcript,
+      heardWord: input.result.heardWord,
       score: input.result.score,
       confidence: input.result.confidence,
+      verdict: input.result.verdict,
       feedback: input.result.feedback,
-      words: input.result.words,
+      segments: input.result.segments,
       providerModelId: input.modelId,
       requestHash: input.requestHash,
       createdAt: now,
