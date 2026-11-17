@@ -82,6 +82,9 @@ export interface Submission {
   status: SubmissionStatus
   isLate: boolean
   teacherFeedback: string | null
+  /** Manual grade the teacher entered (1-100). Null until the teacher grades. */
+  teacherScore: number | null
+  gradedAt: string | null
   submittedAt: string | null
   updatedAt: string
   files?: DriveFileMetadata[]

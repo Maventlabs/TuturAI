@@ -1,3 +1,5 @@
+import { resolveSubmissionScore, type ScoreSource } from '@tuturai/domain'
+
 export const TARGET_SCORE = 75
 
 export type CellStatus = 'graded' | 'pending' | 'missing'
@@ -5,6 +7,8 @@ export type CellStatus = 'graded' | 'pending' | 'missing'
 export interface GradebookCell {
   assignmentId: string
   score: number | null
+  /** Which number the cell shows: the teacher's grade or the AI estimate. */
+  source: ScoreSource | null
   status: CellStatus
 }
 
@@ -46,6 +50,8 @@ export interface Gradebook {
   belowTarget: number
   highest: number | null
   gradedTotal: number
+  /** How many of `gradedTotal` came from a teacher's own grade. */
+  teacherGradedTotal: number
   possibleTotal: number
   pendingTotal: number
 }
@@ -63,7 +69,7 @@ export interface GradebookAssessment {
 export interface GradebookStudent {
   studentId: string
   name: string
-  submission: { status: string; submittedAt: string | null } | null
+  submission: { status: string; submittedAt: string | null; teacherScore: number | null } | null
   assessment: GradebookAssessment | null
 }
 
@@ -125,8 +131,8 @@ export function buildGradebook(inputs: GradebookInput[], roster: RosterEntry[] =
 
   const columns: GradebookColumn[] = inputs.map((input, index) => {
     const scores = input.students
-      .map((student) => student.assessment?.overall)
-      .filter((score): score is number => typeof score === 'number' && Number.isFinite(score))
+      .map((student) => resolveSubmissionScore(student.submission?.teacherScore, student.assessment?.overall).score)
+      .filter((score): score is number => score !== null)
     return {
       assignmentId: input.assignment.id,
       title: input.assignment.title,
@@ -141,14 +147,20 @@ export function buildGradebook(inputs: GradebookInput[], roster: RosterEntry[] =
     .map(([studentId, name]) => {
       const cells: GradebookCell[] = inputs.map((input) => {
         const student = input.students.find((entry) => entry.studentId === studentId)
-        const score = student?.assessment?.overall
-        if (typeof score === 'number' && Number.isFinite(score)) {
-          return { assignmentId: input.assignment.id, score, status: 'graded' as const }
+        const resolved = resolveSubmissionScore(student?.submission?.teacherScore, student?.assessment?.overall)
+        if (resolved.score !== null) {
+          return {
+            assignmentId: input.assignment.id,
+            score: resolved.score,
+            source: resolved.source,
+            status: 'graded' as const,
+          }
         }
         const awaiting = student?.submission ? AWAITING_REVIEW.has(student.submission.status) : false
         return {
           assignmentId: input.assignment.id,
           score: null,
+          source: null,
           status: awaiting ? ('pending' as const) : ('missing' as const),
         }
       })
@@ -207,6 +219,10 @@ export function buildGradebook(inputs: GradebookInput[], roster: RosterEntry[] =
     belowTarget: rows.filter((row) => row.average !== null && row.average < TARGET_SCORE).length,
     highest: allScores.length > 0 ? Math.max(...allScores) : null,
     gradedTotal: allScores.length,
+    teacherGradedTotal: rows.reduce(
+      (total, row) => total + row.cells.filter((cell) => cell.source === 'teacher').length,
+      0,
+    ),
     possibleTotal: rows.length * columns.length,
     pendingTotal: rows.reduce((total, row) => total + row.pendingCount, 0),
   }

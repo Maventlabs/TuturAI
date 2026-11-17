@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import type { Assignment } from '@tuturai/domain'
+import { resolveSubmissionScore, type Assignment } from '@tuturai/domain'
 import type { AssignmentStudentRow } from '@/lib/submissions'
 import { submissionStatusMeta, submissionToneClass } from '@/lib/submission-status'
 import { classInitials } from '@/lib/class-tint'
 import { cn } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { ClassroomMemberSummary } from '@/components/guru/use-classroom-overview'
+import { ExportGradesButton } from '@/components/guru/gradebook/export-grades-button'
+import { useClassroom } from '@/components/guru/classroom-context'
 
 type ApiResponse<T> = { data: T; error?: { message?: string } }
 
@@ -25,6 +27,7 @@ export function GradesPanel({
   assignments: Assignment[]
   members: ClassroomMemberSummary[]
 }) {
+  const { classroomId } = useClassroom()
   const [rows, setRows] = useState<Record<string, AssignmentStudentRow[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,8 +74,11 @@ export function GradesPanel({
 
   const averages = members.map((member) => {
     const scores = published
-      .map((assignment) => rowFor(assignment.id, member.studentId)?.assessment?.overall)
-      .filter((score): score is number => typeof score === 'number')
+      .map((assignment) => {
+        const row = rowFor(assignment.id, member.studentId)
+        return resolveSubmissionScore(row?.submission?.teacherScore, row?.assessment?.overall).score
+      })
+      .filter((score): score is number => score !== null)
     return scores.length > 0 ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : null
   })
 
@@ -119,6 +125,7 @@ export function GradesPanel({
             <p className="font-heading text-xl font-bold tabular-nums text-foreground">{scored.length}</p>
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Siswa ternilai</p>
           </div>
+          <ExportGradesButton classroomId={classroomId} disabled={loading || members.length === 0} />
         </div>
       </div>
 
@@ -170,15 +177,18 @@ export function GradesPanel({
 
                 {published.map((assignment) => {
                   const row = rowFor(assignment.id, member.studentId)
-                  const score = row?.assessment?.overall
+                  const resolved = resolveSubmissionScore(row?.submission?.teacherScore, row?.assessment?.overall)
+                  const score = resolved.score
                   const meta = submissionStatusMeta(row?.submission?.status ?? null)
                   return (
                     <TableCell key={assignment.id} className="text-center">
                       {typeof score === 'number' ? (
                         <span
+                          title={resolved.source === 'teacher' ? 'Nilai guru' : 'Skor AI — guru belum mengisi nilai'}
                           className={cn(
                             'inline-flex min-w-10 justify-center rounded-md px-2 py-1 font-mono text-sm font-semibold tabular-nums',
                             scoreTone(score),
+                            resolved.source === 'ai' && 'opacity-70',
                           )}
                         >
                           {score}

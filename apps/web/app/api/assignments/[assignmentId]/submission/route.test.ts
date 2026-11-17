@@ -56,6 +56,8 @@ describe('GET /api/assignments/[assignmentId]/submission', () => {
       status: 'submitted',
       isLate: false,
       teacherFeedback: null,
+      teacherScore: null,
+      gradedAt: null,
       submittedAt: '2026-09-24T00:00:00.000Z',
       updatedAt: '2026-09-24T00:00:00.000Z',
       files: [],

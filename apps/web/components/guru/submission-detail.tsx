@@ -10,6 +10,7 @@ import { classInitials } from '@/lib/class-tint'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { GradeInput } from '@/components/guru/grade-input'
 
 type AssignmentSubmissionsPayload = {
   assignment: Assignment
@@ -311,6 +312,37 @@ export function SubmissionDetail({
             {!submission && (
               <p className="mt-3 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
                 Siswa belum mengumpulkan pekerjaan untuk penugasan ini.
+              </p>
+            )}
+          </section>
+
+          <section aria-labelledby="grade-heading" className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 id="grade-heading" className="font-heading text-sm font-bold text-foreground">
+                Nilai guru
+              </h2>
+              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                Skor AI {typeof assessment?.overall === 'number' ? `${assessment.overall}/100` : 'belum ada'}
+              </span>
+            </div>
+
+            {submission ? (
+              <GradeInput
+                submissionId={submission.id}
+                initialScore={submission.teacherScore}
+                feedback={feedback}
+                showSaveButton
+                onSaved={(score) =>
+                  setRow((current) =>
+                    current && current.submission
+                      ? { ...current, submission: { ...current.submission, teacherScore: score } }
+                      : current,
+                  )
+                }
+              />
+            ) : (
+              <p className="mt-2 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                Nilai bisa diisi setelah siswa mengumpulkan pekerjaan.
               </p>
             )}
           </section>
