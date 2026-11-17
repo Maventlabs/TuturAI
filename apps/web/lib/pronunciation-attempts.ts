@@ -1,6 +1,8 @@
 import { Timestamp } from 'firebase-admin/firestore'
 import type { NormalizedPronunciationResult } from '@/lib/ai/pronunciation-provider'
+import { invalidateNamespaces } from '@/lib/cache'
 import { getAdminDb } from '@/lib/firebase/admin'
+import { awardAttemptXp, xpCacheNamespaces } from '@/lib/xp-award'
 
 export interface PronunciationAttemptInput {
   studentId: string
@@ -79,11 +81,13 @@ export async function saveStudentPronunciationResult(input: PronunciationAttempt
   const resultRef = db.collection('pronunciationResults').doc(resultId)
   const attemptRef = db.collection('practiceAttempts').doc(practiceAttemptId(input.studentId, input.idempotencyKey))
   const questionRef = db.collection('questionBank').doc(input.questionId)
-  return db.runTransaction(async (transaction) => {
-    const [resultSnapshot, attemptSnapshot, questionSnapshot] = await Promise.all([
+  const userRef = db.collection('users').doc(input.studentId)
+  const saved = await db.runTransaction(async (transaction) => {
+    const [resultSnapshot, attemptSnapshot, questionSnapshot, userSnapshot] = await Promise.all([
       transaction.get(resultRef),
       transaction.get(attemptRef),
       transaction.get(questionRef),
+      transaction.get(userRef),
     ])
     if (!questionSnapshot.exists || questionSnapshot.data()?.status !== 'published' || questionSnapshot.data()?.contentType !== 'pronunciation') {
       throw new Error('QUESTION_NOT_FOUND')
@@ -124,8 +128,12 @@ export async function saveStudentPronunciationResult(input: PronunciationAttempt
       createdAt: attemptSnapshot.exists ? attemptSnapshot.data()?.createdAt ?? now : now,
       updatedAt: now,
     })
+    awardAttemptXp(transaction, userRef, userSnapshot, input.result.score)
     return publicResult(resultId, stored)
   })
+
+  await invalidateNamespaces(...xpCacheNamespaces(input.studentId))
+  return saved
 }
 
 export async function recordPronunciationFailure(input: PronunciationAttemptInput & {

@@ -1,5 +1,5 @@
 import { FieldValue, Timestamp, type DocumentData } from 'firebase-admin/firestore'
-import { applyLearningActivity, isAnswerableContentType, type LearningContentType, type QuestionBankItem, type QuestionLevel, type QuestionSkill } from '@tuturai/domain'
+import { ATTEMPT_SCORE_MAX, ATTEMPT_SCORE_MIN, applyLearningActivity, isAnswerableContentType, levelForXp, xpForAttempt, type LearningContentType, type QuestionBankItem, type QuestionLevel, type QuestionSkill } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
 import { cacheAside, invalidateNamespaces } from '@/lib/cache'
 import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
@@ -117,8 +117,10 @@ export async function answerQuestion(input: {
     const isCorrect = input.selectedOption === correctOption
     const currentUser = userSnapshot.data() ?? {}
     const currentXp = typeof currentUser.xp === 'number' ? currentUser.xp : 0
-    const nextXp = currentXp + (isCorrect ? 20 : 0)
-    const nextLevel = Math.max(1, Math.floor(nextXp / 100) + 1)
+    // A correct answer is a perfect attempt; a wrong one is still a completed
+    // attempt, so it earns the floor instead of nothing.
+    const earnedXp = xpForAttempt(isCorrect ? ATTEMPT_SCORE_MAX : ATTEMPT_SCORE_MIN)
+    const nextLevel = levelForXp(currentXp + earnedXp)
     const learningProgress = applyLearningActivity({
       streak: currentUser.streak,
       lastActiveDate: currentUser.lastActiveDate,
@@ -138,7 +140,7 @@ export async function answerQuestion(input: {
 
     transaction.create(attemptReference, result)
     transaction.update(userReference, {
-      xp: isCorrect ? FieldValue.increment(20) : currentXp,
+      xp: FieldValue.increment(earnedXp),
       level: nextLevel,
       streak: learningProgress.streak,
       lastActiveDate: learningProgress.lastActiveDate,
