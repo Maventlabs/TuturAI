@@ -96,26 +96,44 @@ export async function readProfileDocument(uid: string) {
   return value as FirebaseFirestore.DocumentData | null
 }
 
-export async function getSessionProfile() {
+export interface SessionProfileResult {
+  user: FirebaseSessionUser | null
+  profile: FirebaseProfile | null
+  isDemo: boolean
+  /**
+   * The session cookie is valid but the profile document could not be read.
+   * Callers must show a retry state instead of treating this as signed out.
+   * Absent means the profile read succeeded.
+   */
+  profileUnavailable?: boolean
+}
+
+export async function getSessionProfile(): Promise<SessionProfileResult> {
   const cookieStore = await cookies()
   const token = cookieStore.get(SESSION_COOKIE)?.value
-  if (!token) return { user: null, profile: null as FirebaseProfile | null, isDemo: false }
+  if (!token) return { user: null, profile: null, isDemo: false, profileUnavailable: false }
+
+  let decoded: Awaited<ReturnType<typeof verifySessionCookie>>
+  try {
+    decoded = await verifySessionCookie(token)
+  } catch {
+    return { user: null, profile: null, isDemo: false, profileUnavailable: false }
+  }
+
+  const user: FirebaseSessionUser = {
+    uid: decoded.uid,
+    email: decoded.email ?? null,
+    displayName: decoded.name ?? null,
+  }
 
   try {
-    const decoded = await verifySessionCookie(token)
     const data = await readProfileDocument(decoded.uid)
-    const profile = profileFromDocument(decoded.uid, data)
-    return {
-      user: {
-        uid: decoded.uid,
-        email: decoded.email ?? null,
-        displayName: decoded.name ?? null,
-      } satisfies FirebaseSessionUser,
-      profile,
-      isDemo: false,
-    }
+    return { user, profile: profileFromDocument(decoded.uid, data), isDemo: false, profileUnavailable: false }
   } catch {
-    return { user: null, profile: null as FirebaseProfile | null, isDemo: false }
+    // A Firestore outage or quota error is not a signed-out user. Keeping the
+    // session and flagging the read failure stops a transient backend problem
+    // from bouncing a signed-in user back to the login form.
+    return { user, profile: null, isDemo: false, profileUnavailable: true }
   }
 }
 

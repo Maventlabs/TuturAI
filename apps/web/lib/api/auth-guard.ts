@@ -4,9 +4,29 @@ import { apiError } from '@tuturai/validation'
 import { getSessionProfile } from '@/lib/auth'
 
 export async function requireAuth() {
-  const { user, profile } = await getSessionProfile()
+  const { user, profile, profileUnavailable } = await getSessionProfile()
 
-  if (!user || !profile) {
+  if (!user) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(apiError('UNAUTHENTICATED', 'Authentication is required'), { status: 401 }),
+    }
+  }
+
+  if (profileUnavailable) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        apiError('EXTERNAL_SERVICE_ERROR', 'Profile data is temporarily unavailable', {
+          code: 'PROFILE_UNAVAILABLE',
+          retryable: true,
+        }),
+        { status: 503 },
+      ),
+    }
+  }
+
+  if (!profile) {
     return {
       ok: false as const,
       response: NextResponse.json(apiError('UNAUTHENTICATED', 'Authentication is required'), { status: 401 }),
