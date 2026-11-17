@@ -81,4 +81,25 @@ describe('synthesizeWithFailover', () => {
       .rejects.toBeInstanceOf(VoiceProviderError)
     expect(fetchImpl).toHaveBeenCalledTimes(2)
   })
+
+  it('fails over across Gemini models on the native endpoint', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const geminiAudio = new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/wav', data: Buffer.from([1, 2, 3]).toString('base64') } }] } }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('{"error":{"message":"model not found"}}', { status: 404 }))
+      .mockResolvedValueOnce(geminiAudio)
+
+    const result = await synthesizeWithFailover(
+      { ...config, baseUrl: 'https://generativelanguage.googleapis.com', protocol: 'gemini', modelIds: ['bad-model', 'good-model'] },
+      { providerVoiceId: 'clone-1', text: 'halo' },
+      { fetchImpl },
+    )
+
+    expect(result.contentType).toBe('audio/wav')
+    expect(String(fetchImpl.mock.calls[1][0])).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/models/good-model:generateContent',
+    )
+  })
 })

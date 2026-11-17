@@ -1,3 +1,4 @@
+import { GeminiTtsProvider } from './gemini-tts-provider'
 import { HttpVoiceProvider, VoiceProviderError, type VoiceSynthesisResult } from './voice-provider'
 
 export interface TtsSynthesisConfig {
@@ -5,6 +6,8 @@ export interface TtsSynthesisConfig {
   apiKeys: readonly string[]
   modelIds: readonly string[]
   attemptTimeoutMs: number
+  protocol?: 'openai' | 'gemini'
+  voiceName?: string
   statusPath?: string
   synthesisPath?: string
 }
@@ -43,15 +46,25 @@ export async function synthesizeWithFailover(
 
   for (const [index, attempt] of attempts.entries()) {
     try {
-      return await new HttpVoiceProvider({
-        baseUrl: config.baseUrl,
-        apiKey: attempt.apiKey,
-        modelId: attempt.modelId,
-        statusPath: config.statusPath,
-        synthesisPath: config.synthesisPath,
-        timeoutMs: config.attemptTimeoutMs,
-        fetchImpl: deps.fetchImpl,
-      }).synthesize(input)
+      const provider = config.protocol === 'gemini'
+        ? new GeminiTtsProvider({
+            baseUrl: config.baseUrl,
+            apiKey: attempt.apiKey,
+            modelId: attempt.modelId,
+            voiceName: config.voiceName,
+            timeoutMs: config.attemptTimeoutMs,
+            fetchImpl: deps.fetchImpl,
+          })
+        : new HttpVoiceProvider({
+            baseUrl: config.baseUrl,
+            apiKey: attempt.apiKey,
+            modelId: attempt.modelId,
+            statusPath: config.statusPath,
+            synthesisPath: config.synthesisPath,
+            timeoutMs: config.attemptTimeoutMs,
+            fetchImpl: deps.fetchImpl,
+          })
+      return await provider.synthesize(input)
     } catch (error) {
       if (!(error instanceof VoiceProviderError)) throw error
       if (error.code === 'INVALID_REQUEST') throw error

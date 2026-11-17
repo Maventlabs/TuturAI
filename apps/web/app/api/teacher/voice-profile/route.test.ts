@@ -68,7 +68,7 @@ describe('/api/teacher/voice-profile', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mockedRequireRole.mockResolvedValue({ ok: true, user: { uid: 'teacher-1' } } as never)
-    mockedGetTtsEnv.mockReturnValue({ route: 'local', baseUrl: 'https://voice.example.test', apiKey: undefined, apiKeys: [], modelIds: ['voice-test'], modelId: 'voice-test', attemptTimeoutMs: 10_000, enrollmentPath: '/v1/voice-clones', statusPath: '/v1/voice-clones', synthesisPath: '/v1/audio/speech', deletePath: '/v1/voice-clones' })
+    mockedGetTtsEnv.mockReturnValue({ route: 'local', baseUrl: 'https://voice.example.test', apiKey: undefined, apiKeys: [], modelIds: ['voice-test'], modelId: 'voice-test', attemptTimeoutMs: 10_000, protocol: 'openai', voiceName: 'Kore', enrollmentPath: '/v1/voice-clones', statusPath: '/v1/voice-clones', synthesisPath: '/v1/audio/speech', deletePath: '/v1/voice-clones' })
     mockedEnroll.mockResolvedValue({ providerVoiceId: 'voice-1', status: 'processing' })
     mockedDeleteProviderVoice.mockResolvedValue(undefined)
     mockedGetStatus.mockResolvedValue({ status: 'ready', errorCode: null })

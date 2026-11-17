@@ -25,7 +25,7 @@ describe('/api/teacher/voice-preview', () => {
     vi.resetAllMocks()
     mockedRequireRole.mockResolvedValue({ ok: true, user: { uid: 'teacher-1' } } as never)
     mockedGetProfile.mockResolvedValue({ id: 'teacher-1', teacherId: 'teacher-1', provider: 'omnivoice', providerVoiceId: 'voice-1', status: 'ready', consentAt: '2026-09-23T00:00:00.000Z', createdAt: null, updatedAt: null, errorCode: null })
-    mockedGetTtsEnv.mockReturnValue({ route: 'local', baseUrl: 'http://localhost:3900', apiKey: undefined, apiKeys: [], modelIds: ['omnivoice-v1'], modelId: 'omnivoice-v1', attemptTimeoutMs: 10_000, statusPath: '/v1/voice-clones', enrollmentPath: '/v1/voice-clones', synthesisPath: '/v1/audio/speech', deletePath: '/v1/voice-clones' })
+    mockedGetTtsEnv.mockReturnValue({ route: 'local', baseUrl: 'http://localhost:3900', apiKey: undefined, apiKeys: [], modelIds: ['omnivoice-v1'], modelId: 'omnivoice-v1', attemptTimeoutMs: 10_000, protocol: 'openai', voiceName: 'Kore', statusPath: '/v1/voice-clones', enrollmentPath: '/v1/voice-clones', synthesisPath: '/v1/audio/speech', deletePath: '/v1/voice-clones' })
     mockedProvider.mockImplementation(() => ({ synthesize: vi.fn().mockResolvedValue({ audio: new ArrayBuffer(2), contentType: 'audio/wav' }) }) as never)
   })
 

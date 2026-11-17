@@ -1,3 +1,5 @@
+import { isGeminiTtsBaseUrl } from '@/lib/ai/gemini-tts-provider'
+
 type Environment = 'development' | 'test' | 'production'
 type AiRoute = 'local' | 'v1'
 
@@ -157,9 +159,18 @@ export function getTtsEnv() {
     optional('AI_TTS_MODEL_ID'),
   ])
 
+  const baseUrl = optional('AI_TTS_BASE_URL') ?? baseUrlFor(ttsRoute)
+  const configuredProtocol = optional('AI_TTS_PROTOCOL')
+
   return {
     route: ttsRoute,
-    baseUrl: optional('AI_TTS_BASE_URL') ?? baseUrlFor(ttsRoute),
+    baseUrl,
+    // Gemini's speech models answer on their own native endpoint, so the
+    // transport follows the host unless AI_TTS_PROTOCOL overrides it.
+    protocol: configuredProtocol === 'gemini' || configuredProtocol === 'openai'
+      ? configuredProtocol
+      : isGeminiTtsBaseUrl(baseUrl) ? 'gemini' : 'openai',
+    voiceName: optional('AI_TTS_VOICE_NAME') ?? 'Kore',
     apiKey,
     // Synthesis walks every model/key pair in order, so a slow or failing model
     // falls through to the next one instead of failing the whole request.
