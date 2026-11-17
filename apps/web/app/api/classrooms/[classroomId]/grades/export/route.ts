@@ -4,7 +4,7 @@ import { requireRole } from '@/lib/api/auth-guard'
 import { listClassroomAssignments } from '@/lib/assignments'
 import { listTeacherClassroomMembers, listTeacherClassrooms } from '@/lib/classrooms'
 import { listAssignmentSubmissions } from '@/lib/submissions'
-import { buildGradebook, type GradebookInput } from '@/lib/gradebook'
+import { buildGradebook, isGradebookAssignment, type GradebookInput } from '@/lib/gradebook'
 import { buildGradebookWorkbook, gradebookExportFilename } from '@/lib/gradebook-export'
 
 export const runtime = 'nodejs'
@@ -26,12 +26,18 @@ export async function GET(_request: Request, context: RouteContext) {
     listTeacherClassroomMembers(classroomId, auth.user.uid),
     listClassroomAssignments(classroomId, { role: 'teacher', uid: auth.user.uid }),
   ])
-  const published = assignments.filter((assignment) => assignment.status === 'published')
-
   const payloads = await Promise.all(
-    published.map((assignment) => listAssignmentSubmissions(assignment.id, auth.user.uid)),
+    assignments.map((assignment) => listAssignmentSubmissions(assignment.id, auth.user.uid)),
   )
-  const inputs: GradebookInput[] = payloads.map((payload) => ({
+  // One column per assignment the class actually worked on, so the sheet grows
+  // with the class instead of stopping at whatever was published last.
+  const included = payloads.filter((payload) =>
+    isGradebookAssignment(
+      payload.assignment,
+      payload.students.some((student) => student.submission !== null),
+    ),
+  )
+  const inputs: GradebookInput[] = included.map((payload) => ({
     assignment: { id: payload.assignment.id, title: payload.assignment.title },
     students: payload.students,
   }))
@@ -47,10 +53,10 @@ export async function GET(_request: Request, context: RouteContext) {
   const workbook = await buildGradebookWorkbook({
     className: classroom.name,
     gradebook,
-    assignments: published.map((assignment) => ({
-      id: assignment.id,
-      title: assignment.title,
-      dueAt: assignment.dueAt,
+    assignments: included.map((payload) => ({
+      id: payload.assignment.id,
+      title: payload.assignment.title,
+      dueAt: payload.assignment.dueAt,
     })),
     roster: roster.map((entry) => ({ studentId: entry.studentId, email: entry.email })),
     generatedAt,

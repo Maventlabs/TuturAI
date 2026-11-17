@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildGradebook, type GradebookInput, type GradebookStudent } from './gradebook'
+import { buildGradebook, isGradebookAssignment, type GradebookInput, type GradebookStudent } from './gradebook'
 
 const ASSIGNMENT = { id: 'assignment-1', title: 'Self introduction' }
 
@@ -73,5 +73,24 @@ describe('buildGradebook teacher grades', () => {
 
     expect(gradebook.rows[0].cells[0]).toMatchObject({ score: null, source: null, status: 'pending' })
     expect(gradebook.classAverage).toBeNull()
+  })
+})
+
+describe('isGradebookAssignment', () => {
+  it('keeps a column for every assignment students could open', () => {
+    expect(isGradebookAssignment({ status: 'published' })).toBe(true)
+    expect(isGradebookAssignment({ status: 'archived' })).toBe(true)
+  })
+
+  it('drops a draft that nobody could open', () => {
+    expect(isGradebookAssignment({ status: 'draft' })).toBe(false)
+  })
+
+  it('keeps a draft that somehow already has a submission', () => {
+    expect(isGradebookAssignment({ status: 'draft' }, true)).toBe(true)
+  })
+
+  it('keeps an assignment whose status is missing from the record', () => {
+    expect(isGradebookAssignment({ status: undefined as unknown as string })).toBe(true)
   })
 })

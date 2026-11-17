@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useClassroomOverview } from '@/components/guru/use-classroom-overview'
 import { GradebookView } from '@/components/guru/gradebook/gradebook-view'
-import { buildGradebook, type GradebookInput } from '@/lib/gradebook'
+import { buildGradebook, isGradebookAssignment, type GradebookInput } from '@/lib/gradebook'
 
 const NO_INPUTS: GradebookInput[] = []
 
@@ -21,7 +21,11 @@ export default function GradebookPage() {
 
   const activeClass = classrooms.find((classroom) => classroom.id === activeClassId) ?? classrooms[0] ?? null
   const resolvedClassId = activeClass?.id ?? null
-  const assignmentKey = activeClass ? activeClass.assignments.map((assignment) => assignment.id).join('|') : ''
+  const gradebookAssignments = useMemo(
+    () => (activeClass ? activeClass.assignments.filter((assignment) => isGradebookAssignment(assignment)) : []),
+    [activeClass],
+  )
+  const assignmentKey = gradebookAssignments.map((assignment) => assignment.id).join('|')
   const requestKey = `${resolvedClassId ?? ''}|${assignmentKey}|${reloadToken}`
 
   const gradebook = useMemo(

@@ -74,6 +74,45 @@ describe('buildGradebookWorkbook', () => {
   })
 })
 
+describe('buildGradebookWorkbook column growth', () => {
+  function manyInputs(count: number): GradebookInput[] {
+    return Array.from({ length: count }, (_, index) => ({
+      assignment: { id: `assignment-${index + 1}`, title: `Tugas ${index + 1}` },
+      students: [
+        {
+          studentId: 's1',
+          name: 'Ani',
+          submission: { status: 'submitted', submittedAt: '2026-10-01T00:00:00.000Z', teacherScore: 80 + index },
+          assessment: null,
+        },
+      ],
+    }))
+  }
+
+  it('adds one column per assignment instead of stopping at a fixed count', async () => {
+    for (const count of [5, 8, 12]) {
+      const inputs = manyInputs(count)
+      const buffer = await buildGradebookWorkbook({
+        className: 'Speaking XI',
+        gradebook: buildGradebook(inputs, [{ studentId: 's1', name: 'Ani' }]),
+        assignments: inputs.map((input) => ({ id: input.assignment.id, title: input.assignment.title, dueAt: null })),
+        roster: [{ studentId: 's1', email: 'ani@example.test' }],
+        generatedAt: new Date('2026-11-17T00:00:00.000Z'),
+      })
+
+      const workbook = new ExcelJS.Workbook()
+      await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer)
+      const sheet = workbook.getWorksheet('Buku Nilai')
+      const header = (sheet?.getRow(4).values as unknown[]).slice(1)
+
+      expect(header.slice(3, 3 + count)).toEqual(Array.from({ length: count }, (_, index) => `A${index + 1}`))
+      expect(header[3 + count]).toBe('Rata-rata')
+      expect(sheet?.getCell(5, 4).value).toBe(80)
+      expect(sheet?.getCell(5, 3 + count).value).toBe(80 + count - 1)
+    }
+  })
+})
+
 describe('gradebookExportFilename', () => {
   it('slugifies the class name and stamps the export date', () => {
     expect(gradebookExportFilename('Speaking XI / Kelas A', new Date('2026-11-17T10:00:00.000Z'))).toBe(

@@ -100,6 +100,17 @@ const BANDS = [
 
 const AWAITING_REVIEW = new Set(['submitted', 'pending_review'])
 
+/**
+ * Which assignments earn a column in the gradebook. A draft was never visible
+ * to students, so it has no grades to report; everything else keeps its column
+ * — archiving an assignment must not erase work that was already graded in it.
+ * An assignment that somehow carries a submission is always included, so no
+ * graded work can fall out of the report card.
+ */
+export function isGradebookAssignment(assignment: { status: string }, hasSubmission = false) {
+  return hasSubmission || assignment.status !== 'draft'
+}
+
 function round1(value: number) {
   return Math.round(value * 10) / 10
 }
