@@ -1,10 +1,10 @@
-import { AudioLines, BookText, Headphones, ListChecks, Mic, Route } from 'lucide-react'
+import { AudioLines, BookOpenText, BookText, Headphones, ListChecks, Mic, Route } from 'lucide-react'
 import { PracticeCard, type PracticeMode } from '@/components/student/learning/practice-card'
 import SplitText from '@/components/ui/split-text'
 
 export const metadata = {
   title: 'Learning',
-  description: 'Enam mode latihan speaking, pronunciation, vocabulary, listening, quiz, dan jalur adaptif.',
+  description: 'Tujuh mode latihan speaking, pronunciation, vocabulary, listening, reading, quiz, dan jalur adaptif.',
 }
 
 const MODES: PracticeMode[] = [
@@ -55,6 +55,17 @@ const MODES: PracticeMode[] = [
   },
   {
     index: '05',
+    label: 'Reading',
+    href: '/siswa/reading',
+    icon: BookOpenText,
+    meta: '2 passage · 10 soal',
+    desc: 'Passage bergaya IELTS dengan pertanyaan detail, inferensi, dan kosakata dalam konteks.',
+    action: 'Baca passage',
+    image: '/learning/reading.webp',
+    imageAlt: 'Buku terbuka di atas meja kayu dengan cahaya jendela yang lembut',
+  },
+  {
+    index: '06',
     label: 'Quiz',
     href: '/siswa/quiz',
     icon: ListChecks,
@@ -65,7 +76,7 @@ const MODES: PracticeMode[] = [
     imageAlt: 'Catatan tulisan tangan dengan pena di atas meja',
   },
   {
-    index: '06',
+    index: '07',
     label: 'Adaptive Path',
     href: '/siswa/adaptive',
     icon: Route,
@@ -86,7 +97,7 @@ export default function LearningHubPage() {
             Learning
           </p>
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-            06 mode · 01 jalur
+            07 mode · 01 jalur
           </p>
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-end lg:gap-10">
@@ -96,7 +107,7 @@ export default function LearningHubPage() {
             className="text-balance font-display text-[2.25rem] leading-[1.05] tracking-[-0.02em] text-foreground sm:text-[2.9rem]"
           />
           <p className="text-pretty text-[14px] leading-relaxed text-muted-foreground lg:pb-1.5">
-            Enam mode latihan, satu jalur adaptif. Semua hasil masuk ke progres dan klasemen kelasmu.
+            Tujuh mode latihan, satu jalur adaptif. Semua hasil masuk ke progres dan klasemen kelasmu.
           </p>
         </div>
       </header>
