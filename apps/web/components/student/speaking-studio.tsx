@@ -15,6 +15,7 @@ import {
   Readout,
   StatusLine,
 } from '@/components/student/practice/practice-ui'
+import { ScoreDialog } from '@/components/student/score-dialog'
 
 type Phase = 'idle' | 'recording' | 'analyzing' | 'result'
 
@@ -52,6 +53,7 @@ export function SpeakingStudio({
   const [typedTranscript, setTypedTranscript] = useState<string | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
   const [composerDraft, setComposerDraft] = useState('')
+  const [scoreOpen, setScoreOpen] = useState(false)
   const submittedRef = useRef<string | null>(null)
   const mic = useMicrophone()
   const speech = useSpeechRecognition('en-US')
@@ -101,6 +103,7 @@ export function SpeakingStudio({
         if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? 'Analisis gagal dilakukan.')
         setAssessment(payload.data)
         setPhase('result')
+        setScoreOpen(true)
       } catch (error) {
         if (controller.signal.aborted) return
         submittedRef.current = null
@@ -144,6 +147,7 @@ export function SpeakingStudio({
     setComposerDraft('')
     submittedRef.current = null
     setPhase('idle')
+    setScoreOpen(false)
   }
 
   function submitTyped() {
@@ -492,6 +496,14 @@ export function SpeakingStudio({
           <Panel className="overflow-hidden">{signalPanel}</Panel>
         </div>
       </aside>
+
+      <ScoreDialog
+        open={scoreOpen}
+        eyebrow="Sesi speaking selesai"
+        score={assessment?.overall ?? null}
+        detail={`Durasi ${clock(spokenSeconds)}`}
+        onClose={() => setScoreOpen(false)}
+      />
     </div>
   )
 }

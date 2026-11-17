@@ -15,6 +15,7 @@ import {
   PanelHeader,
   type LevelOption,
 } from '@/components/student/practice/practice-ui'
+import { ScoreDialog } from '@/components/student/score-dialog'
 
 type LevelId = 'beginner' | 'intermediate' | 'advanced'
 type Phase = 'levels' | 'briefing' | 'unavailable' | 'listening' | 'deck' | 'result'
@@ -40,6 +41,7 @@ export function ListeningTest() {
   const [correctOptions, setCorrectOptions] = useState<Array<number | null>>([])
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [scoreOpen, setScoreOpen] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -145,6 +147,7 @@ export function ListeningTest() {
       setResults(nextResults)
       setCorrectOptions(nextCorrect)
       setPhase('result')
+      setScoreOpen(true)
     } catch {
       setSubmitError('Jawaban belum tersimpan sepenuhnya. Coba kumpulkan lagi.')
     } finally {
@@ -430,10 +433,24 @@ export function ListeningTest() {
         </ul>
 
         <div className="mt-5 flex gap-2">
-          <Button variant="outline" onClick={() => setPhase('levels')}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setPhase('levels')
+              setScoreOpen(false)
+            }}
+          >
             Pilih level lain
           </Button>
         </div>
+
+        <ScoreDialog
+          open={scoreOpen}
+          eyebrow="Latihan listening selesai"
+          score={score}
+          detail={`${correct} benar · ${items.length - correct} salah`}
+          onClose={() => setScoreOpen(false)}
+        />
       </div>
     )
   }

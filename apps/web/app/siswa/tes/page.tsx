@@ -11,8 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { ProgressRing } from '@/components/dashboard/progress-ring'
 import { cn } from '@/lib/utils'
-import { CompletionDialog } from '@/components/dashboard/completion-dialog'
-import { getQuizCompletionSummary } from '@/lib/completion'
+import { ScoreDialog } from '@/components/student/score-dialog'
 
 export default function TesPage() {
   const [questions, setQuestions] = useState<QuestionBankItem[]>([])
@@ -25,6 +24,7 @@ export default function TesPage() {
   const [done, setDone] = useState(false)
   const [answerError, setAnswerError] = useState<string | null>(null)
   const [correctOption, setCorrectOption] = useState<number | null>(null)
+  const [scoreOpen, setScoreOpen] = useState(false)
   const item = questions[current]
 
   useEffect(() => {
@@ -73,8 +73,10 @@ export default function TesPage() {
   }
 
   function next() {
-    if (current + 1 >= questions.length) setDone(true)
-    else {
+    if (current + 1 >= questions.length) {
+      setDone(true)
+      setScoreOpen(true)
+    } else {
       setCurrent((value) => value + 1)
       setSelected(null)
       setLocked(false)
@@ -88,12 +90,12 @@ export default function TesPage() {
     setCorrect(0)
     setLocked(false)
     setDone(false)
+    setScoreOpen(false)
     setCorrectOption(null)
     setAnswerError(null)
   }
 
   const percentage = questions.length ? Math.round((correct / questions.length) * 100) : 0
-  const completion = getQuizCompletionSummary(correct, questions.length)
 
   return (
     <div className="space-y-8">
@@ -105,14 +107,12 @@ export default function TesPage() {
           <FadeIn><Card className="border-border p-6"><div className="flex items-center justify-between"><Badge variant="secondary" className="gap-1"><ListChecks className="h-3 w-3" /> Soal {current + 1}/{questions.length}</Badge><span className="text-sm font-medium text-muted-foreground">Skor: {correct}</span></div><Progress value={((current + (locked ? 1 : 0)) / questions.length) * 100} className="mt-3" /><h2 className="mt-6 text-pretty text-lg font-semibold leading-relaxed text-foreground">{item.prompt}</h2><div className="mt-5 space-y-3">{item.options.map((option, index) => { const isCorrect = locked && index === correctOption; const isSelected = index === selected; return <button key={option} onClick={() => answer(index)} disabled={locked} className={cn('flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors', !locked && 'border-border hover:border-primary/50 hover:bg-muted/50', locked && isCorrect && 'border-success bg-success/10 text-success', locked && isSelected && !isCorrect && 'border-destructive bg-destructive/10 text-destructive', locked && !isCorrect && !isSelected && 'border-border opacity-60')}>{option}{locked && isCorrect && <Check className="h-4 w-4" />}{locked && isSelected && !isCorrect && <X className="h-4 w-4" />}</button> })}</div>{answerError && <p className="mt-4 text-sm text-destructive">{answerError}</p>}{locked && !answerError && <Button className="mt-6 w-full gap-2" onClick={next}>{current + 1 >= questions.length ? 'Lihat Hasil' : 'Soal Berikutnya'}<ChevronRight className="h-4 w-4" /></Button>}</Card></FadeIn>
         )}
       </div>
-      <CompletionDialog
-        open={done}
-        title={completion.title}
-        message="Semua jawaban tes sudah dikonfirmasi tersimpan oleh server."
-        score={`${percentage}/100`}
-        detail={`Jawaban benar: ${correct}/${questions.length}`}
-        reaction="quiz"
-        onClose={() => setDone(false)}
+      <ScoreDialog
+        open={scoreOpen}
+        eyebrow="Tes pedagogis selesai"
+        score={percentage}
+        detail={`${correct} benar · ${questions.length - correct} salah`}
+        onClose={() => setScoreOpen(false)}
       />
     </div>
   )
