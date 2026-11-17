@@ -34,6 +34,7 @@ export function ListeningTest() {
   const [level, setLevel] = useState<LevelId | null>(null)
   const [phase, setPhase] = useState<Phase>('levels')
   const [played, setPlayed] = useState(false)
+  const [playBlocked, setPlayBlocked] = useState(false)
   const [progress, setProgress] = useState(0)
   const [cursor, setCursor] = useState(0)
   const [answers, setAnswers] = useState<Array<number | null>>([])
@@ -66,15 +67,15 @@ export function ListeningTest() {
   }, [])
 
   const items = level && banks ? banks[level] : []
-  const audioUrl = items[0]?.audioUrl ?? null
-  const { peaks } = useAudioPeaks(audioUrl, 64)
   const current = items[cursor] ?? null
+  const audioUrl = current?.audioUrl ?? null
+  const { peaks } = useAudioPeaks(audioUrl, 64)
 
   const levelOptions: LevelOption[] = useMemo(
     () =>
       LEVELS.map((entry) => {
         const count = banks?.[entry.id].length ?? 0
-        const hasAudio = Boolean(banks?.[entry.id][0]?.audioUrl)
+        const hasAudio = (banks?.[entry.id] ?? []).every((item) => Boolean(item.audioUrl))
         return {
           id: entry.id,
           name: entry.name,
@@ -97,6 +98,7 @@ export function ListeningTest() {
     setLevel(next)
     setPhase('briefing')
     setPlayed(false)
+    setPlayBlocked(false)
     setProgress(0)
     setCursor(0)
     setAnswers([])
@@ -110,13 +112,27 @@ export function ListeningTest() {
       setPhase('unavailable')
       return
     }
+    setPlayBlocked(false)
     setPhase('listening')
-    setPlayed(true)
+  }
+
+  // Every question carries its own recording, so entering the listening phase
+  // starts that item's single play. The click that got here is the gesture.
+  useEffect(() => {
+    if (phase !== 'listening') return
     const element = audioRef.current
-    if (element) {
-      element.currentTime = 0
-      void element.play()
-    }
+    if (!element) return
+    element.currentTime = 0
+    setPlayed(true)
+    void element.play().catch(() => setPlayBlocked(true))
+  }, [phase, cursor])
+
+  function advance() {
+    setCursor((value) => value + 1)
+    setProgress(0)
+    setPlayed(false)
+    setPlayBlocked(false)
+    setPhase('listening')
   }
 
   function choose(optionIndex: number) {
@@ -207,7 +223,8 @@ export function ListeningTest() {
               {entry?.name}
             </h2>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-              {entry?.topic}. Audio diputar satu kali, lalu {items.length} pertanyaan muncul satu per satu.
+              {entry?.topic}. {items.length} rekaman satu menit; setiap rekaman diputar sekali, lalu satu pertanyaan
+              muncul.
             </p>
             <dl className="mt-5 grid grid-cols-3 divide-x divide-rule border-y border-rule">
               <div className="px-3 py-3">
@@ -269,7 +286,7 @@ export function ListeningTest() {
       <div className="mx-auto w-full max-w-[640px]">
         <Panel>
           <PanelHeader
-            label="Audio"
+            label={`Rekaman ${cursor + 1} dari ${items.length}`}
             right={
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                 {played ? 'Sedang diputar' : 'Siap'}
@@ -289,9 +306,8 @@ export function ListeningTest() {
                 )
               })}
             </div>
-            <div className="mt-3 flex items-center justify-between">
-              <MonoLabel>{played ? 'Audio sudah diputar' : 'Belum diputar'}</MonoLabel>
-              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+            <div className="mt-3 flex items-center justify-end">
+              <span className="font-mono text-[10px] tabular-nums tracking-[0.12em] text-muted-foreground">
                 {Math.round(progress * 100)}%
               </span>
             </div>
@@ -304,9 +320,11 @@ export function ListeningTest() {
               }}
               onEnded={() => {
                 setProgress(1)
-                setAnswers(items.map(() => null))
-                setResults(items.map(() => null))
-                setCorrectOptions(items.map(() => null))
+                if (cursor === 0) {
+                  setAnswers(items.map(() => null))
+                  setResults(items.map(() => null))
+                  setCorrectOptions(items.map(() => null))
+                }
                 setPhase('deck')
               }}
               className="hidden"
@@ -314,6 +332,18 @@ export function ListeningTest() {
             <p className="mt-4 text-[12px] leading-relaxed text-muted-foreground">
               Audio tidak bisa dijeda atau diulang. Dengarkan sampai selesai; pertanyaan muncul otomatis.
             </p>
+            {playBlocked ? (
+              <Button
+                variant="outline"
+                className="mt-3 gap-1.5"
+                onClick={() => {
+                  setPlayBlocked(false)
+                  void audioRef.current?.play().catch(() => setPlayBlocked(true))
+                }}
+              >
+                <Play className="size-3.5" aria-hidden="true" /> Putar audio
+              </Button>
+            ) : null}
           </div>
         </Panel>
       </div>
@@ -363,20 +393,13 @@ export function ListeningTest() {
         ) : null}
 
         <div className="mt-5 flex items-center justify-between border-t border-rule pt-4">
-          <Button variant="ghost" size="sm" onClick={() => setCursor((value) => Math.max(0, value - 1))} disabled={cursor === 0}>
-            Sebelumnya
-          </Button>
+          <MonoLabel>{cursor + 1 >= items.length ? 'Pertanyaan terakhir' : 'Rekaman berikutnya menyusul'}</MonoLabel>
           {cursor + 1 >= items.length ? (
             <Button size="sm" onClick={submitDeck} disabled={answers.some((value) => value === null) || submitting}>
               {submitting ? 'Menyimpan…' : 'Kumpulkan'}
             </Button>
           ) : (
-            <Button
-              size="sm"
-              onClick={() => setCursor((value) => value + 1)}
-              disabled={selected === null}
-              className="gap-1.5"
-            >
+            <Button size="sm" onClick={advance} disabled={selected === null} className="gap-1.5">
               Berikutnya <ArrowRight className="size-3.5" aria-hidden="true" />
             </Button>
           )}
