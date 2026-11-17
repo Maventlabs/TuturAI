@@ -8,6 +8,7 @@ import { useMicrophone } from '@/hooks/use-microphone'
 import { useAudioPeaks } from '@/hooks/use-audio-peaks'
 import { cn } from '@/lib/utils'
 import { MonoLabel, Panel, PanelHeader, Readout } from '@/components/student/practice/practice-ui'
+import { ScoreDialog } from '@/components/student/score-dialog'
 
 type PronunciationResult = {
   id: string
@@ -53,6 +54,7 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
   const [submitting, setSubmitting] = useState(false)
   const [modelAudioNote, setModelAudioNote] = useState<string | null>(null)
   const [selectedWord, setSelectedWord] = useState(0)
+  const [scoreOpen, setScoreOpen] = useState(false)
   const submittedAudio = useRef<Blob | null>(null)
   const mic = useMicrophone()
   const { peaks, duration } = useAudioPeaks(mic.audioUrl)
@@ -113,6 +115,7 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
         }
         setResult(payload.data)
         setMessage(payload.data.feedback)
+        setScoreOpen(true)
         const url = new URL(window.location.href)
         url.searchParams.set('attemptId', payload.data.id)
         window.history.replaceState(null, '', url)
@@ -156,6 +159,7 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
     setMessage(null)
     setModelAudioNote(null)
     setSelectedWord(0)
+    setScoreOpen(false)
     mic.reset()
     submittedAudio.current = null
   }
@@ -391,6 +395,14 @@ export function PronunciationLab({ words, initialIndex }: { words: QuestionBankI
           Selanjutnya <ChevronRight className="size-3.5" aria-hidden="true" />
         </Button>
       </div>
+
+      <ScoreDialog
+        open={scoreOpen}
+        eyebrow="Latihan pronunciation selesai"
+        score={result?.score ?? null}
+        detail={result?.confidence == null ? 'Confidence n/a' : `Confidence ${Math.round(result.confidence * 100)}%`}
+        onClose={() => setScoreOpen(false)}
+      />
     </div>
   )
 }

@@ -13,6 +13,7 @@ import {
   PanelHeader,
   type LevelOption,
 } from '@/components/student/practice/practice-ui'
+import { ScoreDialog } from '@/components/student/score-dialog'
 
 type LevelId = 'beginner' | 'intermediate' | 'advanced'
 type Phase = 'levels' | 'work' | 'deck' | 'result'
@@ -37,6 +38,7 @@ export function ReadingAnalysis() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [flipped, setFlipped] = useState(false)
+  const [scoreOpen, setScoreOpen] = useState(false)
 
   useEffect(() => {
     Promise.all(
@@ -351,7 +353,14 @@ export function ReadingAnalysis() {
             Sebelumnya
           </Button>
           {cursor + 1 >= items.length ? (
-            <Button size="sm" onClick={() => setPhase('result')} className="gap-1.5">
+            <Button
+              size="sm"
+              onClick={() => {
+                setPhase('result')
+                setScoreOpen(true)
+              }}
+              className="gap-1.5"
+            >
               Lihat hasil <ArrowRight className="size-3.5" aria-hidden="true" />
             </Button>
           ) : (
@@ -398,15 +407,30 @@ export function ReadingAnalysis() {
               setResults(null)
               setCursor(0)
               setPhase('work')
+              setScoreOpen(false)
             }}
             className="gap-1.5"
           >
             <RotateCcw className="size-3.5" aria-hidden="true" /> Ulangi
           </Button>
-          <Button variant="ghost" onClick={() => setPhase('levels')}>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setPhase('levels')
+              setScoreOpen(false)
+            }}
+          >
             Pilih level lain
           </Button>
         </div>
+
+        <ScoreDialog
+          open={scoreOpen}
+          eyebrow="Analisis paragraf selesai"
+          score={score}
+          detail={`${correct} benar · ${results.length - correct} salah`}
+          onClose={() => setScoreOpen(false)}
+        />
       </div>
     )
   }

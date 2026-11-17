@@ -28,6 +28,9 @@ async function replayMutation(mutation: { operation: string; payload: unknown; i
     if (file instanceof Blob && file.size > 0) {
       body.set('file', file, file instanceof File ? file.name : 'submission.bin')
     }
+    if (Array.isArray(payload.links) && payload.links.length > 0) {
+      body.set('links', JSON.stringify(payload.links))
+    }
     const response = await fetch(`/api/assignments/${String(payload.assignmentId)}/submit`, {
       method: 'POST',
       headers: { 'Idempotency-Key': mutation.idempotencyKey },

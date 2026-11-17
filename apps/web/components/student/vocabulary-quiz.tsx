@@ -15,6 +15,7 @@ import {
   type LevelOption,
   type TickState,
 } from '@/components/student/practice/practice-ui'
+import { ScoreDialog } from '@/components/student/score-dialog'
 
 type LevelId = 'beginner' | 'intermediate' | 'advanced'
 
@@ -54,6 +55,7 @@ export function VocabularyQuiz() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [finished, setFinished] = useState(false)
+  const [scoreOpen, setScoreOpen] = useState(false)
 
   useEffect(() => {
     Promise.all(
@@ -103,6 +105,7 @@ export function VocabularyQuiz() {
       setChosen(null)
       setSaveError(null)
       setFinished(false)
+      setScoreOpen(false)
     },
     [banks],
   )
@@ -145,6 +148,7 @@ export function VocabularyQuiz() {
     if (!chosen) return
     if (cursor + 1 >= order.length) {
       setFinished(true)
+      setScoreOpen(true)
       return
     }
     setCursor((value) => value + 1)
@@ -314,6 +318,7 @@ export function VocabularyQuiz() {
                 setAnswers([])
                 setChosen(null)
                 setFinished(false)
+                setScoreOpen(false)
               }}
               className="gap-1.5"
             >
@@ -324,6 +329,14 @@ export function VocabularyQuiz() {
             Pilih level lain
           </Button>
         </div>
+
+        <ScoreDialog
+          open={scoreOpen}
+          eyebrow="Kuis kosakata selesai"
+          score={score}
+          detail={`${correctCount} benar · ${wrong.length} salah`}
+          onClose={() => setScoreOpen(false)}
+        />
       </div>
     )
   }

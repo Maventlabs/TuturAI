@@ -1,8 +1,10 @@
+import { randomUUID } from 'node:crypto'
 import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase-admin/firestore'
-import { transitionAssignment, AssignmentRuleError, type Assignment, type AssignmentInput, type AssignmentStatus, type DriveFileMetadata } from '@tuturai/domain'
+import { transitionAssignment, AssignmentRuleError, type Assignment, type AssignmentInput, type AssignmentStatus, type DriveFileMetadata, type ResourceLink } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
 import { cacheAside, invalidateNamespaces } from '@/lib/cache'
 import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
+import { linksFromData, withLinkIds } from '@/lib/resource-links'
 
 export const ASSIGNMENTS_COLLECTION = 'assignments'
 const CLASSROOMS_COLLECTION = 'classrooms'
@@ -29,6 +31,7 @@ export function assignmentFromSnapshot(snapshot: DocumentSnapshot<DocumentData>)
     createdAt: toIsoString(data.createdAt) ?? new Date(0).toISOString(),
     updatedAt: toIsoString(data.updatedAt) ?? new Date(0).toISOString(),
     attachments: Array.isArray(data.attachments) ? data.attachments as DriveFileMetadata[] : [],
+    links: linksFromData(data.links),
   }
 }
 
@@ -48,8 +51,10 @@ export async function createTeacherAssignment(classroomId: string, teacherId: st
   await assertTeacherOwnsClassroom(classroomId, teacherId)
   const now = Timestamp.now()
   const reference = getAdminDb().collection(ASSIGNMENTS_COLLECTION).doc()
+  const { links, ...fields } = input
   await reference.create({
-    ...input,
+    ...fields,
+    links: withLinkIds(links),
     classId: classroomId,
     dueAt: input.dueAt ? Timestamp.fromDate(new Date(input.dueAt)) : null,
     status,

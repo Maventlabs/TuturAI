@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import type { Assignment, Classroom } from '@tuturai/domain'
-import { ArrowRight, CalendarClock, ClipboardList, FileText, Plus, Repeat2 } from 'lucide-react'
+import { ArrowRight, CalendarClock, ClipboardList, FileText, Link2, Plus, Repeat2 } from 'lucide-react'
 import { classInitials } from '@/lib/class-tint'
 import { Button } from '@/components/ui/button'
 
@@ -120,9 +120,9 @@ export function StreamPanel({
                 </div>
               </div>
 
-              {assignment.attachments?.length ? (
+              {assignment.attachments?.length || assignment.links?.length ? (
                 <ul className="mt-3 flex flex-wrap gap-2 px-4">
-                  {assignment.attachments.map((file) => (
+                  {assignment.attachments?.map((file) => (
                     <li key={file.id}>
                       <a
                         href={file.webViewLink ?? undefined}
@@ -132,6 +132,19 @@ export function StreamPanel({
                       >
                         <FileText className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                         {file.name}
+                      </a>
+                    </li>
+                  ))}
+                  {assignment.links?.map((link) => (
+                    <li key={link.id}>
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+                      >
+                        <Link2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                        {link.label}
                       </a>
                     </li>
                   ))}

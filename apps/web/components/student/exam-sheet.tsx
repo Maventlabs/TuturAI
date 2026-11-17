@@ -6,6 +6,7 @@ import type { QuestionBankItem } from '@tuturai/domain'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { EmptyState, MonoLabel, Panel, PanelHeader } from '@/components/student/practice/practice-ui'
+import { ScoreDialog } from '@/components/student/score-dialog'
 
 type Result = { isCorrect: boolean; correctOption: number | null }
 
@@ -33,6 +34,7 @@ export function ExamSheet() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [results, setResults] = useState<Result[] | null>(null)
+  const [scoreOpen, setScoreOpen] = useState(false)
 
   useEffect(() => {
     Promise.all(
@@ -87,6 +89,7 @@ export function ExamSheet() {
         collected.push({ isCorrect: payload.data.isCorrect === true, correctOption: payload.data.correctOption ?? null })
       }
       setResults(collected)
+      setScoreOpen(true)
       setConfirming(false)
     } catch {
       setSubmitError('Jawaban belum tersimpan sepenuhnya. Periksa koneksi lalu kumpulkan lagi.')
@@ -177,6 +180,14 @@ export function ExamSheet() {
             )
           })}
         </ol>
+
+        <ScoreDialog
+          open={scoreOpen}
+          eyebrow="Kuis terpadu selesai"
+          score={score}
+          detail={`${correct} benar · ${results.length - correct} salah`}
+          onClose={() => setScoreOpen(false)}
+        />
       </div>
     )
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { CheckCircle2, ChevronRight, ClipboardList, FileText, RotateCcw } from 'lucide-react'
+import { CheckCircle2, ChevronRight, ClipboardList, FileText, Link2, RotateCcw } from 'lucide-react'
 import type { Assignment } from '@tuturai/domain'
 import type { AssignmentStudentRow } from '@/lib/submissions'
 import { submissionStatusMeta, submissionToneClass } from '@/lib/submission-status'
@@ -10,6 +10,7 @@ import { classInitials } from '@/lib/class-tint'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { GradeInput } from '@/components/guru/grade-input'
 
 type AssignmentSubmissionsPayload = {
   assignment: Assignment
@@ -168,9 +169,9 @@ export function SubmissionDetail({
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
               {assignment.instructions}
             </p>
-            {assignment.attachments?.length ? (
+            {assignment.attachments?.length || assignment.links?.length ? (
               <ul className="mt-4 flex flex-wrap gap-2">
-                {assignment.attachments.map((file) => (
+                {assignment.attachments?.map((file) => (
                   <li key={file.id}>
                     <a
                       href={file.webViewLink ?? undefined}
@@ -183,17 +184,30 @@ export function SubmissionDetail({
                     </a>
                   </li>
                 ))}
+                {assignment.links?.map((link) => (
+                  <li key={link.id}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+                    >
+                      <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
               </ul>
             ) : null}
           </section>
 
-          {submission?.files?.length ? (
+          {submission?.files?.length || submission?.links?.length ? (
             <section aria-labelledby="files-heading" className="rounded-xl border border-border bg-card p-5">
               <h2 id="files-heading" className="font-heading text-base font-bold text-foreground">
-                Berkas siswa
+                Pekerjaan siswa
               </h2>
               <ul className="mt-3 space-y-2">
-                {submission.files.map((file) => (
+                {submission?.files?.map((file) => (
                   <li key={file.id}>
                     <a
                       href={file.webViewLink ?? undefined}
@@ -203,6 +217,19 @@ export function SubmissionDetail({
                     >
                       <FileText className="h-4 w-4" />
                       {file.name}
+                    </a>
+                  </li>
+                ))}
+                {submission?.links?.map((link) => (
+                  <li key={link.id}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-deep hover:underline"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      {link.label}
                     </a>
                   </li>
                 ))}
@@ -285,6 +312,37 @@ export function SubmissionDetail({
             {!submission && (
               <p className="mt-3 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
                 Siswa belum mengumpulkan pekerjaan untuk penugasan ini.
+              </p>
+            )}
+          </section>
+
+          <section aria-labelledby="grade-heading" className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 id="grade-heading" className="font-heading text-sm font-bold text-foreground">
+                Nilai guru
+              </h2>
+              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                Skor AI {typeof assessment?.overall === 'number' ? `${assessment.overall}/100` : 'belum ada'}
+              </span>
+            </div>
+
+            {submission ? (
+              <GradeInput
+                submissionId={submission.id}
+                initialScore={submission.teacherScore}
+                feedback={feedback}
+                showSaveButton
+                onSaved={(score) =>
+                  setRow((current) =>
+                    current && current.submission
+                      ? { ...current, submission: { ...current.submission, teacherScore: score } }
+                      : current,
+                  )
+                }
+              />
+            ) : (
+              <p className="mt-2 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                Nilai bisa diisi setelah siswa mengumpulkan pekerjaan.
               </p>
             )}
           </section>

@@ -64,7 +64,7 @@ describe('GET /api/student/dashboard', () => {
     mockedAssignments.mockResolvedValue([
       { id: 'assignment-1', classId: 'class-1', title: 'Self introduction', instructions: 'Speak', dueAt: '2026-09-24T00:00:00.000Z', maxAttempts: 2, status: 'published', createdAt: '2026-09-20T00:00:00.000Z', updatedAt: '2026-09-20T00:00:00.000Z' },
     ])
-    mockedSubmission.mockResolvedValue({ id: 'submission-1', assignmentId: 'assignment-1', studentId: 'student-1', attempt: 1, status: 'submitted', isLate: false, teacherFeedback: null, submittedAt: '2026-09-22T00:00:00.000Z', updatedAt: '2026-09-22T00:00:00.000Z' })
+    mockedSubmission.mockResolvedValue({ id: 'submission-1', assignmentId: 'assignment-1', studentId: 'student-1', attempt: 1, status: 'submitted', isLate: false, teacherFeedback: null, teacherScore: null, gradedAt: null, submittedAt: '2026-09-22T00:00:00.000Z', updatedAt: '2026-09-22T00:00:00.000Z' })
 
     const response = await GET()
 

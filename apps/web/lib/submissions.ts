@@ -1,7 +1,8 @@
 import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase-admin/firestore'
-import { transitionSubmission, type Assessment, type Assignment, type DriveFileMetadata, type Submission, type SubmissionStatus } from '@tuturai/domain'
+import { isValidTeacherScore, transitionSubmission, type Assessment, type Assignment, type DriveFileMetadata, type ResourceLinkInput, type Submission, type SubmissionStatus } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
 import { assignmentFromSnapshot } from '@/lib/assignments'
+import { linksFromData, withLinkIds } from '@/lib/resource-links'
 import { cacheAside, invalidateNamespaces } from '@/lib/cache'
 import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
 
@@ -40,9 +41,12 @@ export function submissionFromSnapshot(snapshot: DocumentSnapshot<DocumentData>)
     status: data.status,
     isLate: data.isLate,
     teacherFeedback: data.teacherFeedback ?? null,
+    teacherScore: typeof data.teacherScore === 'number' ? data.teacherScore : null,
+    gradedAt: toIsoString(data.gradedAt),
     submittedAt: toIsoString(data.submittedAt),
     updatedAt: toIsoString(data.updatedAt) ?? new Date(0).toISOString(),
     files: Array.isArray(data.files) ? data.files as DriveFileMetadata[] : [],
+    links: linksFromData(data.links),
   }
 }
 
@@ -68,7 +72,12 @@ async function getAssignmentAndMembership(assignmentId: string, studentId: strin
   return { assignmentReference, assignment, classId }
 }
 
-export async function submitAssignment(assignmentId: string, studentId: string, idempotencyKey?: string) {
+export async function submitAssignment(
+  assignmentId: string,
+  studentId: string,
+  idempotencyKey?: string,
+  links: ResourceLinkInput[] = [],
+) {
   const db = getAdminDb()
   const reference = db.collection(SUBMISSIONS_COLLECTION).doc(submissionId(assignmentId, studentId))
   await db.runTransaction(async (transaction) => {
@@ -92,8 +101,13 @@ export async function submitAssignment(assignmentId: string, studentId: string, 
       status: next.status,
       isLate: dueAt !== null && now.toMillis() > dueAt,
       teacherFeedback: currentData?.teacherFeedback ?? null,
+      // A new attempt has not been graded yet, so the previous grade must not
+      // keep standing in the gradebook for work the teacher never saw.
+      teacherScore: null,
+      gradedAt: null,
       submittedAt: now,
       updatedAt: now,
+      links: withLinkIds(links),
       ...(idempotencyKey ? { lastIdempotencyKey: idempotencyKey } : {}),
     }
     if (current.exists) transaction.update(reference, submission)
@@ -307,4 +321,41 @@ export async function reviewSubmission(submissionIdValue: string, teacherId: str
     `analytics:dashboard:${reviewed.studentId}`,
   )
   return reviewed
+}
+
+/**
+ * Stores the teacher's own grade for a submission. Grading is independent from
+ * the review decision: a teacher can enter a number before approving, and can
+ * still correct it afterwards. Passing `null` clears the grade.
+ */
+export async function gradeSubmission(
+  submissionIdValue: string,
+  teacherId: string,
+  score: number | null,
+  feedback?: string | null,
+) {
+  if (score !== null && !isValidTeacherScore(score)) throw new Error('INVALID_SCORE')
+  const db = getAdminDb()
+  const reference = db.collection(SUBMISSIONS_COLLECTION).doc(submissionIdValue)
+  await db.runTransaction(async (transaction) => {
+    const submission = await transaction.get(reference)
+    if (!submission.exists) throw new Error('SUBMISSION_NOT_FOUND')
+    const assignmentId = submission.data()?.assignmentId
+    await assertTeacherOwnsAssignment(assignmentId, teacherId, transaction)
+    const now = Timestamp.now()
+    transaction.update(reference, {
+      teacherScore: score,
+      gradedAt: score === null ? null : now,
+      ...(feedback === undefined ? {} : { teacherFeedback: feedback }),
+      updatedAt: now,
+    })
+  })
+  const graded = submissionFromSnapshot(await reference.get())
+  await invalidateNamespaces(
+    `reviewQueue:${teacherId}`,
+    `assignments:${graded.assignmentId}`,
+    `analytics:${teacherId}`,
+    `analytics:dashboard:${graded.studentId}`,
+  )
+  return graded
 }

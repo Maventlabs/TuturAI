@@ -10,6 +10,7 @@ import { classInitials } from '@/lib/class-tint'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { GradeInput } from '@/components/guru/grade-input'
 
 type AssignmentSubmissionsPayload = {
   assignment: Assignment
@@ -56,6 +57,20 @@ export function StudentWorkTable({ assignmentId }: { assignmentId: string }) {
     void load()
     return () => controller.abort()
   }, [assignmentId])
+
+  function updateScore(studentId: string, score: number | null) {
+    setPayload((current) => {
+      if (!current) return current
+      return {
+        ...current,
+        students: current.students.map((student) =>
+          student.studentId === studentId && student.submission
+            ? { ...student, submission: { ...student.submission, teacherScore: score } }
+            : student,
+        ),
+      }
+    })
+  }
 
   if (loading) {
     return (
@@ -141,7 +156,12 @@ export function StudentWorkTable({ assignmentId }: { assignmentId: string }) {
                 <TableHead className="pl-4">Siswa</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden sm:table-cell">Dikumpulkan</TableHead>
-                <TableHead className="text-right">Skor AI</TableHead>
+                <TableHead className="text-right">
+                  Nilai
+                  <span className="block text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
+                    1–100 · AI pembanding
+                  </span>
+                </TableHead>
                 <TableHead className="w-10 pr-4">
                   <span className="sr-only">Buka</span>
                 </TableHead>
@@ -176,8 +196,24 @@ export function StudentWorkTable({ assignmentId }: { assignmentId: string }) {
                     <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">
                       {formatDateTime(student.submission?.submittedAt ?? null)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm font-semibold text-foreground">
-                      {typeof student.assessment?.overall === 'number' ? student.assessment.overall : 'Belum ada'}
+                    <TableCell className="text-right">
+                      {student.submission ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <GradeInput
+                            submissionId={student.submission.id}
+                            initialScore={student.submission.teacherScore}
+                            compact
+                            onSaved={(score) => updateScore(student.studentId, score)}
+                          />
+                          <span className="w-12 shrink-0 text-left font-mono text-[11px] tabular-nums text-muted-foreground">
+                            {typeof student.assessment?.overall === 'number'
+                              ? `AI ${student.assessment.overall}`
+                              : 'AI –'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Belum ada</span>
+                      )}
                     </TableCell>
                     <TableCell className="pr-4">
                       <Link

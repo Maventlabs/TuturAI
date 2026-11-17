@@ -69,11 +69,15 @@ export function PracticeHeader({
     <header className="border-b border-rule pb-5">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
         <div className="min-w-0">
-          <MonoLabel className="text-primary-deep">{eyebrow}</MonoLabel>
+          {/* The eyebrow is inline and SplitText renders inline-block, so both
+              would share one line box and the heading would overlap the label. */}
+          <div>
+            <MonoLabel className="text-primary-deep">{eyebrow}</MonoLabel>
+          </div>
           <SplitText
             as="h1"
             text={title}
-            className="mt-2.5 text-balance font-heading text-[26px] font-extrabold leading-[1.08] tracking-[-0.025em] text-foreground sm:text-[32px]"
+            className="mt-2.5 block text-balance font-heading text-[26px] font-extrabold leading-[1.08] tracking-[-0.025em] text-foreground sm:text-[32px]"
           />
           {description ? (
             <p className="mt-2 max-w-[64ch] text-pretty text-[13px] leading-relaxed text-muted-foreground">

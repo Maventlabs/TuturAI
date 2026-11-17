@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { ScoreSource } from '@tuturai/domain'
 import { cn } from '@/lib/utils'
 import type { GradebookColumn, GradebookRow } from '@/lib/gradebook'
 
@@ -10,10 +11,16 @@ function scoreTint(score: number | null) {
   return 'bg-warning/20'
 }
 
-function scoreInk(score: number | null) {
+function scoreInk(score: number | null, source: ScoreSource | null) {
   if (score === null) return 'text-muted-foreground/35'
   if (score < 60) return 'text-warning'
-  return 'text-foreground'
+  return source === 'ai' ? 'text-muted-foreground' : 'text-foreground'
+}
+
+function scoreTitle(source: ScoreSource | null) {
+  if (source === 'teacher') return 'Nilai guru'
+  if (source === 'ai') return 'Skor AI — guru belum mengisi nilai'
+  return undefined
 }
 
 function formatScore(score: number | null) {
@@ -109,10 +116,11 @@ export function ScoreMatrix({ columns, rows, loading = false }: ScoreMatrixProps
                 {row.cells.map((cell) => (
                   <td
                     key={cell.assignmentId}
+                    title={scoreTitle(cell.source)}
                     className={cn(
                       'border-l border-rule/60 px-1 py-2 text-center font-mono text-[12px] tabular-nums',
                       scoreTint(cell.score),
-                      scoreInk(cell.score),
+                      scoreInk(cell.score, cell.source),
                     )}
                   >
                     {cell.status === 'pending' && cell.score === null ? (

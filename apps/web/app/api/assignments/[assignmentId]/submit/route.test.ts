@@ -45,6 +45,14 @@ function multipartRequest(idempotencyKey?: string, file: File = new File(['assig
   })
 }
 
+function jsonRequest(body: unknown) {
+  return new NextRequest('http://localhost/api/assignments/assignment-1/submit', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
 function multipartWithInvalidFileEntry() {
   const form = new FormData()
   form.set('file', 'not-a-file')
@@ -93,8 +101,26 @@ describe('POST /api/assignments/[assignmentId]/submit', () => {
     const response = await POST(multipartRequest('submission-attempt-1'), routeContext)
     expect(response.status).toBe(201)
     expect(mockedConsumeRateLimit).toHaveBeenCalledWith({ scope: 'drive-upload', subject: 'student-1', limit: 20, windowMs: 15 * 60 * 1_000 })
-    expect(mockedSubmitAssignment).toHaveBeenCalledWith('assignment-1', 'student-1', 'submission-attempt-1')
+    expect(mockedSubmitAssignment).toHaveBeenCalledWith('assignment-1', 'student-1', 'submission-attempt-1', [])
     expect(mockedAppendSubmissionFile).toHaveBeenCalledWith('submission-1', 'student-1', expect.objectContaining({ id: 'drive-file-1' }))
+  })
+
+  it('accepts a link-only submission without touching Drive', async () => {
+    const response = await POST(jsonRequest({ links: [{ url: 'https://drive.google.com/file/d/abc' }] }), routeContext)
+
+    expect(response.status).toBe(201)
+    expect(mockedSubmitAssignment).toHaveBeenCalledWith('assignment-1', 'student-1', undefined, [
+      { label: 'drive.google.com', url: 'https://drive.google.com/file/d/abc' },
+    ])
+    expect(mockedUploadDriveFile).not.toHaveBeenCalled()
+  })
+
+  it('rejects a submission link that is not http(s)', async () => {
+    const response = await POST(jsonRequest({ links: [{ url: 'javascript:alert(1)' }] }), routeContext)
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toMatchObject({ error: { code: 'VALIDATION_ERROR' } })
+    expect(mockedSubmitAssignment).not.toHaveBeenCalled()
   })
 
   it('rejects file submissions without a stable idempotency key', async () => {

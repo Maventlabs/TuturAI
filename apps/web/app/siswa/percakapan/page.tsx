@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Waveform } from '@/components/dashboard/waveform'
 import { useMicrophone } from '@/hooks/use-microphone'
 import { cn } from '@/lib/utils'
-import { CompletionDialog } from '@/components/dashboard/completion-dialog'
+import { ScoreDialog } from '@/components/student/score-dialog'
 import { deleteOfflineRecord, enqueuePendingMutation, putOfflineRecord, OFFLINE_MUTATION_SYNCED_EVENT, OFFLINE_STORES } from '@/lib/offline/offline-db'
 
 interface Msg {
@@ -350,13 +350,11 @@ export default function PercakapanPage() {
               </div>
             </div>
            </Card>
-           <CompletionDialog
+           <ScoreDialog
              open={showCompletion && (assessment !== null || textAssessment !== null)}
-             title={(assessment?.overall ?? textAssessment?.score ?? 0) >= 80 ? 'Percakapan mantap!' : 'Percakapan selesai'}
-             message="Hasil percakapan sudah dikonfirmasi tersimpan oleh server."
-             score={`${assessment?.overall ?? textAssessment?.score ?? 0}/100`}
-             detail={assessment?.feedback ?? textAssessment?.feedback ?? 'Hasil analisis tersedia di sesi ini.'}
-             reaction="speaking"
+             eyebrow="Sesi percakapan selesai"
+             score={assessment?.overall ?? textAssessment?.score ?? null}
+             detail={assessment ? 'Dinilai dari audio' : 'Dinilai dari teks'}
              onClose={() => setShowCompletion(false)}
            />
          </>

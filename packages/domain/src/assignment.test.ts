@@ -8,6 +8,7 @@ describe('validateAssignmentInput', () => {
       instructions: 'Record a two-minute response.',
       dueAt: '2026-10-01T12:00:00+07:00',
       maxAttempts: 2,
+      links: [{ label: '  Rubrik  ', url: 'https://drive.google.com/file/d/abc/view' }],
     })).toEqual({
       success: true,
       data: {
@@ -15,8 +16,19 @@ describe('validateAssignmentInput', () => {
         instructions: 'Record a two-minute response.',
         dueAt: '2026-10-01T05:00:00.000Z',
         maxAttempts: 2,
+        links: [{ label: 'Rubrik', url: 'https://drive.google.com/file/d/abc/view' }],
       },
     })
+  })
+
+  it('rejects links that are not http(s) URLs', () => {
+    const result = validateAssignmentInput({
+      title: 'Task',
+      instructions: 'Speak.',
+      links: [{ label: 'Local', url: 'file:///etc/passwd' }],
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.issues.map((issue) => issue.path)).toEqual(['links.0.url'])
   })
 
   it('rejects invalid due dates and attempt limits', () => {

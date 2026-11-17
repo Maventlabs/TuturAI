@@ -49,3 +49,38 @@ export function transitionSubmission(
 export function canTeacherReviewSubmission(role: UserRole, ownsClassroom: boolean): boolean {
   return role === 'teacher' && ownsClassroom
 }
+
+export const TEACHER_SCORE_MIN = 1
+export const TEACHER_SCORE_MAX = 100
+
+export type ScoreSource = 'teacher' | 'ai'
+
+export interface ResolvedScore {
+  score: number | null
+  source: ScoreSource | null
+}
+
+export function isValidTeacherScore(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= TEACHER_SCORE_MIN &&
+    value <= TEACHER_SCORE_MAX
+  )
+}
+
+/**
+ * The teacher's grade always wins over the AI estimate. The AI score is
+ * advisory evidence for the teacher, while the number the teacher enters is the
+ * one that belongs in the gradebook and the exported report.
+ */
+export function resolveSubmissionScore(
+  teacherScore: number | null | undefined,
+  aiScore: number | null | undefined,
+): ResolvedScore {
+  if (isValidTeacherScore(teacherScore)) return { score: teacherScore, source: 'teacher' }
+  if (typeof aiScore === 'number' && Number.isFinite(aiScore) && aiScore >= 0 && aiScore <= 100) {
+    return { score: aiScore, source: 'ai' }
+  }
+  return { score: null, source: null }
+}

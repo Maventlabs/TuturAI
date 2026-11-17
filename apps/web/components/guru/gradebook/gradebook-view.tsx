@@ -8,6 +8,7 @@ import { ClassTabs } from '@/components/guru/gradebook/class-tabs'
 import { ScoreMatrix } from '@/components/guru/gradebook/score-matrix'
 import { ScoreDistribution } from '@/components/guru/gradebook/score-distribution'
 import { DimensionRadar } from '@/components/guru/gradebook/dimension-radar'
+import { ExportGradesButton } from '@/components/guru/gradebook/export-grades-button'
 import { TARGET_SCORE, type Gradebook } from '@/lib/gradebook'
 import SplitText from '@/components/ui/split-text'
 
@@ -49,7 +50,7 @@ export function GradebookView({
       label: 'Nilai masuk',
       value: String(gradebook.gradedTotal),
       unit: `/ ${gradebook.possibleTotal}`,
-      note: `${gradebook.columns.length} penugasan`,
+      note: `${gradebook.teacherGradedTotal} dari guru`,
     },
     {
       label: 'Menunggu review',
@@ -88,21 +89,24 @@ export function GradebookView({
 
   return (
     <div className="mx-auto max-w-[1180px] space-y-5">
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          Buku Nilai · Speaking
-        </p>
-        <SplitText
-          as="h1"
-          text={className ?? 'Daftar nilai'}
-          className="mt-1.5 font-heading text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground"
-        />
-        <p className="mt-1.5 max-w-[72ch] text-[13px] leading-relaxed text-muted-foreground">{insight}</p>
-        {classrooms.length > 1 && (
-          <div className="mt-4">
-            <ClassTabs classrooms={classrooms} activeId={activeClassId} onSelect={onSelectClass} />
-          </div>
-        )}
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            Buku Nilai · Speaking
+          </p>
+          <SplitText
+            as="h1"
+            text={className ?? 'Daftar nilai'}
+            className="mt-1.5 font-heading text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground"
+          />
+          <p className="mt-1.5 max-w-[72ch] text-[13px] leading-relaxed text-muted-foreground">{insight}</p>
+          {classrooms.length > 1 && (
+            <div className="mt-4">
+              <ClassTabs classrooms={classrooms} activeId={activeClassId} onSelect={onSelectClass} />
+            </div>
+          )}
+        </div>
+        <ExportGradesButton classroomId={activeClassId} disabled={loading || gradebook.rows.length === 0} />
       </header>
 
       {error && (
@@ -201,6 +205,10 @@ export function GradebookView({
                   <span className="font-mono text-[9px] tabular-nums text-muted-foreground">{entry.label}</span>
                 </span>
               ))}
+              <span className="font-mono text-[9px] text-muted-foreground">
+                <span className="text-foreground">Angka gelap</span> = nilai guru ·{' '}
+                <span className="text-muted-foreground/70">angka abu</span> = skor AI
+              </span>
               <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground/50">
                 Klik kode A1, A2, … untuk membuka penugasan
               </span>
