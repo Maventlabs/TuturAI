@@ -7,8 +7,15 @@ export type LearningContentType =
   | 'pronunciation'
   | 'speaking'
   | 'conversation'
+  | 'reading'
+  | 'general'
    | 'test'
 
+/**
+ * Reading and general items are graded only inside a quiz attempt, where the
+ * server owns the deadline and the answer key. They are deliberately excluded
+ * here so the single-question endpoint cannot grade them outside that flow.
+ */
 export function isAnswerableContentType(contentType: LearningContentType): boolean {
   return contentType === 'question'
     || contentType === 'vocabulary'

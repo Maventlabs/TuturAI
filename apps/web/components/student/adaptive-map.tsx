@@ -26,6 +26,8 @@ function practiceHref(activity: AdaptiveActivity) {
     pronunciation: '/siswa/pronunciation',
     speaking: '/siswa/speaking',
     conversation: '/siswa/percakapan',
+    reading: '/siswa/quiz',
+    general: '/siswa/quiz',
     test: '/siswa/tes',
   }
   return `${routes[activity.contentType]}?questionId=${encodeURIComponent(activity.id)}`
