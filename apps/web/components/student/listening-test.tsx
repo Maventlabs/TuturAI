@@ -9,12 +9,12 @@ import { useAudioPeaks } from '@/hooks/use-audio-peaks'
 import { cn } from '@/lib/utils'
 import {
   EmptyState,
-  LevelStack,
   MonoLabel,
   Panel,
   PanelHeader,
   type LevelOption,
 } from '@/components/student/practice/practice-ui'
+import { LevelCardGrid } from '@/components/student/practice/level-cards'
 import { ScoreDialog } from '@/components/student/score-dialog'
 
 type LevelId = 'beginner' | 'intermediate' | 'advanced'
@@ -86,6 +86,7 @@ export function ListeningTest() {
             count === 0
               ? 'Belum ada pertanyaan listening untuk level ini.'
               : 'Belum ada audio untuk level ini. Suara sintetis browser tidak dipakai sebagai pengganti.',
+          action: 'Mulai sesi',
         }
       }),
     [banks],
@@ -167,34 +168,30 @@ export function ListeningTest() {
 
   if (phase === 'levels') {
     return (
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
-        <div>
-          <div className="flex items-baseline justify-between gap-3 border-b border-rule pb-2">
-            <MonoLabel>Pilih level</MonoLabel>
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-              Sekali putar
-            </span>
-          </div>
-          <LevelStack options={levelOptions} onSelect={selectLevel} className="mt-4" />
+      <div>
+        <div className="flex items-baseline justify-between gap-3 border-b border-rule pb-2">
+          <MonoLabel>Pilih level</MonoLabel>
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            Sekali putar
+          </span>
         </div>
-        <aside>
-          <Panel>
-            <PanelHeader label="Aturan sesi" />
-            <ul className="divide-y divide-rule">
-              {[
-                'Audio berdurasi sekitar satu menit.',
-                'Audio hanya bisa diputar satu kali. Tidak ada tombol ulang.',
-                'Topik diacak dan tidak ditampilkan sebelum audio dimulai.',
-                'Pertanyaan muncul satu per satu setelah audio selesai.',
-                'Skor akhir dihitung server, bukan di browser.',
-              ].map((rule) => (
-                <li key={rule} className="px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">
-                  {rule}
-                </li>
-              ))}
-            </ul>
-          </Panel>
-        </aside>
+        <LevelCardGrid options={levelOptions} onSelect={selectLevel} className="mt-4" />
+        <Panel className="mt-6">
+          <PanelHeader label="Aturan sesi" />
+          <ul className="divide-y divide-rule">
+            {[
+              'Audio berdurasi sekitar satu menit.',
+              'Audio hanya bisa diputar satu kali. Tidak ada tombol ulang.',
+              'Topik diacak dan tidak ditampilkan sebelum audio dimulai.',
+              'Pertanyaan muncul satu per satu setelah audio selesai.',
+              'Skor akhir dihitung server, bukan di browser.',
+            ].map((rule) => (
+              <li key={rule} className="px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">
+                {rule}
+              </li>
+            ))}
+          </ul>
+        </Panel>
       </div>
     )
   }

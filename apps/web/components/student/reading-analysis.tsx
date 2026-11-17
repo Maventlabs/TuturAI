@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
   EmptyState,
-  LevelStack,
   MonoLabel,
   Panel,
   PanelHeader,
   type LevelOption,
 } from '@/components/student/practice/practice-ui'
+import { LevelCardGrid } from '@/components/student/practice/level-cards'
 import { ScoreDialog } from '@/components/student/score-dialog'
 
 type LevelId = 'beginner' | 'intermediate' | 'advanced'
@@ -129,39 +129,36 @@ export function ReadingAnalysis() {
         detail: count === 0 ? 'Belum ada bacaan pada level ini.' : `${count} teks pendek dengan pertanyaan pemahaman.`,
         disabled: count === 0,
         disabledReason: 'Belum ada bacaan yang dipublikasikan untuk level ini.',
+        action: 'Mulai sesi',
       }
     })
     return (
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
-        <div>
-          <div className="flex items-baseline justify-between gap-3 border-b border-rule pb-2">
-            <MonoLabel>Pilih level</MonoLabel>
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-              Baca · tandai · jawab
-            </span>
-          </div>
-          <LevelStack options={options} onSelect={startLevel} className="mt-4" />
+      <div>
+        <div className="flex items-baseline justify-between gap-3 border-b border-rule pb-2">
+          <MonoLabel>Pilih level</MonoLabel>
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            Baca · tandai · jawab
+          </span>
         </div>
-        <aside>
-          <Panel>
-            <PanelHeader label="Cara kerja" />
-            <ol className="divide-y divide-rule">
-              {[
-                'Teks tampil di kolom kiri dengan lebar baca nyaman.',
-                'Klik satu kalimat untuk menandainya sebagai bukti.',
-                'Jawab pertanyaan di kolom kanan tanpa pindah halaman.',
-                'Setelah dikumpulkan, pertanyaan berubah menjadi kartu balik.',
-              ].map((step, index) => (
-                <li key={step} className="flex gap-3 px-4 py-3">
-                  <span className="font-mono text-[10px] leading-5 text-muted-foreground">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span className="text-[12px] leading-relaxed text-muted-foreground">{step}</span>
-                </li>
-              ))}
-            </ol>
-          </Panel>
-        </aside>
+        <LevelCardGrid options={options} onSelect={startLevel} className="mt-4" />
+        <Panel className="mt-6">
+          <PanelHeader label="Cara kerja" />
+          <ol className="divide-y divide-rule">
+            {[
+              'Teks tampil di kolom kiri dengan lebar baca nyaman.',
+              'Klik satu kalimat untuk menandainya sebagai bukti.',
+              'Jawab pertanyaan di kolom kanan tanpa pindah halaman.',
+              'Setelah dikumpulkan, pertanyaan berubah menjadi kartu balik.',
+            ].map((step, index) => (
+              <li key={step} className="flex gap-3 px-4 py-3">
+                <span className="font-mono text-[10px] leading-5 text-muted-foreground">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span className="text-[12px] leading-relaxed text-muted-foreground">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </Panel>
       </div>
     )
   }

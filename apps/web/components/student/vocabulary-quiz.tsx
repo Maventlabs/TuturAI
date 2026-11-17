@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
   EmptyState,
-  LevelStack,
   MonoLabel,
   Panel,
   PanelHeader,
@@ -15,6 +14,7 @@ import {
   type LevelOption,
   type TickState,
 } from '@/components/student/practice/practice-ui'
+import { LevelCardGrid } from '@/components/student/practice/level-cards'
 import { ScoreDialog } from '@/components/student/score-dialog'
 
 type LevelId = 'beginner' | 'intermediate' | 'advanced'
@@ -85,7 +85,11 @@ export function VocabularyQuiz() {
   const word = order[cursor] ?? null
 
   const options = useMemo(() => {
-    if (!word || !banks) return []
+    if (!word) return []
+    // Authored cards ship their own four meanings. Older cards only carry the
+    // word and its meaning, so their distractors come from the rest of the bank.
+    if (word.options.length >= 2) return shuffle(word.options, `${word.id}-options`)
+    if (!banks) return []
     const pool = LEVELS.flatMap((entry) => banks[entry.id])
       .filter((item) => item.id !== word.id && item.meaning && item.meaning !== word.meaning)
       .map((item) => item.meaning as string)
@@ -110,38 +114,48 @@ export function VocabularyQuiz() {
     [banks],
   )
 
-  const recordMastery = useCallback(async (questionId: string) => {
-    setSaving(true)
-    setSaveError(null)
-    try {
-      const response = await fetch('/api/student/question-bank', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ questionId, selectedOption: 0, attemptId: crypto.randomUUID() }),
-      })
-      const payload = (await response.json()) as { data?: { isCorrect?: boolean } }
-      if (!response.ok || payload.data?.isCorrect !== true) throw new Error('MASTERY_NOT_CONFIRMED')
-      setMastered((current) => {
-        if (!level) return current
-        const ids = current[level]
-        return ids.includes(questionId) ? current : { ...current, [level]: [...ids, questionId] }
-      })
-    } catch {
-      setSaveError('Progres belum tersimpan. Coba lagi saat koneksi tersedia.')
-    } finally {
-      setSaving(false)
-    }
-  }, [level])
+  const recordAttempt = useCallback(
+    async (questionId: string, selectedOption: number) => {
+      setSaving(true)
+      setSaveError(null)
+      try {
+        const response = await fetch('/api/student/question-bank', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ questionId, selectedOption, attemptId: crypto.randomUUID() }),
+        })
+        const payload = (await response.json()) as { data?: { isCorrect?: boolean } }
+        if (!response.ok || !payload.data) throw new Error('ATTEMPT_NOT_SAVED')
+        // The server owns the verdict; a correct answer is what marks the word
+        // as mastered, so the local comparison never decides that on its own.
+        if (payload.data.isCorrect === true) {
+          setMastered((current) => {
+            if (!level) return current
+            const ids = current[level]
+            return ids.includes(questionId) ? current : { ...current, [level]: [...ids, questionId] }
+          })
+        }
+      } catch {
+        setSaveError('Progres belum tersimpan. Coba lagi saat koneksi tersedia.')
+      } finally {
+        setSaving(false)
+      }
+    },
+    [level],
+  )
 
   const answer = useCallback(
     (option: string) => {
       if (!word || chosen) return
       const correct = option === word.meaning
+      // The attempt is stored against the card's own option order, not the
+      // shuffled order on screen, so the server can grade the same index.
+      const storedIndex = word.options.indexOf(option)
       setChosen(option)
       setAnswers((current) => [...current, { questionId: word.id, correct, chosen: option }])
-      if (correct) void recordMastery(word.id)
+      void recordAttempt(word.id, storedIndex >= 0 ? storedIndex : 0)
     },
-    [word, chosen, recordMastery],
+    [word, chosen, recordAttempt],
   )
 
   const advance = useCallback(() => {
@@ -203,40 +217,38 @@ export function VocabularyQuiz() {
             : `${masteredCount} dari ${cards.length} kata sudah dikuasai.`,
         disabled: cards.length === 0,
         disabledReason: 'Belum ada kartu kosakata yang dipublikasikan untuk level ini.',
+        action: 'Mulai sesi',
+        progress: cards.length === 0 ? 0 : masteredCount / cards.length,
       }
     })
 
     return (
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
-        <div>
-          <div className="flex items-baseline justify-between gap-3 border-b border-rule pb-2">
-            <MonoLabel>Pilih level</MonoLabel>
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-              20 kata per sesi
-            </span>
-          </div>
-          <LevelStack options={levelOptions} onSelect={(id) => startLevel(id as LevelId)} className="mt-4" />
+      <div>
+        <div className="flex items-baseline justify-between gap-3 border-b border-rule pb-2">
+          <MonoLabel>Pilih level</MonoLabel>
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            20 kata per sesi
+          </span>
         </div>
-        <aside className="space-y-4">
-          <Panel>
-            <PanelHeader label="Cara kerja" />
-            <ol className="divide-y divide-rule">
-              {[
-                'Satu kata tampil besar di layar.',
-                'Pilih arti yang benar dari empat opsi, atau tekan 1–4.',
-                'Umpan balik muncul langsung dengan contoh kalimat.',
-                'Jawaban benar dicatat server sebagai kata dikuasai.',
-              ].map((step, index) => (
-                <li key={step} className="flex gap-3 px-4 py-3">
-                  <span className="font-mono text-[10px] leading-5 text-muted-foreground">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span className="text-[12px] leading-relaxed text-muted-foreground">{step}</span>
-                </li>
-              ))}
-            </ol>
-          </Panel>
-        </aside>
+        <LevelCardGrid options={levelOptions} onSelect={(id) => startLevel(id as LevelId)} className="mt-4" />
+        <Panel className="mt-6">
+          <PanelHeader label="Cara kerja" />
+          <ol className="divide-y divide-rule">
+            {[
+              'Satu kata tampil besar di layar.',
+              'Pilih arti yang benar dari empat opsi, atau tekan 1–4.',
+              'Umpan balik muncul langsung dengan contoh kalimat.',
+              'Jawaban benar dicatat server sebagai kata dikuasai.',
+            ].map((step, index) => (
+              <li key={step} className="flex gap-3 px-4 py-3">
+                <span className="font-mono text-[10px] leading-5 text-muted-foreground">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span className="text-[12px] leading-relaxed text-muted-foreground">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </Panel>
       </div>
     )
   }

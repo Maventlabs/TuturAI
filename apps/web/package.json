@@ -14,6 +14,7 @@
     "seed:question-bank": "node scripts/seed-question-bank.mjs",
     "seed:demo-classroom": "node scripts/seed-demo-classroom.mjs",
     "expand:question-bank": "node scripts/expand-question-bank.mjs",
+    "seed:vocabulary": "node scripts/seed-vocabulary-bank.mjs",
     "repair:test-question-options": "node scripts/repair-test-question-options.mjs",
     "e2e:assignment": "node scripts/e2e-assignment-lifecycle.mjs",
     "e2e:student-history": "node scripts/e2e-student-history.mjs",
