@@ -225,9 +225,9 @@ async function runSmoke(config) {
     for (const name of ['content-security-policy', 'strict-transport-security', 'x-content-type-options']) {
       assert(Boolean(headers[name]), `Production response is missing ${name}.`)
     }
-    // The landing redesign renders the login CTA via the shared button component
-    // (<a role="button">), so match the accessible button name, not the link role.
-    await resources.page.getByRole('button', { name: 'Sudah punya akun?' }).waitFor()
+    // The landing header renders the login CTA as a link to /auth/login. The
+    // mobile menu holds a second copy, so target the first (desktop) one.
+    await resources.page.getByRole('link', { name: 'Masuk', exact: true }).first().waitFor()
 
     const health = await requestJson(resources.page, config.baseUrl, '/api/health')
     assert(health.response.status() === 200 && health.body?.data?.status === 'ok', 'Liveness endpoint did not report process reachability.')
