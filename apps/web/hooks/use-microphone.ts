@@ -32,7 +32,17 @@ interface UseMicrophoneResult {
 
 const BAR_COUNT = 28
 
-export function useMicrophone(): UseMicrophoneResult {
+export interface UseMicrophoneOptions {
+  /**
+   * When false, the per-frame level state is skipped and only `volumeRef` is
+   * updated. Long-lived screens that read the level inside an animation frame
+   * avoid a 60fps React re-render of the whole tree.
+   */
+  liveLevels?: boolean
+}
+
+export function useMicrophone(options: UseMicrophoneOptions = {}): UseMicrophoneResult {
+  const liveLevels = options.liveLevels ?? true
   const [status, setStatus] = useState<MicStatus>('idle')
   const [levels, setLevels] = useState<number[]>(() => new Array(BAR_COUNT).fill(0))
   const [volume, setVolume] = useState(0)
@@ -91,11 +101,13 @@ export function useMicrophone(): UseMicrophoneResult {
       next.push(v)
       sum += v
     }
-    setLevels(next)
-    setVolume(sum / BAR_COUNT)
+    if (liveLevels) {
+      setLevels(next)
+      setVolume(sum / BAR_COUNT)
+    }
     volumeRef.current = sum / BAR_COUNT
     rafRef.current = requestAnimationFrame(() => tickRef.current?.())
-  }, [])
+  }, [liveLevels])
 
   useEffect(() => {
     tickRef.current = tick
