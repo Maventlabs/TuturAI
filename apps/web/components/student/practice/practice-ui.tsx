@@ -207,15 +207,23 @@ export function DimensionBar({
   value,
   status,
   note,
+  labelWidth = 'default',
 }: {
   label: string
   value: number | null
   status: DimensionStatus
   note?: string
+  /** Speaking uses the full dimension names, which need a wider label column. */
+  labelWidth?: 'default' | 'wide'
 }) {
   const scored = status === 'scored' && typeof value === 'number'
   return (
-    <div className="grid grid-cols-[76px_1fr_auto] items-center gap-3">
+    <div
+      className={cn(
+        'grid items-center gap-3',
+        labelWidth === 'wide' ? 'grid-cols-[104px_1fr_auto]' : 'grid-cols-[76px_1fr_auto]',
+      )}
+    >
       <MonoLabel className="truncate">{label}</MonoLabel>
       <div className="relative h-[6px] w-full overflow-hidden rounded-[1px] bg-secondary">
         {scored ? (
