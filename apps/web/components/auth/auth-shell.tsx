@@ -20,7 +20,7 @@ export function AuthShell({
           panel reads as part of the product instead of a flat colour block. */}
       <aside className="relative hidden overflow-hidden bg-ink-deep lg:flex lg:flex-col lg:justify-between">
         <Image
-          src="/landing/hero-bg.png"
+          src="/landing/hero-bg.webp"
           alt=""
           fill
           priority

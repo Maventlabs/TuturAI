@@ -29,6 +29,21 @@ const nextConfig = {
   },
   // Remove the framework fingerprint from every response.
   poweredByHeader: false,
+  // Static media is content-addressed by filename and never mutated in place, so
+  // repeat visits (and the 2.5 MB listening clips) should not re-download it.
+  // Security headers stay in proxy.ts; this block only sets caching.
+  async headers() {
+    const mediaCache = 'public, max-age=86400, stale-while-revalidate=604800'
+    const audioCache = 'public, max-age=604800, stale-while-revalidate=604800'
+    return [
+      { source: '/landing/:path*', headers: [{ key: 'Cache-Control', value: mediaCache }] },
+      { source: '/brand/:path*', headers: [{ key: 'Cache-Control', value: mediaCache }] },
+      { source: '/icons/:path*', headers: [{ key: 'Cache-Control', value: mediaCache }] },
+      { source: '/learning/:path*', headers: [{ key: 'Cache-Control', value: mediaCache }] },
+      { source: '/loader-:name.webp', headers: [{ key: 'Cache-Control', value: mediaCache }] },
+      { source: '/audio/:path*', headers: [{ key: 'Cache-Control', value: audioCache }] },
+    ]
+  },
 }
 
 export default nextConfig
