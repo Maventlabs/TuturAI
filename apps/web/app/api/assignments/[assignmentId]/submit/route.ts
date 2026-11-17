@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
-import { DomainRuleError } from '@tuturai/domain'
+import { DomainRuleError, normalizeResourceLinks, type ResourceLinkInput } from '@tuturai/domain'
 import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
+import { readJsonBody } from '@/lib/api/request'
 import { appendSubmissionFile, submitAssignment } from '@/lib/submissions'
 import { deleteDriveFile, DriveConfigurationError, ensureDriveFolderStructure, uploadDriveFile, validateDriveFile } from '@/lib/drive'
 import { getStudentAssignmentDriveContext } from '@/lib/assignments'
@@ -20,13 +21,42 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { assignmentId } = await context.params
     const idempotencyKey = request.headers.get('Idempotency-Key')?.trim() || undefined
-    if (request.headers.get('content-type')?.includes('multipart/form-data')) {
-      let form: FormData
+    const contentType = request.headers.get('content-type') ?? ''
+    let links: ResourceLinkInput[] = []
+    let form: FormData | null = null
+
+    if (contentType.includes('multipart/form-data')) {
       try {
         form = await request.formData()
       } catch {
         return NextResponse.json(apiError('VALIDATION_ERROR', 'A valid multipart submission is required', { requestId }), { status: 400 })
       }
+      const rawLinks = form.get('links')
+      if (typeof rawLinks === 'string' && rawLinks.trim()) {
+        let parsedLinks: unknown
+        try {
+          parsedLinks = JSON.parse(rawLinks)
+        } catch {
+          return NextResponse.json(apiError('VALIDATION_ERROR', 'Submission links must be valid JSON', { requestId }), { status: 400 })
+        }
+        const normalized = normalizeResourceLinks(parsedLinks)
+        if (!normalized.success) {
+          return NextResponse.json(apiError('VALIDATION_ERROR', 'Invalid submission links', normalized.issues), { status: 400 })
+        }
+        links = normalized.data
+      }
+    } else if (contentType.includes('application/json')) {
+      const rawBody = await readJsonBody(request)
+      const normalized = normalizeResourceLinks(
+        rawBody && typeof rawBody === 'object' ? (rawBody as Record<string, unknown>).links : undefined,
+      )
+      if (!normalized.success) {
+        return NextResponse.json(apiError('VALIDATION_ERROR', 'Invalid submission links', normalized.issues), { status: 400 })
+      }
+      links = normalized.data
+    }
+
+    if (form) {
       const file = form.get('file')
       if (form.has('file') && !(file instanceof File)) {
         return NextResponse.json(apiError('VALIDATION_ERROR', 'Submission file must be a valid file upload', { requestId }), { status: 400 })
@@ -50,7 +80,7 @@ export async function POST(request: Request, context: RouteContext) {
         const uploaded = await uploadDriveFile({ teacherId: context.teacherId, file: bytes, name: metadata.name, mimeType: metadata.mimeType, folderId: folders.student, idempotencyKey: uploadIdempotencyKey })
         let submission
         try {
-          submission = await submitAssignment(assignmentId, auth.user.uid, idempotencyKey)
+          submission = await submitAssignment(assignmentId, auth.user.uid, idempotencyKey, links)
         } catch (cause) {
           try {
             await deleteDriveFile(context.teacherId, uploaded.id)
@@ -72,7 +102,7 @@ export async function POST(request: Request, context: RouteContext) {
         }
       }
     }
-    const submission = await submitAssignment(assignmentId, auth.user.uid, idempotencyKey)
+    const submission = await submitAssignment(assignmentId, auth.user.uid, idempotencyKey, links)
     return NextResponse.json({ data: submission }, { status: 201, headers: { 'cache-control': 'no-store', 'x-request-id': requestId } })
   } catch (cause) {
     if (cause instanceof Error && ['INVALID_FILE_NAME', 'UNSUPPORTED_FILE_TYPE', 'INVALID_FILE_EXTENSION', 'FILE_TOO_LARGE'].includes(cause.message)) {

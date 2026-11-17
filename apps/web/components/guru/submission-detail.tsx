@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { CheckCircle2, ChevronRight, ClipboardList, FileText, RotateCcw } from 'lucide-react'
+import { CheckCircle2, ChevronRight, ClipboardList, FileText, Link2, RotateCcw } from 'lucide-react'
 import type { Assignment } from '@tuturai/domain'
 import type { AssignmentStudentRow } from '@/lib/submissions'
 import { submissionStatusMeta, submissionToneClass } from '@/lib/submission-status'
@@ -168,9 +168,9 @@ export function SubmissionDetail({
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
               {assignment.instructions}
             </p>
-            {assignment.attachments?.length ? (
+            {assignment.attachments?.length || assignment.links?.length ? (
               <ul className="mt-4 flex flex-wrap gap-2">
-                {assignment.attachments.map((file) => (
+                {assignment.attachments?.map((file) => (
                   <li key={file.id}>
                     <a
                       href={file.webViewLink ?? undefined}
@@ -183,17 +183,30 @@ export function SubmissionDetail({
                     </a>
                   </li>
                 ))}
+                {assignment.links?.map((link) => (
+                  <li key={link.id}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+                    >
+                      <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
               </ul>
             ) : null}
           </section>
 
-          {submission?.files?.length ? (
+          {submission?.files?.length || submission?.links?.length ? (
             <section aria-labelledby="files-heading" className="rounded-xl border border-border bg-card p-5">
               <h2 id="files-heading" className="font-heading text-base font-bold text-foreground">
-                Berkas siswa
+                Pekerjaan siswa
               </h2>
               <ul className="mt-3 space-y-2">
-                {submission.files.map((file) => (
+                {submission?.files?.map((file) => (
                   <li key={file.id}>
                     <a
                       href={file.webViewLink ?? undefined}
@@ -203,6 +216,19 @@ export function SubmissionDetail({
                     >
                       <FileText className="h-4 w-4" />
                       {file.name}
+                    </a>
+                  </li>
+                ))}
+                {submission?.links?.map((link) => (
+                  <li key={link.id}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-deep hover:underline"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      {link.label}
                     </a>
                   </li>
                 ))}

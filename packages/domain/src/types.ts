@@ -1,3 +1,5 @@
+import type { ResourceLink } from './links'
+
 export type UserRole = 'student' | 'teacher'
 
 export type RecordStatus = 'active' | 'archived'
@@ -61,6 +63,7 @@ export interface Assignment {
   createdAt: string
   updatedAt: string
   attachments?: DriveFileMetadata[]
+  links?: ResourceLink[]
 }
 
 export type SubmissionStatus =
@@ -82,6 +85,7 @@ export interface Submission {
   submittedAt: string | null
   updatedAt: string
   files?: DriveFileMetadata[]
+  links?: ResourceLink[]
 }
 
 export interface DriveFileMetadata {

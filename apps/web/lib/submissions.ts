@@ -1,7 +1,8 @@
 import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase-admin/firestore'
-import { transitionSubmission, type Assessment, type Assignment, type DriveFileMetadata, type Submission, type SubmissionStatus } from '@tuturai/domain'
+import { transitionSubmission, type Assessment, type Assignment, type DriveFileMetadata, type ResourceLinkInput, type Submission, type SubmissionStatus } from '@tuturai/domain'
 import { getAdminDb } from '@/lib/firebase/admin'
 import { assignmentFromSnapshot } from '@/lib/assignments'
+import { linksFromData, withLinkIds } from '@/lib/resource-links'
 import { cacheAside, invalidateNamespaces } from '@/lib/cache'
 import { CACHE_NAMESPACES, CACHE_TTL } from '@/lib/cache/keys'
 
@@ -43,6 +44,7 @@ export function submissionFromSnapshot(snapshot: DocumentSnapshot<DocumentData>)
     submittedAt: toIsoString(data.submittedAt),
     updatedAt: toIsoString(data.updatedAt) ?? new Date(0).toISOString(),
     files: Array.isArray(data.files) ? data.files as DriveFileMetadata[] : [],
+    links: linksFromData(data.links),
   }
 }
 
@@ -68,7 +70,12 @@ async function getAssignmentAndMembership(assignmentId: string, studentId: strin
   return { assignmentReference, assignment, classId }
 }
 
-export async function submitAssignment(assignmentId: string, studentId: string, idempotencyKey?: string) {
+export async function submitAssignment(
+  assignmentId: string,
+  studentId: string,
+  idempotencyKey?: string,
+  links: ResourceLinkInput[] = [],
+) {
   const db = getAdminDb()
   const reference = db.collection(SUBMISSIONS_COLLECTION).doc(submissionId(assignmentId, studentId))
   await db.runTransaction(async (transaction) => {
@@ -94,6 +101,7 @@ export async function submitAssignment(assignmentId: string, studentId: string, 
       teacherFeedback: currentData?.teacherFeedback ?? null,
       submittedAt: now,
       updatedAt: now,
+      links: withLinkIds(links),
       ...(idempotencyKey ? { lastIdempotencyKey: idempotencyKey } : {}),
     }
     if (current.exists) transaction.update(reference, submission)

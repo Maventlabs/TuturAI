@@ -1,3 +1,4 @@
+import { normalizeResourceLinks, type ResourceLinkInput } from './links'
 import type { AssignmentStatus } from './types'
 
 export interface AssignmentInput {
@@ -5,6 +6,7 @@ export interface AssignmentInput {
   instructions: string
   dueAt: string | null
   maxAttempts: number
+  links: ResourceLinkInput[]
 }
 
 export type AssignmentAction = 'publish' | 'archive'
@@ -46,8 +48,20 @@ export function validateAssignmentInput(input: unknown):
     issues.push({ path: 'maxAttempts', message: 'Max attempts must be an integer from 1-10' })
   }
 
+  const links = normalizeResourceLinks(value.links)
+  if (!links.success) issues.push(...links.issues)
+
   if (issues.length > 0) return { success: false, issues }
-  return { success: true, data: { title, instructions, dueAt, maxAttempts: maxAttempts as number } }
+  return {
+    success: true,
+    data: {
+      title,
+      instructions,
+      dueAt,
+      maxAttempts: maxAttempts as number,
+      links: links.success ? links.data : [],
+    },
+  }
 }
 
 export function transitionAssignment(status: AssignmentStatus, action: AssignmentAction): AssignmentStatus {

@@ -111,13 +111,18 @@ export default function StudentAssignmentsPage() {
     [loadAssignments],
   )
 
-  async function submit(assignment: Assignment, file: File | null) {
+  async function submit(
+    assignment: Assignment,
+    file: File | null,
+    links: Array<{ label: string; url: string }>,
+  ) {
     setSubmittingId(assignment.id)
     setSubmitError(null)
     const idempotencyKey = crypto.randomUUID()
     try {
       const body = new FormData()
       if (file) body.set('file', file)
+      if (links.length > 0) body.set('links', JSON.stringify(links))
       const response = await fetch(`/api/assignments/${assignment.id}/submit`, {
         method: 'POST',
         body,
@@ -132,7 +137,7 @@ export default function StudentAssignmentsPage() {
       if (cause instanceof TypeError || !navigator.onLine) {
         await enqueuePendingMutation({
           operation: 'submit-assignment',
-          payload: { assignmentId: assignment.id, file },
+          payload: { assignmentId: assignment.id, file, links },
           idempotencyKey,
         })
         setSubmitError('Penugasan disimpan di antrean offline dan akan dikirim saat koneksi kembali.')
@@ -340,7 +345,7 @@ export default function StudentAssignmentsPage() {
               </ul>
               <footer className="border-t border-rule px-4 py-3 sm:px-5">
                 <ol className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                  {['Buka tugas', 'Lampirkan file (opsional)', 'Kumpulkan'].map((step, index) => (
+                  {['Buka tugas', 'Lampirkan file atau tautan', 'Kumpulkan'].map((step, index) => (
                     <li key={step} className="flex items-center gap-1.5">
                       <span className="font-mono text-[9px] tabular-nums text-muted-foreground/60">
                         {String(index + 1).padStart(2, '0')}

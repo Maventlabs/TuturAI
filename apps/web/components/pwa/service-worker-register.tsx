@@ -25,9 +25,12 @@ async function replayMutation(mutation: { operation: string; payload: unknown; i
   if (mutation.operation === 'submit-assignment') {
     const body = new FormData()
     const file = payload.file
-    if (file instanceof Blob && file.size > 0) {
-      body.set('file', file, file instanceof File ? file.name : 'submission.bin')
-    }
+  if (file instanceof Blob && file.size > 0) {
+    body.set('file', file, file instanceof File ? file.name : 'submission.bin')
+  }
+  if (Array.isArray(payload.links) && payload.links.length > 0) {
+    body.set('links', JSON.stringify(payload.links))
+  }
     const response = await fetch(`/api/assignments/${String(payload.assignmentId)}/submit`, {
       method: 'POST',
       headers: { 'Idempotency-Key': mutation.idempotencyKey },
