@@ -209,12 +209,21 @@ describe('cacheAside', () => {
 
   it('falls back to the loader when Redis is not configured at all', async () => {
     setRedisClientForTests(null)
-    const loader = vi.fn(async () => 'no-cache')
+    const saved = { ...process.env }
+    for (const name of Object.keys(process.env)) {
+      if (name.startsWith('UPSTASH_REDIS_REST_')) delete process.env[name]
+    }
 
-    const result = await cacheAside({ key: 'bypass', ttlSeconds: 30, loader })
+    try {
+      const loader = vi.fn(async () => 'no-cache')
 
-    expect(result.status).toBe('bypass')
-    expect(result.value).toBe('no-cache')
+      const result = await cacheAside({ key: 'bypass', ttlSeconds: 30, loader })
+
+      expect(result.status).toBe('bypass')
+      expect(result.value).toBe('no-cache')
+    } finally {
+      process.env = saved
+    }
   })
 
   it('passes the requested TTL through to the cache write', async () => {

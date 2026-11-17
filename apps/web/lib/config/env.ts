@@ -1,15 +1,53 @@
 type Environment = 'development' | 'test' | 'production'
 type AiRoute = 'local' | 'v1'
 
+const ENV_ALIAS = /^process\.env\.([A-Za-z_][A-Za-z0-9_]*)$/
+
+function stripWrappingQuotes(value: string) {
+  return /^(['"])[\s\S]*\1$/.test(value) ? value.slice(1, -1).trim() : value
+}
+
+/**
+ * Some dashboard entries are saved as `process.env.OTHER_NAME` instead of a
+ * literal value, and a few arrive wrapped in quotes. Follow those references
+ * (bounded and cycle-safe) so a mis-pasted alias still resolves to the real
+ * value, and treat an unresolvable chain as unset rather than handing the
+ * placeholder string to a provider.
+ */
+export function resolveEnv(name: string, maxHops = 5): string | undefined {
+  let current: string | undefined = name
+  const seen = new Set<string>()
+
+  for (let hop = 0; hop <= maxHops && current; hop += 1) {
+    if (seen.has(current)) return undefined
+    seen.add(current)
+
+    const raw = process.env[current]
+    if (!raw) return undefined
+
+    const value = stripWrappingQuotes(raw.trim())
+    if (!value) return undefined
+
+    const alias = ENV_ALIAS.exec(value)
+    if (!alias) return value
+    current = alias[1]
+  }
+
+  return undefined
+}
+
 function required(name: string): string {
-  const value = process.env[name]?.trim()
+  const value = resolveEnv(name)
   if (!value) throw new Error(`Missing required environment variable: ${name}`)
   return value
 }
 
 function optional(name: string): string | undefined {
-  const value = process.env[name]?.trim()
-  return value || undefined
+  return resolveEnv(name)
+}
+
+function uniqueValues(values: (string | undefined)[]): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))]
 }
 
 function route(name: string, fallback: AiRoute): AiRoute {
@@ -46,7 +84,6 @@ export const publicEnv = {
     apiKey: optional('NEXT_PUBLIC_FIREBASE_API_KEY'),
     authDomain: optional('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'),
     projectId: optional('NEXT_PUBLIC_FIREBASE_PROJECT_ID'),
-    storageBucket: optional('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'),
     messagingSenderId: optional('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'),
     appId: optional('NEXT_PUBLIC_FIREBASE_APP_ID'),
   },
@@ -108,13 +145,28 @@ export function getGoogleOAuthEnv() {
   } as const
 }
 
+const TTS_ATTEMPT_TIMEOUT_MS = 10_000
+
 export function getTtsEnv() {
   const ttsRoute = route('AI_TTS_ROUTE', 'local')
+  const apiKey = optional('AI_TTS_API_KEY') ?? apiKeyFor(ttsRoute)
+  const modelIds = uniqueValues([
+    optional('AI_TTS_MODEL_ID_1'),
+    optional('AI_TTS_MODEL_ID_2'),
+    optional('AI_TTS_MODEL_ID_3'),
+    optional('AI_TTS_MODEL_ID'),
+  ])
+
   return {
     route: ttsRoute,
-    baseUrl: baseUrlFor(ttsRoute),
-    apiKey: apiKeyFor(ttsRoute),
-    modelId: optional('AI_TTS_MODEL_ID'),
+    baseUrl: optional('AI_TTS_BASE_URL') ?? baseUrlFor(ttsRoute),
+    apiKey,
+    // Synthesis walks every model/key pair in order, so a slow or failing model
+    // falls through to the next one instead of failing the whole request.
+    apiKeys: uniqueValues([apiKey, optional('AI_TTS_API_KEY_2')]),
+    modelIds,
+    modelId: modelIds[0],
+    attemptTimeoutMs: TTS_ATTEMPT_TIMEOUT_MS,
     enrollmentPath: optional('AI_TTS_ENROLLMENT_PATH') ?? '/v1/voice-clones',
     statusPath: optional('AI_TTS_STATUS_PATH') ?? optional('AI_TTS_ENROLLMENT_PATH') ?? '/v1/voice-clones',
     synthesisPath: optional('AI_TTS_SYNTHESIS_PATH') ?? '/v1/audio/speech',
@@ -179,6 +231,18 @@ export function getServerEnv() {
     firebase: getFirebaseAdminEnv(),
     ai: getAiEnv().ai,
   } as const
+}
+
+export function getCloudinaryEnv() {
+  return {
+    cloudName: required('CLOUDINARY_CLOUD_NAME'),
+    apiKey: required('CLOUDINARY_API_KEY'),
+    apiSecret: required('CLOUDINARY_API_SECRET'),
+  } as const
+}
+
+export function hasCloudinaryConfig() {
+  return Boolean(optional('CLOUDINARY_CLOUD_NAME') && optional('CLOUDINARY_API_KEY') && optional('CLOUDINARY_API_SECRET'))
 }
 
 export function hasPublicFirebaseConfig() {

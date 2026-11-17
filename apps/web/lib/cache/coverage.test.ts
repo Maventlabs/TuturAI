@@ -121,7 +121,7 @@ describe('cache invalidation coverage', () => {
   it('never disables the cache in production by default', () => {
     const env = read(path.join(APP_ROOT, 'lib', 'config', 'redis-env.ts'))
     // Only an explicit CACHE_ENABLED=false may switch it off.
-    expect(env).toContain("optional('CACHE_ENABLED') === 'false'")
+    expect(env).toContain("resolveEnv('CACHE_ENABLED') === 'false'")
     expect(env).not.toContain("NODE_ENV === 'production' && !")
   })
 })
