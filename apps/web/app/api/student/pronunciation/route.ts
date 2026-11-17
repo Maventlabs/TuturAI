@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { apiError } from '@tuturai/validation'
-import { HttpPronunciationProvider, PronunciationProviderError } from '@/lib/ai/pronunciation-provider'
+import { HttpSttProvider, SttProviderError } from '@/lib/ai/stt-provider'
+import { scoreSingleWord } from '@/lib/ai/pronunciation-scoring'
 import { requireRole } from '@/lib/api/auth-guard'
 import { consumeApiRateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
-import { getPronunciationEnv } from '@/lib/config/env'
+import { getAiEnv } from '@/lib/config/env'
 import { getAdminDb } from '@/lib/firebase/admin'
 import { getRequestId, logApiFailure } from '@/lib/api/observability'
 import {
@@ -25,14 +26,14 @@ function safeFilename(value: string) {
   return value.trim().replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 180) || 'pronunciation-audio'
 }
 
-function providerErrorResponse(error: PronunciationProviderError, requestId: string, startedAt: number) {
+function providerErrorResponse(error: SttProviderError, requestId: string, startedAt: number) {
   const status = error.code === 'CANCELLED' ? 499 : error.retryable ? 503 : 502
   logApiFailure({
     requestId,
     route: '/api/student/pronunciation',
     status,
     errorCode: error.code,
-    provider: 'pronunciation',
+    provider: 'stt',
     providerErrorCode: error.code,
     durationMs: performance.now() - startedAt,
   })
@@ -93,13 +94,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(apiError('NOT_FOUND', 'Pronunciation question was not found'), { status: 404 })
   }
 
-  let providerConfig: ReturnType<typeof getPronunciationEnv>
+  let sttConfig: ReturnType<typeof getAiEnv>['ai']['stt']
   try {
-    providerConfig = getPronunciationEnv()
+    sttConfig = getAiEnv().ai.stt
   } catch {
-    providerConfig = { route: 'v1', baseUrl: undefined, apiKey: undefined, modelId: undefined, path: undefined, timeoutMs: 30_000 }
+    sttConfig = { route: 'v1', path: '/audio/transcriptions', baseUrl: undefined, apiKey: undefined, modelId: undefined }
   }
-  if (!providerConfig.baseUrl || !providerConfig.modelId || !providerConfig.path) {
+  if (!sttConfig.baseUrl) {
     await recordPronunciationFailure({
       studentId: auth.user.uid,
       questionId,
@@ -113,10 +114,10 @@ export async function POST(request: NextRequest) {
       route: '/api/student/pronunciation',
       status: 503,
       errorCode: 'PRONUNCIATION_PROVIDER_UNAVAILABLE',
-      provider: 'pronunciation',
+      provider: 'stt',
       durationMs: performance.now() - startedAt,
     })
-    return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Phoneme scoring provider is not configured', {
+    return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'Speech recognition provider is not configured', {
       code: 'PRONUNCIATION_PROVIDER_UNAVAILABLE',
       retryable: true,
       requestId,
@@ -132,32 +133,36 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const provider = new HttpPronunciationProvider({
-      baseUrl: providerConfig.baseUrl,
-      path: providerConfig.path,
-      modelId: providerConfig.modelId,
-      apiKey: providerConfig.apiKey,
-      timeoutMs: providerConfig.timeoutMs,
-    })
-    const result = await provider.align({
+    const transcription = await new HttpSttProvider({
+      baseUrl: sttConfig.baseUrl,
+      path: sttConfig.path,
+      // whisper.cpp serves one loaded model and ignores this field, so a
+      // default keeps the provider's non-empty contract.
+      modelId: sttConfig.modelId ?? 'whisper',
+      apiKey: sttConfig.apiKey,
+    }).transcribe({
       audio: audioBytes,
       mimeType: audio.type,
       filename: safeFilename(audio.name),
-      expectedText,
-      idempotencyKey,
+      language: 'en',
       signal: request.signal,
+    })
+    const result = scoreSingleWord({
+      target: expectedText,
+      transcript: transcription.text,
+      confidence: transcription.confidence,
     })
     const saved = await saveStudentPronunciationResult({
       studentId: auth.user.uid,
       questionId,
       idempotencyKey,
       requestHash,
-      modelId: providerConfig.modelId,
+      modelId: sttConfig.modelId ?? 'stt',
       result,
     })
     return NextResponse.json({ data: saved }, { headers: { 'cache-control': 'no-store', 'x-request-id': requestId } })
   } catch (error) {
-    if (error instanceof PronunciationProviderError) {
+    if (error instanceof SttProviderError) {
       const recorded = await recordPronunciationFailure({
         studentId: auth.user.uid,
         questionId,

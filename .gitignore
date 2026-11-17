@@ -64,6 +64,15 @@ audit-*.png
 *.m4a
 *.webm
 models/
+
+# The pronunciation bank ships with the app: the model recordings are small,
+# curated, and must play without a TTS call at runtime.
+!apps/web/public/audio/pronunciation/
+!apps/web/public/audio/pronunciation/*.wav
+# The listening bank is pre-rendered for the same reason: a one-minute recording
+# per question must play without a TTS call at runtime.
+!apps/web/public/audio/listening/
+!apps/web/public/audio/listening/*.wav
 __pycache__/
 .ipynb_checkpoints/
 

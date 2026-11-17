@@ -34,7 +34,7 @@ describe('/api/classrooms/[classroomId]/voice', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mockedRequireRole.mockResolvedValue({ ok: true, user: { uid: 'student-1' } } as never)
-    mockedGetTtsEnv.mockReturnValue({ route: 'local', baseUrl: 'http://localhost:3900', apiKey: undefined, modelId: 'omnivoice-v1', enrollmentPath: '/v1/voice-clones', statusPath: '/v1/voice-clones', synthesisPath: '/v1/audio/speech', deletePath: '/v1/voice-clones' })
+    mockedGetTtsEnv.mockReturnValue({ route: 'local', baseUrl: 'http://localhost:3900', apiKey: undefined, apiKeys: [], modelIds: ['omnivoice-v1'], modelId: 'omnivoice-v1', attemptTimeoutMs: 10_000, protocol: 'openai', voiceName: 'Kore', enrollmentPath: '/v1/voice-clones', statusPath: '/v1/voice-clones', synthesisPath: '/v1/audio/speech', deletePath: '/v1/voice-clones' })
     mockedProvider.mockImplementation(() => ({ synthesize: vi.fn().mockResolvedValue({ audio: new ArrayBuffer(2), contentType: 'audio/wav' }) }) as never)
   })
 

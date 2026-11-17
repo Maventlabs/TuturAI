@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiError } from '@tuturai/validation'
 import { requireRole } from '@/lib/api/auth-guard'
-import { HttpVoiceProvider, VoiceProviderError } from '@/lib/ai/voice-provider'
+import { VoiceProviderError } from '@/lib/ai/voice-provider'
+import { synthesizeWithFailover } from '@/lib/ai/tts-synthesis'
 import { getTtsEnv } from '@/lib/config/env'
 import { getStudentClassroomVoiceProfile } from '@/lib/voice-profile'
 import { readJsonBody } from '@/lib/api/request'
@@ -35,17 +36,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } catch {
       return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'OmniVoice is not configured'), { status: 503 })
     }
-    if (config.route !== 'local' || !config.baseUrl) {
+    const baseUrl = config.baseUrl
+    if (config.route !== 'local' || !baseUrl) {
       return NextResponse.json(apiError('EXTERNAL_SERVICE_ERROR', 'OmniVoice is not configured'), { status: 503 })
     }
 
-    const audio = await new HttpVoiceProvider({
-      baseUrl: config.baseUrl,
-      apiKey: config.apiKey,
-      modelId: config.modelId,
-      statusPath: config.statusPath,
-      synthesisPath: config.synthesisPath,
-    }).synthesize({ providerVoiceId: profile.providerVoiceId, text })
+    const audio = await synthesizeWithFailover({ ...config, baseUrl }, { providerVoiceId: profile.providerVoiceId, text })
 
     return new NextResponse(audio.audio, {
       status: 200,

@@ -92,12 +92,13 @@ export default function RootLayout({
       className={`${jakarta.variable} ${interTight.variable} ${plexMono.variable} ${newsreader.variable} bg-background`}
     >
       <head>
-        {/* Preload the header mark so it paints without waiting on JS. */}
+        {/* Preload the header mark so it paints without waiting on JS. This must
+            stay the 16 KB mark the header actually renders; the 214 KB app icon
+            is not used by any page and preloading it delayed the real LCP asset. */}
         <link
           rel="preload"
           as="image"
-          href="/brand/logo-icon.png"
-          // Mobile data: the header must never wait on a 200 KB asset.
+          href="/brand/logo-mark-blue.png"
           media="(min-width: 768px)"
         />
       </head>

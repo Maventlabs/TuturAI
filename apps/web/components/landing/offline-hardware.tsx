@@ -17,19 +17,19 @@ const DeviceScene = dynamic(() => import('./device-scene').then((m) => m.DeviceS
 
 const features = [
   {
-    image: '/landing/hardware-classroom.png',
+    image: '/landing/hardware-classroom.webp',
     title: 'Tetap jalan offline',
     body: 'Speaking, reading, dan kuis dasar tetap aktif tanpa sinyal, termasuk di sekolah wilayah 3T.',
     meta: 'PWA + antrean microSD',
   },
   {
-    image: '/landing/hardware-chip.png',
+    image: '/landing/hardware-chip.webp',
     title: 'AI di dalam perangkat',
     body: 'DS-CNN INT8 memproses suara langsung di ESP32-S3. Audio tidak dikirim ke cloud.',
     meta: 'INT8 · TFLite Micro',
   },
   {
-    image: '/landing/hardware-desk.png',
+    image: '/landing/hardware-desk.webp',
     title: 'Baterai satu sesi kelas',
     body: '4,5 jam pemakaian terus-menerus, cukup untuk satu blok pelajaran tanpa mengecas.',
     meta: 'LiPo 5000 mAh',

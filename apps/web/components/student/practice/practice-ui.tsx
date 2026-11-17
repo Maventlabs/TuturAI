@@ -149,91 +149,13 @@ export type LevelOption = {
   detail: string
   disabled?: boolean
   disabledReason?: string
-}
-
-/**
- * Three level cards fanned like a physical card stack: each card is indented a
- * little further than the one above it and separated by a hairline, so the set
- * reads as one object rather than three tiles. Hovering or focusing a card
- * squares it up.
- */
-export function LevelStack({
-  options,
-  onSelect,
-  activeId,
-  className,
-}: {
-  options: LevelOption[]
-  onSelect: (id: string) => void
-  activeId?: string | null
-  className?: string
-}) {
-  return (
-    <div className={cn('flex flex-col', className)}>
-      {options.map((option, index) => {
-        const active = option.id === activeId
-        return (
-          <button
-            key={option.id}
-            type="button"
-            onClick={() => onSelect(option.id)}
-            disabled={option.disabled}
-            aria-pressed={active}
-            style={{ marginLeft: `${index * 10}px` }}
-            className={cn(
-              'group relative flex items-center gap-4 border border-rule bg-card px-4 py-4 text-left transition-[margin,background-color,border-color] duration-200 ease-out',
-              index > 0 && '-mt-px',
-              'hover:ml-0 hover:border-foreground/30 focus-visible:ml-0 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
-              active && 'ml-0 border-primary bg-primary/[0.04]',
-              option.disabled && 'cursor-not-allowed bg-secondary/40 hover:ml-auto hover:border-rule',
-            )}
-          >
-            <span
-              className={cn(
-                'font-mono text-[10px] leading-none tracking-[0.16em]',
-                option.disabled ? 'text-muted-foreground/50' : 'text-muted-foreground',
-              )}
-            >
-              {String(index + 1).padStart(2, '0')}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span
-                  className={cn(
-                    'font-heading text-[17px] font-bold leading-none tracking-[-0.01em]',
-                    option.disabled ? 'text-muted-foreground' : 'text-foreground',
-                  )}
-                >
-                  {option.name}
-                </span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                  {option.english}
-                </span>
-              </span>
-              <span className="mt-1.5 block text-[12px] leading-relaxed text-muted-foreground">
-                {option.disabled ? option.disabledReason : option.detail}
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-3">
-              <span className="font-mono text-[11px] tabular-nums text-foreground">
-                {option.count}
-                <span className="ml-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">item</span>
-              </span>
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'font-mono text-[13px] leading-none transition-transform duration-200',
-                  option.disabled ? 'text-muted-foreground/40' : 'text-muted-foreground group-hover:translate-x-0.5',
-                )}
-              >
-                →
-              </span>
-            </span>
-          </button>
-        )
-      })}
-    </div>
-  )
+  /** Overrides the shared level photograph for this option. */
+  image?: string
+  imageAlt?: string
+  /** Footer call to action on the level plate. */
+  action?: string
+  /** 0–1 share of the level already completed, drawn as a hairline meter. */
+  progress?: number
 }
 
 export type TickState = 'pending' | 'correct' | 'wrong' | 'current'
@@ -285,15 +207,23 @@ export function DimensionBar({
   value,
   status,
   note,
+  labelWidth = 'default',
 }: {
   label: string
   value: number | null
   status: DimensionStatus
   note?: string
+  /** Speaking uses the full dimension names, which need a wider label column. */
+  labelWidth?: 'default' | 'wide'
 }) {
   const scored = status === 'scored' && typeof value === 'number'
   return (
-    <div className="grid grid-cols-[76px_1fr_auto] items-center gap-3">
+    <div
+      className={cn(
+        'grid items-center gap-3',
+        labelWidth === 'wide' ? 'grid-cols-[104px_1fr_auto]' : 'grid-cols-[76px_1fr_auto]',
+      )}
+    >
       <MonoLabel className="truncate">{label}</MonoLabel>
       <div className="relative h-[6px] w-full overflow-hidden rounded-[1px] bg-secondary">
         {scored ? (

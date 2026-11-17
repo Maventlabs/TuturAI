@@ -63,7 +63,7 @@ export function Hero() {
       {/* Full-viewport background illustration, sitting behind the transparent navbar */}
       <div className="absolute inset-0" aria-hidden>
         <Image
-          src="/landing/hero-bg.png"
+          src="/landing/hero-bg.webp"
           alt=""
           fill
           priority

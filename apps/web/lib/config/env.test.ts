@@ -12,6 +12,9 @@ describe('AI environment configuration', () => {
     process.env.AI_TTS_ROUTE = 'local'
     process.env.AI_LOCAL_BASE_URL = 'https://voice.example.test'
     process.env.AI_LOCAL_API_KEY = 'local-secret'
+    delete process.env.AI_TTS_API_KEY
+    delete process.env.AI_TTS_API_KEY_2
+    delete process.env.AI_TTS_BASE_URL
     process.env.AI_STT_ROUTE = 'v1'
     process.env.AI_V1_BASE_URL = 'https://ai.example.test'
     process.env.AI_V1_API_KEY = 'v1-secret'
@@ -47,6 +50,10 @@ describe('AI environment configuration', () => {
     process.env.AI_TTS_ROUTE = 'local'
     process.env.AI_LOCAL_BASE_URL = 'https://voice.example.test'
     process.env.AI_TTS_MODEL_ID = 'omnivoice-test'
+    delete process.env.AI_TTS_BASE_URL
+    delete process.env.AI_TTS_MODEL_ID_1
+    delete process.env.AI_TTS_MODEL_ID_2
+    delete process.env.AI_TTS_MODEL_ID_3
     delete process.env.AI_STT_ROUTE
     delete process.env.AI_LLM_ROUTE
     delete process.env.AI_V1_BASE_URL
@@ -79,6 +86,8 @@ describe('AI environment configuration', () => {
     process.env.AI_TTS_ROUTE = 'local'
     process.env.AI_LOCAL_BASE_URL = 'https://voice.example.test'
     process.env.AI_V1_API_KEY = 'v1-secret'
+    delete process.env.AI_TTS_API_KEY
+    delete process.env.AI_TTS_API_KEY_2
     process.env.AI_STT_ROUTE = 'v1'
     process.env.AI_V1_BASE_URL = 'https://ai.example.test'
     process.env.AI_STT_MODEL_ID = 'whisper'
@@ -88,6 +97,34 @@ describe('AI environment configuration', () => {
     const config = getAiEnv().ai
 
     expect(config.tts.apiKey).toBeUndefined()
+  })
+
+  it('prefers the dedicated TTS key and rotates every configured model', () => {
+    process.env.AI_TTS_ROUTE = 'local'
+    process.env.AI_TTS_BASE_URL = 'https://tts.example.test'
+    process.env.AI_TTS_API_KEY = 'tts-secret'
+    process.env.AI_TTS_API_KEY_2 = 'tts-secret-2'
+    process.env.AI_TTS_MODEL_ID_1 = 'model-a'
+    process.env.AI_TTS_MODEL_ID_2 = 'model-b'
+    process.env.AI_TTS_MODEL_ID_3 = 'model-c'
+
+    const config = getTtsEnv()
+
+    expect(config.baseUrl).toBe('https://tts.example.test')
+    expect(config.apiKeys).toEqual(['tts-secret', 'tts-secret-2'])
+    expect(config.modelIds).toEqual(['model-a', 'model-b', 'model-c'])
+    expect(config.modelId).toBe('model-a')
+    expect(config.attemptTimeoutMs).toBe(10_000)
+  })
+
+  it('resolves aliases stored as process.env references', () => {
+    process.env.AI_TTS_MODEL_ID_1 = 'process.env.AI_TTS_MODEL_ID_1_2'
+    process.env.AI_TTS_MODEL_ID_1_2 = 'model-from-alias'
+    delete process.env.AI_TTS_MODEL_ID_2
+    delete process.env.AI_TTS_MODEL_ID_3
+    delete process.env.AI_TTS_MODEL_ID
+
+    expect(getTtsEnv().modelIds).toEqual(['model-from-alias'])
   })
 })
 

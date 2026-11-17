@@ -303,7 +303,7 @@ export function StackLoader({
         <div
           id={imgsWrapperId}
           data-loader-stack
-          className="relative aspect-[4/3] max-[1025px]:z-[99]"
+          className="relative aspect-video max-[1025px]:z-[99]"
           style={{ width: `clamp(6rem, ${11 * safeImageSize}vw, 13rem)` }}
         >
           {images.map((src, index) => (
@@ -318,7 +318,7 @@ export function StackLoader({
               <img
                 src={src}
                 width={480}
-                height={360}
+                height={270}
                 className="h-full w-full object-cover"
                 alt=""
                 decoding="async"
