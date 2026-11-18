@@ -12,15 +12,16 @@
   # Functions runtime must match the build: firebase-admin@14 -> jwks-rsa -> jose@6
   # (ESM-only) requires Node >= 22.12. NODE_VERSION alone only covers the build.
   AWS_LAMBDA_JS_RUNTIME = "nodejs22.x"
-  NEXT_PUBLIC_FIREBASE_API_KEY = "AIzaSyAXOPWBW2kJaQEPtPCdga-mNi_14gHDdf8"
-  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "gen-lang-client-0138449759.firebaseapp.com"
-  NEXT_PUBLIC_FIREBASE_PROJECT_ID = "gen-lang-client-0138449759"
-  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "gen-lang-client-0138449759.firebasestorage.app"
-  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "673117335596"
-  NEXT_PUBLIC_FIREBASE_APP_ID = "1:673117335596:web:e97cbc44894d30d3f4e189"
+  NEXT_PUBLIC_FIREBASE_API_KEY = "AIzaSyDifYDt0iFQQfCHJ0l1TYBk7roITNitu9M"
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "tuturai-cfa8c.firebaseapp.com"
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID = "tuturai-cfa8c"
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "tuturai-cfa8c.firebasestorage.app"
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "1092924309240"
+  NEXT_PUBLIC_FIREBASE_APP_ID = "1:1092924309240:web:7907251dc9ceedf173850d"
+  NEXT_PUBLIC_FIREBASE_DATABASE_URL = "https://tuturai-cfa8c-default-rtdb.asia-southeast1.firebasedatabase.app"
   NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST = ""
   NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST = ""
-  FIREBASE_ADMIN_PROJECT_ID = "gen-lang-client-0138449759"
+  FIREBASE_ADMIN_PROJECT_ID = "tuturai-cfa8c"
   # Netlify secrets scanning greps the repo for the literal VALUE of every
   # environment variable, so any variable holding an ordinary word or boolean
   # produces mass false positives. `E2E_GOOGLE_AUTH_ROLE` is literally
@@ -59,4 +60,4 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(self), microphone=(self), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; media-src 'self' blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://accounts.google.com wss://*.firebaseio.com; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; media-src 'self' blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebasedatabase.app https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://accounts.google.com wss://*.firebaseio.com wss://*.firebasedatabase.app; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com"

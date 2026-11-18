@@ -49,11 +49,11 @@ jobs:
 
       - name: Production build
         env:
-          NEXT_PUBLIC_FIREBASE_API_KEY: "AIzaSyAXOPWBW2kJaQEPtPCdga-mNi_14gHDdf8"
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "gen-lang-client-0138449759.firebaseapp.com"
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: "gen-lang-client-0138449759"
-          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "gen-lang-client-0138449759.firebasestorage.app"
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "673117335596"
-          NEXT_PUBLIC_FIREBASE_APP_ID: "1:673117335596:web:e97cbc44894d30d3f4e189"
-          FIREBASE_ADMIN_PROJECT_ID: "gen-lang-client-0138449759"
+          NEXT_PUBLIC_FIREBASE_API_KEY: "AIzaSyDifYDt0iFQQfCHJ0l1TYBk7roITNitu9M"
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "tuturai-cfa8c.firebaseapp.com"
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: "tuturai-cfa8c"
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "tuturai-cfa8c.firebasestorage.app"
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "1092924309240"
+          NEXT_PUBLIC_FIREBASE_APP_ID: "1:1092924309240:web:7907251dc9ceedf173850d"
+          FIREBASE_ADMIN_PROJECT_ID: "tuturai-cfa8c"
         run: pnpm build

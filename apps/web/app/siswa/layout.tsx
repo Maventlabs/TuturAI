@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { DashboardShell } from '@/components/dashboard/dashboard-shell'
+import { ServiceUnavailable } from '@/components/system/service-unavailable'
 import { getSessionProfile, initialsOf } from '@/lib/auth'
 
 export default async function StudentLayout({
@@ -7,9 +8,10 @@ export default async function StudentLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, profile } = await getSessionProfile()
+  const { user, profile, profileUnavailable } = await getSessionProfile()
 
   if (!user) redirect('/auth/login')
+  if (profileUnavailable) return <ServiceUnavailable />
   if (profile?.role === 'teacher') redirect('/guru')
 
   const name = profile?.full_name ?? user.email ?? 'Siswa'
