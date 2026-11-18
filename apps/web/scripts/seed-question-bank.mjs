@@ -100,22 +100,10 @@ for (let index = 0; index < cards.length; index += 1) {
   batch.set(reference, { contentType: 'vocabulary', skill, level, word, meaning, example, ipa, tip, tags: [skill, level], status: 'published', createdAt: now, updatedAt: now, options: ['mastered'], correctOption: 0, prompt: `Review the word ${word}.`, explanation: meaning })
 }
 
-const listening = [
-  ['A student asks for directions to the science lab.', ['Find the science lab', 'Buy a ticket', 'Order lunch', 'Call a taxi'], 0, 'The speaker is asking for directions.', 'Could you tell me how to get to the science lab?'],
-  ['A teacher announces a change to tomorrow’s class.', ['The class is cancelled', 'The room has changed', 'The test is finished', 'The school is closed'], 1, 'The announcement says the room has changed.', 'Tomorrow’s class will be in room 204 instead.'],
-  ['Two friends discuss a weekend activity.', ['They will visit a museum', 'They will study at home', 'They will play tennis', 'They will travel abroad'], 2, 'They decide to play tennis.', 'The weather is perfect for tennis this weekend.'],
-  ['A customer reports a missing item in a delivery.', ['A missing notebook', 'A broken phone', 'A late train', 'A wrong address'], 0, 'The customer says the notebook is missing.', 'The package arrived, but the blue notebook was not inside.'],
-  ['A manager explains why a meeting is delayed.', ['The projector is broken', 'The manager is sick', 'The client is early', 'The office moved'], 0, 'The delay is caused by a projector problem.', 'We need ten more minutes because the projector is not working.'],
-  ['A speaker describes a new study habit.', ['Reviewing before bed', 'Skipping homework', 'Reading only headlines', 'Studying once a month'], 0, 'The speaker reviews material before bed.', 'I review my vocabulary for fifteen minutes before I sleep.'],
-  ['A guide explains the purpose of a community garden.', ['To sell cars', 'To grow food together', 'To build apartments', 'To teach swimming'], 1, 'The garden allows neighbors to grow food together.', 'Everyone in the neighborhood can grow vegetables here.'],
-  ['A colleague summarizes the result of a project.', ['It missed every goal', 'It finished early', 'It was cancelled', 'It has not started'], 1, 'The project finished before the deadline.', 'We completed the project two days ahead of schedule.'],
-]
-for (let index = 0; index < listening.length; index += 1) {
-  const [prompt, options, correctOption, explanation, audioText] = listening[index]
-  const reference = db.collection('questionBank').doc(`listening-${String(index + 1).padStart(3, '0')}`)
-  batch.set(reference, { contentType: 'listening', skill: 'listening', level: index < 4 ? 'beginner' : 'intermediate', prompt, options, correctOption, explanation, audioText, tags: ['listening'], status: 'published', createdAt: now, updatedAt: now })
-}
-
+// Listening items are owned by seed-listening-bank.mjs, which attaches a
+// rendered recording to every question. Seeding them here produced published
+// questions with no audioUrl, and the player treats a level as unplayable when
+// any of its items is silent.
 const pronunciation = [
   ['thought', '/θɔːt/', 'Let the air pass gently between your teeth.', 'The “th” is unvoiced.'],
   ['world', '/wɜːrld/', 'Keep the final consonants connected, not separated.', 'The “rld” cluster needs a smooth finish.'],
@@ -174,7 +162,7 @@ for (let index = 0; index < tests.length; index += 1) {
 
 try {
   await batch.commit()
-  console.log(`Seeded ${questions.length + cards.length + listening.length + pronunciation.length + speaking.length + conversations.length + tests.length} question bank items.`)
+  console.log(`Seeded ${questions.length + cards.length + pronunciation.length + speaking.length + conversations.length + tests.length} question bank items.`)
 } catch (error) {
   if (error?.code === 6) {
     console.error('Question bank already contains one or more seed IDs; no documents were changed.')
