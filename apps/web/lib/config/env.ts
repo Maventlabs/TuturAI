@@ -268,9 +268,14 @@ const CLOUDINARY_ALIASES = {
   apiSecret: ['CLOUDINARY_API_SECRET_7', 'CLOUDINARY_API_SECRET'],
 } as const
 
-// Cloudinary API keys are public identifiers (they ship in signed-upload
-// requests), and this account's key is not stored as a project variable.
-const CLOUDINARY_API_KEY_FALLBACK = '914834288553626'
+// The API key is not stored as its own project variable, but CLOUDINARY_URL
+// carries it as `cloudinary://<key>:<secret>@<cloud>`. Parsing it keeps the
+// literal out of the repo, which Netlify's secrets scanner rejects.
+function cloudinaryKeyFromUrl() {
+  const url = optional('CLOUDINARY_URL')
+  const match = url ? /^cloudinary:\/\/([^:]+):/.exec(url) : null
+  return match?.[1]
+}
 
 function firstResolved(names: readonly string[]) {
   for (const name of names) {
@@ -283,9 +288,10 @@ function firstResolved(names: readonly string[]) {
 export function getCloudinaryEnv() {
   const cloudName = firstResolved(CLOUDINARY_ALIASES.cloudName)
   const apiSecret = firstResolved(CLOUDINARY_ALIASES.apiSecret)
-  const apiKey = optional('CLOUDINARY_API_KEY') ?? CLOUDINARY_API_KEY_FALLBACK
+  const apiKey = optional('CLOUDINARY_API_KEY') ?? cloudinaryKeyFromUrl()
   if (!cloudName) throw new Error('Missing required environment variable: CLOUDINARY_CLOUD_NAME')
   if (!apiSecret) throw new Error('Missing required environment variable: CLOUDINARY_API_SECRET')
+  if (!apiKey) throw new Error('Missing required environment variable: CLOUDINARY_API_KEY')
   return { cloudName, apiKey, apiSecret } as const
 }
 
